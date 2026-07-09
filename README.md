@@ -5,7 +5,12 @@ High-fidelity React Native prototype of the Amazon Music mobile client, extended
 
 
 > Academic UI prototype.
-
+Based on research and design done by: 
+- [Rabiat Sadiq](https://github.com/rabiats) - `Human`
+- [Brook Xiao ](https://github.com/xiaobrook3) - `Possible Human`
+- [Celine Tseng](https://github.com/celine-ttl) - `Could be Human`
+- [Erica Flora Yu](https://github.com/EricaFloraYu) - `Homosapien`
+- [Dave Song](https://github.com/dave-song) - `Human Like` 
 ---
 
 ## What this is
