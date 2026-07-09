@@ -547,24 +547,6 @@ export default function OliviaMusicTab() {
         </View>
       )}
 
-      {/* Playlist featuring Olivia */}
-      {oliviaPlaylists.featuring.length > 0 && (
-        <View style={s.section}>
-          <SectionHead title="Playlist featuring Olivia" />
-          <EdgeFadeRow>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
-              {oliviaPlaylists.featuring.map(pl => (
-                <TouchableOpacity key={pl.id} style={s.discCard} activeOpacity={0.85} onPress={() => router.push(`/playlist/${pl.id}` as any)}>
-                  <Image source={resolveArt(pl.coverArtPath)} style={s.discArt} resizeMode="cover" />
-                  <Text style={s.discTitle} numberOfLines={1}>{pl.name}</Text>
-                  <Text style={s.discMeta} numberOfLines={1}>Playlist • {pl.songIds?.length ?? pl.songCount} songs</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </EdgeFadeRow>
-        </View>
-      )}
-
       {/* 5. Hidden Gems */}
       <View style={s.section}>
         <SectionHead title="Hidden Gems" sub={`Found ${hidden.length} hidden gems for you`} subCyan />
@@ -666,6 +648,24 @@ export default function OliviaMusicTab() {
           </ScrollView>
         </EdgeFadeRow>
       </View>
+
+      {/* Playlist featuring Olivia */}
+      {oliviaPlaylists.featuring.length > 0 && (
+        <View style={s.section}>
+          <SectionHead title="Playlist featuring Olivia" />
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {oliviaPlaylists.featuring.map(pl => (
+                <TouchableOpacity key={pl.id} style={s.discCard} activeOpacity={0.85} onPress={() => router.push(`/playlist/${pl.id}` as any)}>
+                  <Image source={resolveArt(pl.coverArtPath)} style={s.discArt} resizeMode="cover" />
+                  <Text style={s.discTitle} numberOfLines={1}>{pl.name}</Text>
+                  <Text style={s.discMeta} numberOfLines={1}>Playlist • {pl.songIds?.length ?? pl.songCount} songs</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </EdgeFadeRow>
+        </View>
+      )}
 
       {/* 9. Discography */}
       <View style={s.section}>
