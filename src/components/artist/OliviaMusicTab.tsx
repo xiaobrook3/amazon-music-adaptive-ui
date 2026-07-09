@@ -498,59 +498,35 @@ export default function OliviaMusicTab() {
           </View>
         </View>
 
-        {favTab === 2 ? (
-          <View style={[s.pad, { marginTop: 12 }]}>
-            <View style={s.forgottenCardWrap}>
-              {favorites.map((sg, i) => (
-                <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => play(sg.id)}>
-                  <View style={s.favRow}>
-                    <Image source={resolveArt(sg.albumArtPath)} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={12} />
-                    <LinearGradient colors={['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.42)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                    <Text style={s.favRank}>{i + 1}</Text>
-                    <Image source={resolveArt(sg.albumArtPath)} style={s.favCover} resizeMode="cover" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.favTitle} numberOfLines={1}>{sg.title}</Text>
-                      <Text style={s.favPlays}>{FORGOTTEN_PLAYS[i]} plays</Text>
-                    </View>
-                    <RowIcons song={sg} light />
-                  </View>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={s.mixBtnOutline}
-                activeOpacity={0.85}
-                onPress={() => favorites[0] && play(favorites[0].id)}
-              >
-                <Text style={s.mixBtnOutlineText}>Play Your Mix</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={[s.pad, { marginTop: 12, gap: 12 }]}>
-            {favorites.map((sg, i) => (
-              <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => play(sg.id)}>
-                <View style={s.favRow}>
-                  <Image source={resolveArt(sg.albumArtPath)} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={18} />
-                  <LinearGradient colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.60)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                  <Text style={s.favRank}>{i + 1}</Text>
-                  <Image source={resolveArt(sg.albumArtPath)} style={s.favCover} resizeMode="cover" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.favTitle} numberOfLines={1}>{sg.title}</Text>
-                    <Text style={s.favPlays}>{PLAYS[i]} plays</Text>
-                  </View>
-                  <RowIcons song={sg} light />
+        <View style={[s.pad, { marginTop: 12, gap: 12 }]}>
+          {favorites.map((sg, i) => (
+            <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => play(sg.id)}>
+              <View style={s.favRow}>
+                <Image source={resolveArt(sg.albumArtPath)} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={favTab === 2 ? 12 : 18} />
+                <LinearGradient
+                  colors={favTab === 2 ? ['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.42)'] : ['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.60)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Text style={s.favRank}>{i + 1}</Text>
+                <Image source={resolveArt(sg.albumArtPath)} style={s.favCover} resizeMode="cover" />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.favTitle} numberOfLines={1}>{sg.title}</Text>
+                  <Text style={s.favPlays}>{favTab === 2 ? FORGOTTEN_PLAYS[i] : PLAYS[i]} plays</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={s.mixBtnOutline}
-              activeOpacity={0.85}
-              onPress={() => favorites[0] && play(favorites[0].id)}
-            >
-              <Text style={s.mixBtnOutlineText}>Play Your Mix</Text>
+                <RowIcons song={sg} light />
+              </View>
             </TouchableOpacity>
-          </View>
-        )}
+          ))}
+          <TouchableOpacity
+            style={s.mixBtnOutline}
+            activeOpacity={0.85}
+            onPress={() => favorites[0] && play(favorites[0].id)}
+          >
+            <Text style={s.mixBtnOutlineText}>Play Your Mix</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Your playlists with Olivia */}
@@ -928,59 +904,35 @@ export default function OliviaMusicTab() {
           </View>
         </View>
 
-        {favTab === 2 ? (
-          <View style={[s.pad, { marginTop: 12 }]}>
-            <View style={s.forgottenCardWrap}>
-              {favorites.map((sg, i) => (
-                <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => play(sg.id)}>
-                  <View style={s.favRow}>
-                    <Image source={resolveArt(sg.albumArtPath)} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={12} />
-                    <LinearGradient colors={['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.42)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                    <Text style={s.favRank}>{i + 1}</Text>
-                    <Image source={resolveArt(sg.albumArtPath)} style={s.favCover} resizeMode="cover" />
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.favTitle} numberOfLines={1}>{sg.title}</Text>
-                      <Text style={s.favPlays}>{FORGOTTEN_PLAYS[i]} plays</Text>
-                    </View>
-                    <RowIcons song={sg} light />
-                  </View>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={s.mixBtnOutline}
-                activeOpacity={0.85}
-                onPress={() => favorites[0] && play(favorites[0].id)}
-              >
-                <Text style={s.mixBtnOutlineText}>Play Your Mix</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={[s.pad, { marginTop: 12, gap: 12 }]}>
-            {favorites.map((sg, i) => (
-              <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => play(sg.id)}>
-                <View style={s.favRow}>
-                  <Image source={resolveArt(sg.albumArtPath)} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={18} />
-                  <LinearGradient colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.60)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                  <Text style={s.favRank}>{i + 1}</Text>
-                  <Image source={resolveArt(sg.albumArtPath)} style={s.favCover} resizeMode="cover" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.favTitle} numberOfLines={1}>{sg.title}</Text>
-                    <Text style={s.favPlays}>{PLAYS[i]} plays</Text>
-                  </View>
-                  <RowIcons song={sg} light />
+        <View style={[s.pad, { marginTop: 12, gap: 12 }]}>
+          {favorites.map((sg, i) => (
+            <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => play(sg.id)}>
+              <View style={s.favRow}>
+                <Image source={resolveArt(sg.albumArtPath)} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={favTab === 2 ? 12 : 18} />
+                <LinearGradient
+                  colors={favTab === 2 ? ['rgba(0,0,0,0.10)', 'rgba(0,0,0,0.42)'] : ['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.60)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Text style={s.favRank}>{i + 1}</Text>
+                <Image source={resolveArt(sg.albumArtPath)} style={s.favCover} resizeMode="cover" />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.favTitle} numberOfLines={1}>{sg.title}</Text>
+                  <Text style={s.favPlays}>{favTab === 2 ? FORGOTTEN_PLAYS[i] : PLAYS[i]} plays</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={s.mixBtnOutline}
-              activeOpacity={0.85}
-              onPress={() => favorites[0] && play(favorites[0].id)}
-            >
-              <Text style={s.mixBtnOutlineText}>Play Your Mix</Text>
+                <RowIcons song={sg} light />
+              </View>
             </TouchableOpacity>
-          </View>
-        )}
+          ))}
+          <TouchableOpacity
+            style={s.mixBtnOutline}
+            activeOpacity={0.85}
+            onPress={() => favorites[0] && play(favorites[0].id)}
+          >
+            <Text style={s.mixBtnOutlineText}>Play Your Mix</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 7. Olivia Music Videos */}
@@ -1153,27 +1105,6 @@ const s = StyleSheet.create({
 
   mixBtnOutline: { borderWidth: 1, borderColor: '#fff', borderRadius: 32, paddingVertical: 10, alignItems: 'center' },
   mixBtnOutlineText: { ...typeHeadline(14), color: '#fff' },
-
-  // Forgotten Favorites card — per Figma node 915:9521
-  forgottenCardWrap: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  forgottenRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8 },
-  forgottenPlays: { fontSize: 12, color: C.cyan, marginTop: 2 },
-  mixBtnForgotten: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderWidth: 1,
-    borderColor: GREY,
-    borderRadius: 32,
-    paddingVertical: 10,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  mixBtnForgottenText: { fontSize: 12, color: '#fff' },
 
   // Popular paged scroll
   popScrollContent: { paddingLeft: 16 },
