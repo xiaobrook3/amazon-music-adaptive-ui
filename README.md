@@ -4,7 +4,7 @@ High-fidelity React Native prototype of the Amazon Music mobile client, extended
 
 
 
-> Academic UI prototype. Not affiliated with, endorsed by, or connected to Amazon or Amazon Music.
+> Academic UI prototype.
 
 ---
 
