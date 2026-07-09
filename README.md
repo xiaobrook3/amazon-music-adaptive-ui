@@ -2,7 +2,7 @@
 
 High-fidelity React Native prototype of the Amazon Music mobile client, extended with a custom **Adaptive UI** layer that reshapes home-screen content from listener personas and fandom themes.
 
-**Maintainer:** Rabiat S — CMU MCHI 2026 Capstone
+
 
 > Academic UI prototype. Not affiliated with, endorsed by, or connected to Amazon or Amazon Music.
 
@@ -10,7 +10,7 @@ High-fidelity React Native prototype of the Amazon Music mobile client, extended
 
 ## What this is
 
-This is a **deliberately engineered UI clone**, not a generated one-off:
+This is a **deliberately engineered UI clone**:
 
 - **Expo Router** file-based navigation with a typed route tree
 - **React Context** providers for playback, profiles, likes, saved sessions, and adaptive themes
