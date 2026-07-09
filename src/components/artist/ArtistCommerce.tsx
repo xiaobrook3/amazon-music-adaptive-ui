@@ -1,0 +1,201 @@
+import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { Text } from '../AppText'
+import { AppImage as Image } from '../AppImage'
+import { Ionicons } from '@expo/vector-icons'
+import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
+import { C, FONT_FAMILY, typeHeadline } from '../../theme'
+import type { PastArtistEvent } from '../../data/oliviaRodrigoAbout'
+
+// Shared Events + Merch presentation so the dedicated Events / Merch tabs and
+// the About tab render the exact same cards throughout an artist page.
+
+const MERCH_CARD_W = (Dimensions.get('window').width - 44) / 2
+
+export interface ArtistEvent {
+  month: string
+  day: string
+  title: string
+  venue: string
+  time: string
+}
+
+export interface MerchItem {
+  title: string
+  subtitle?: string
+  price: string
+  artKey: string
+}
+
+export function ArtistEventsCard({ events }: { events: ArtistEvent[] }) {
+  const { showConfirmation } = useAdaptiveUI()
+  if (events.length === 0) return null
+  return (
+    <View style={s.eventsCard}>
+      {events.map((ev, i) => (
+        <View key={`${ev.title}-${ev.day}`} style={[s.eventRow, i > 0 && s.eventDivider]}>
+          <View style={s.dateBox}>
+            <Text style={s.dateMonth}>{ev.month}</Text>
+            <Text style={s.dateDay}>{ev.day}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.eventTitle}>{ev.title}</Text>
+            <Text style={s.eventVenue}>{ev.venue}</Text>
+            <Text style={s.eventTime}>{ev.time}</Text>
+          </View>
+          <TouchableOpacity
+            style={s.ticketsBtn}
+            activeOpacity={0.85}
+            onPress={() => showConfirmation(`Opening Ticketmaster — ${ev.title}, ${ev.month} ${ev.day}`)}
+          >
+            <Text style={s.ticketsBtnText}>Tickets</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+const PAST_BADGE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  past: { bg: 'rgba(80,80,80,0.82)', text: '#ccc', label: 'PAST' },
+  'live-rec': { bg: 'rgba(0,188,188,0.18)', text: C.cyan, label: '● LIVE REC' },
+  replay: { bg: 'rgba(0,188,188,0.18)', text: C.cyan, label: '▶ REPLAY' },
+}
+
+export function PastArtistEventsCard({ events }: { events: PastArtistEvent[] }) {
+  const { showConfirmation } = useAdaptiveUI()
+  if (events.length === 0) return null
+  return (
+    <View style={s.eventsCard}>
+      {events.map((ev, i) => {
+        const badge = PAST_BADGE_COLORS[ev.kind]
+        const isPast = ev.kind === 'past'
+        return (
+          <View
+            key={`${ev.title}-${ev.day}-past`}
+            style={[s.eventRow, i > 0 && s.eventDivider, isPast && s.pastEventRow]}
+          >
+            <View style={[s.dateBox, isPast && s.pastDateBox]}>
+              <Text style={[s.dateMonth, isPast && s.pastDateMonth]}>{ev.month}</Text>
+              <Text style={[s.dateDay, isPast && s.pastDateDay]}>{ev.day}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={s.pastBadgeRow}>
+                <View style={[s.pastBadgePill, { backgroundColor: badge.bg }]}>
+                  <Text style={[s.pastBadgeText, { color: badge.text }]}>{badge.label}</Text>
+                </View>
+              </View>
+              <Text style={[s.eventTitle, isPast && s.pastEventTitle]}>{ev.title}</Text>
+              <Text style={s.eventVenue}>{ev.venue}</Text>
+              <Text style={s.eventTime}>{ev.subtitle}</Text>
+            </View>
+            {!isPast && (
+              <TouchableOpacity
+                style={s.replayBtn}
+                activeOpacity={0.85}
+                onPress={() => showConfirmation(`Playing ${ev.kind === 'live-rec' ? 'live recording' : 'replay'} — ${ev.title}`)}
+              >
+                <Ionicons
+                  name={ev.kind === 'live-rec' ? 'radio-outline' : 'play-circle-outline'}
+                  size={22}
+                  color={C.cyan}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
+export function ArtistMerchGrid({
+  items,
+  resolveArt,
+}: {
+  items: MerchItem[]
+  resolveArt: (key: string) => any
+}) {
+  const { showConfirmation } = useAdaptiveUI()
+  return (
+    <View style={s.merchGrid}>
+      {items.map(item => (
+        <View key={item.title} style={s.merchCard}>
+          <Image source={resolveArt(item.artKey)} style={s.merchArt} resizeMode="cover" />
+          <Text style={s.merchTitle} numberOfLines={2}>{item.title}</Text>
+          {item.subtitle ? <Text style={s.merchSubtitle}>{item.subtitle}</Text> : null}
+          <View style={s.merchBottom}>
+            <Text style={s.merchPrice}>{item.price}</Text>
+            <TouchableOpacity
+              style={s.merchBuyBtn}
+              activeOpacity={0.85}
+              onPress={() => showConfirmation(`Added to bag — ${item.title} · ${item.price}`)}
+            >
+              <Ionicons name="bag-handle-outline" size={13} color="#06222a" />
+              <Text style={s.merchBuyText}>Buy</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+const s = StyleSheet.create({
+  eventsCard: {
+    backgroundColor: '#161c23',
+    borderWidth: 1,
+    borderColor: '#242c35',
+    borderRadius: 16,
+    padding: 14,
+    gap: 14,
+  },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+  eventDivider: { borderTopWidth: 1, borderTopColor: '#242c35', paddingTop: 14 },
+  dateBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: '#1c232b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateMonth: { fontFamily: FONT_FAMILY.medium, fontSize: 11, color: C.cyan, letterSpacing: 0.11 },
+  dateDay: { ...typeHeadline(22), color: '#fff', lineHeight: 24 },
+  eventTitle: { fontFamily: FONT_FAMILY.medium, fontSize: 15, color: '#fff' },
+  eventVenue: { fontFamily: FONT_FAMILY.regular, fontSize: 12, color: '#a7aeb6', marginTop: 2 },
+  eventTime: { fontFamily: FONT_FAMILY.medium, fontSize: 11.5, color: '#6e7681', marginTop: 2 },
+  ticketsBtn: { backgroundColor: C.cyan, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 9 },
+  ticketsBtnText: { fontFamily: FONT_FAMILY.medium, fontSize: 13, color: '#06222a' },
+
+  pastEventRow: { opacity: 0.78 },
+  pastDateBox: { backgroundColor: '#181e24' },
+  pastDateMonth: { color: '#5a6472' },
+  pastDateDay: { color: '#8c96a2' },
+  pastEventTitle: { color: '#b0b8c1' },
+  pastBadgeRow: { flexDirection: 'row', marginBottom: 4 },
+  pastBadgePill: {
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  pastBadgeText: { fontFamily: FONT_FAMILY.medium, fontSize: 9, letterSpacing: 0.4 },
+  replayBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+
+  merchGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  merchCard: { width: MERCH_CARD_W, gap: 6 },
+  merchArt: { width: '100%', height: MERCH_CARD_W, borderRadius: 12, backgroundColor: '#161616' },
+  merchTitle: { fontFamily: FONT_FAMILY.medium, fontSize: 14, color: '#fff', lineHeight: 18, minHeight: 36 },
+  merchSubtitle: { fontFamily: FONT_FAMILY.regular, fontSize: 12, color: '#8b939c', marginTop: -2 },
+  merchBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
+  merchPrice: { fontFamily: FONT_FAMILY.medium, fontSize: 14, color: C.cyan },
+  merchBuyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: C.cyan,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  merchBuyText: { fontFamily: FONT_FAMILY.medium, fontSize: 12, color: '#06222a' },
+})

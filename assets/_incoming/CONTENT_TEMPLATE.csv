@@ -1,0 +1,35 @@
+screen,section,field,value,image_filename,notes
+home,header,user_display_name,Derbc,,First name shown in greeting
+home,header,user_initial,D,,Avatar circle letter if no photo
+home,greeting,morning_text,Good morning,,Or leave blank to auto-generate by time
+home,quick_access_1,label,Recently Played,recently-played.jpg,Square art ~80px; real album or playlist cover
+home,quick_access_2,label,Liked Songs,liked-songs.jpg,
+home,quick_access_3,label,My Mixes,my-mixes.jpg,
+home,quick_access_4,label,Podcasts,podcasts-quick.jpg,
+home,rail_1,title,Recently played,,Exact AM section title if you have a screenshot
+home,rail_1,song_1_title,,song-1-art.jpg,Match mockData song id or new row in songs section
+home,rail_2,title,Made for you,,
+home,rail_3,title,Your artists,,
+home,news,headline,BTS is going on a World Tour,bts-news.jpg,Artist news card image
+home,news,body,3 tickets available near you - Jun-Sep 2025,,
+find,header,title,Find,,
+find,search,placeholder,Songs artists albums podcasts,,
+find,category_1,label,Pop,find-pop.jpg,~400x160 gradient or photo card
+find,category_2,label,Hip-Hop,find-hiphop.jpg,
+find,trending_1,rank,1,,Song title + artist in songs section below
+artist,bts,name,BTS,bts-hero.jpg,Full-width banner + round profile photo
+artist,bts,bio,Short artist bio text,,2-3 sentences
+artist,bts,monthly_listeners,45000000,,
+artist,bts,tab_albums,enabled,yes,Provide album list or screenshot of Albums tab
+now_playing,current,song_title,,,Must match a song in catalog
+now_playing,current,playing_from_label,PLAYING FROM PLAYLIST,,
+now_playing,xray,lyric_line_1,,,Optional synced lyrics for X-Ray panel
+now_playing,xray,lyric_line_2,,,
+library,header,sort_label,Recents,,
+library,playlist_1,name,Late Night Drive,pl-late-night.jpg,
+podcasts,featured_1,title,The ARMY Diaries,pod-army.jpg,Square cover 400x400+
+announcement,bts,headline,BTS is going on a World Tour,,
+announcement,bts,tour_date_1,Jun 14 - Los Angeles CA - SoFi Stadium,,
+user,profile,name,Derbc Studios,profile.jpg,Optional real avatar
+user,profile,handle,@derbc,,
+user,profile,member_since,October 2021,,

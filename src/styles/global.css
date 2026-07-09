@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background-color: #0a0a0a;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    overscroll-behavior: none;
+  }
+
+  /* iOS safe area utilities */
+  .pt-safe { padding-top: env(safe-area-inset-top, 44px); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 34px); }
+
+  /* Hide scrollbars but keep scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* Shimmer gradient for unlock animation */
+  .shimmer-gold {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(245, 158, 11, 0.4) 40%,
+      rgba(251, 191, 36, 0.8) 50%,
+      rgba(245, 158, 11, 0.4) 60%,
+      transparent 100%
+    );
+    background-size: 200% auto;
+  }
+
+  /* Character glow rings */
+  .glow-purple { box-shadow: 0 0 24px 6px rgba(124, 58, 237, 0.45); }
+  .glow-cyan   { box-shadow: 0 0 24px 6px rgba(37, 209, 218, 0.45); }
+  .glow-pink   { box-shadow: 0 0 24px 6px rgba(236, 72, 153, 0.45); }
+  .glow-blue   { box-shadow: 0 0 24px 6px rgba(59, 130, 246, 0.45); }
+  .glow-rose   { box-shadow: 0 0 24px 6px rgba(244, 63, 94, 0.45); }
+  .glow-gold   { box-shadow: 0 0 24px 6px rgba(245, 158, 11, 0.55); }
+
+  /* Press active state */
+  .press-scale:active { transform: scale(0.95); transition: transform 0.1s ease; }
+
+  /* Bottom sheet backdrop */
+  .backdrop-blur-sheet {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-purple {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .border-gradient-purple {
+    border-image: linear-gradient(135deg, #7c3aed, #a78bfa) 1;
+  }
+}

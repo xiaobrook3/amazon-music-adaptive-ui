@@ -1,0 +1,25 @@
+# Reference / design assets not needed for build
+Images of AM interface/
+_pdf_pages/
+reference/
+brand archetchure.pdf
+
+# Expo dev bundle (generated locally, not needed for cloud build)
+.expo-verify-bundle/
+.expo/
+
+# Native folders (managed workflow — EAS generates these)
+android/
+ios/
+
+# Cursor IDE files
+.cursor/
+
+# Font license/doc files (keep actual .otf/.woff files)
+assets/fonts/Amazon_Music_FONTS/__MACOSX/
+assets/fonts/Amazon_Music_FONTS/**/*.pdf
+assets/fonts/Amazon_Music_FONTS/**/*.DS_Store
+
+# Misc
+*.apk
+*.aab

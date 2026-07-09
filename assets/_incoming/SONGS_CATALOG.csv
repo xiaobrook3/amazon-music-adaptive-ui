@@ -1,0 +1,3 @@
+id,title,artist_id,artist_name,album,duration_mmss,album_art_filename,mood
+s1,Example Song Title,bts,BTS,Album Name,3:45,s1-art.jpg,hype
+s2,Example Song 2,lorde,Lorde,Album Name,4:12,s2-art.jpg,chill
