@@ -238,7 +238,9 @@ npm start
 
 ## Collaboration
 
-- This repository is maintained by **Rabiat S**
+
+<!-- - This repository is maintained by **Rabiat S** -->
+
 - Open pull requests against `main`; maintainer reviews and merges
 
 See `NOTICE` for copyright and attribution.
