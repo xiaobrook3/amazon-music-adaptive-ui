@@ -1,0 +1,82 @@
+/* ============================================================
+   ADAPTIVE UI — photo layer
+   Real Olivia Rodrigo assets layered over the gradient fallbacks
+   defined in adaptive-artist.html. If this stylesheet is ever
+   absent, the page degrades cleanly to the generative gradient
+   placeholders.
+   ============================================================ */
+
+.hp-base{background:#0c0c10 url("img/olivia.jpg") center 14%/cover no-repeat;}
+.hp-spot{opacity:.4;}
+.hp-bokeh{opacity:.28;}
+.hp-figure{background:
+  radial-gradient(125% 80% at 50% 124%, rgba(3,3,7,.97), transparent 54%),
+  radial-gradient(90% 60% at 10% 2%, rgba(6,5,12,.5), transparent 56%);}
+.grain{opacity:.05;}
+
+.story__media{background:url("img/guts.webp") center 38%/cover;}
+.post__art{background:url("img/sour.webp") center 42%/cover;}
+.albumword{display:none;}
+
+/* per-post art (carousel) */
+.lsess{background:linear-gradient(140deg,rgba(5,10,15,.90) 30%,rgba(18,10,30,.82)),url("img/guts.webp") center 30%/cover;}
+.pa-sour{background:url("img/sour.webp") center 42%/cover;}
+.pa-vmp{background:url("img/vampire-single.png") center/cover;}
+.pa-g4u{background:url("img/good4u.png") center 34%/cover;}
+.pa-guts{background:url("img/guts.webp") center 38%/cover;}
+
+/* You & Olivia + Music panel art (slugs with real assets) */
+.yo-art--sour{background:url("img/sour.webp") center 42%/cover;}
+.yo-art--dl{background:url("img/drivers-license.jpg") center/cover;}
+.yo-art--guts{background:url("img/guts.webp") center 38%/cover;}
+.yo-art--vampire{background:url("img/vampire-single.png") center/cover;}
+.mu-art--guts{background:url("img/guts.webp") center 38%/cover;}
+.mu-art--sour{background:url("img/sour.webp") center 42%/cover;}
+.mu-art--dl{background:url("img/drivers-license.jpg") center/cover;}
+.mu-art--gracie{background:url("img/inf-gracie.jpg") center/cover;}
+.mu-art--cover1{background:url("img/good4u.png") center/cover;}
+.mu-art--cover2{background:url("img/vampire-single.png") center/cover;}
+.mu-art--newalbum{background:url("img/guts.webp") center 38%/cover;}
+
+.art-dl{background:url("img/drivers-license.jpg") center/cover;}
+.art-dl::after{display:none;}
+/* real album/single covers behind the song rows (was gradient placeholders) */
+.art-guts{background:url("img/guts.webp") center 38%/cover;}
+.art-sour{background:url("img/sour.webp") center 42%/cover;}
+.art-spill{background:url("img/guts.webp") center 38%/cover;}
+.art-g4u{background:url("img/good4u.png") center/cover;}
+.art-vmp{background:url("img/vampire-single.png") center/cover;}
+.art-v1{background:url("img/vampire-lyrics.jpg") center 32%/cover;}
+.art-v2{background:url("img/guts.webp") center 38%/cover;}
+.art-m1{background:#0b0b0f url("img/merch-tee.avif") center/contain no-repeat;}
+.art-m2{background:#0b0b0f url("img/merch-guts.webp") center/contain no-repeat;}
+.merch-mark{display:none;}
+
+.player__art{background:url("img/vampire-single.png") center/cover;}
+.player__art.is-guts{background:url("img/guts.webp") center 38%/cover;}
+.player__art .v{display:none;}
+
+.hub__photo{background:url("img/olivia.jpg") center 18%/cover;color:transparent;}
+.av-artist{background:url("img/olivia.jpg") center 16%/cover;color:transparent;text-shadow:none;}
+.av__photo.g-taylor{background:url("img/inf-taylor.jpg") center/cover;color:transparent;text-shadow:none;}
+.av__photo.g-lorde{background:url("img/inf-lorde.jpg") center 30%/cover;color:transparent;text-shadow:none;}
+.av__photo.g-alanis{background:url("img/inf-alanis.jpg") center 25%/cover;color:transparent;text-shadow:none;}
+.av__photo.g-gracie{background:url("img/inf-gracie.jpg") center/cover;color:transparent;text-shadow:none;}
+.av__photo.g-chappell{background:url("img/inf-chappell.jpg") center 30%/cover;color:transparent;text-shadow:none;}
+.ab-inf__av--olivia{background:url("img/olivia.jpg") center 16%/cover;}
+.av__photo.g-olivia{background:url("img/olivia.jpg") center 16%/cover;color:transparent;text-shadow:none;}
+
+/* Derived art (crops/grades of the core set) for the Music + You & Olivia panels */
+.mu-art--thecure{background:url("img/since-cure.webp") center/cover;}
+.mu-art--talkshow{background:url("img/since-talkshow.webp") center/cover;}
+.mu-art--announcement{background:url("img/since-announcement.webp") center/cover;}
+.mu-art--glossier{background:url("img/since-glossier.webp") center/cover;}
+.mu-art--bellakay{background:url("img/fan-bella.webp") center/cover;}
+.mu-art--noahkahan{background:url("img/fan-noah.webp") center/cover;}
+.yo-art--gsil{background:url("img/yo-gsil.webp") center/cover;}
+.yo-art--gsil2{background:url("img/yo-gsil2.webp") center/cover;}
+.yo-art--podcast{background:url("img/yo-podcast.webp") center/cover;}
+.yo-art--dejavu{background:url("img/yo-dejavu.webp") center/cover;}
+.yo-art--petty{background:url("img/good4u.png") center 30%/cover;}
+.start-card__bg.yo-art--dejavu{background-position:right 22%;transform:scaleX(-1);} /* mirror: purple field carries the copy, face sits right */
+.yo-art--newbie{background:url("img/drivers-license.jpg") center/cover;}
