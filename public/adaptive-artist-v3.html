@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Amazon Music · Artist page · Adaptive UI v3 (who you are, the moment, your control) · Olivia Rodrigo</title>
-<meta name="description" content="Hi-fi prototype, iteration 3: the artist page along three forces at once — who you are (a listener across four states), the moment you're in (the live clock and session), and your control over both (a master switch and per-section consent). The same page, rendered for three different listeners, proves it models a person, not a profile.">
+<meta name="description" content="An Amazon Music artist page that adapts to the listener: who you are, the moment you're in, and your control over both. The same page rendered for three different listeners.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://rsms.me/">
@@ -1106,12 +1106,12 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
 <aside class="sim" aria-label="Simulation controls">
   <div class="sim__row sim__row--id">
     <span class="sim__lbl id">Whose<br>page</span>
-    <div class="sim__ids" role="radiogroup" aria-label="Which listener's page — same artist, same moment, a different person" id="simIds">
-      <button class="sim__id active" data-listener="you" role="radio" aria-checked="true" title="You — Livie, the listener you scrub through the four states"><i class="idav" style="--pc:#25D1DA">L</i>You</button>
-      <button class="sim__id" data-listener="maya" role="radio" aria-checked="false" title="Maya — new here, 6 plays over 3 weeks"><i class="idav" style="--pc:#C9A0DC">M</i>Maya</button>
-      <button class="sim__id" data-listener="devon" role="radio" aria-checked="false" title="Devon — 6-year fan, top 1%, three eras"><i class="idav" style="--pc:#7EB8DA">D</i>Devon</button>
+    <div class="sim__ids" role="radiogroup" aria-label="Which listener's page" id="simIds">
+      <button class="sim__id active" data-listener="you" role="radio" aria-checked="true" title="You: the listener the stepper scrubs"><i class="idav" style="--pc:#25D1DA">L</i>You</button>
+      <button class="sim__id" data-listener="maya" role="radio" aria-checked="false" title="Maya: new here, 6 plays over 3 weeks"><i class="idav" style="--pc:#C9A0DC">M</i>Maya</button>
+      <button class="sim__id" data-listener="devon" role="radio" aria-checked="false" title="Devon: 6-year fan, top 1%, three eras"><i class="idav" style="--pc:#7EB8DA">D</i>Devon</button>
     </div>
-    <button class="sim__master on" id="simMaster" role="switch" aria-checked="true" aria-label="Adaptive UI master switch — turn all adaptation on or off"><i></i><span id="simMasterLbl">Adaptive&nbsp;UI · On</span></button>
+    <button class="sim__master on" id="simMaster" role="switch" aria-checked="true" aria-label="Adaptive UI master switch"><i></i><span id="simMasterLbl">Adaptive&nbsp;UI · On</span></button>
   </div>
   <div class="sim__row">
     <span class="sim__lbl state">Listener<br>over&nbsp;time</span>
@@ -1131,7 +1131,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   <div class="sim__more" id="simMore">
     <div class="sim__row sim__row--amb">
       <span class="sim__lbl sim__lbl--amb">The<br>moment</span>
-      <button class="sim__amb" id="simAmb" aria-label="Time of day — ambient context. Reads the clock; tap to move the hour."><i></i><span class="sim__ambtime" id="simAmbTime">9:41</span><span class="sim__ambdp" id="simAmbDp">morning</span></button>
+      <button class="sim__amb" id="simAmb" aria-label="Time of day. Reads the clock; tap to move the hour."><i></i><span class="sim__ambtime" id="simAmbTime">9:41</span><span class="sim__ambdp" id="simAmbDp">morning</span></button>
       <span class="sim__ambnote">ambient · reads the clock, stores nothing</span>
     </div>
     <div class="sim__row">
@@ -1148,7 +1148,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       <span class="sim__conf" id="simConf" aria-label="System confidence"><i></i><i></i><i></i><span class="sim__conflbl" id="simConfLbl">BASELINE</span></span>
     </div>
     <p class="sim__job"><span class="sim__joblbl">Goal now</span><b id="simJob"></b></p>
-    <p class="sim__foot">Three forces at once: <b>who</b> (scrub one listener through four states, or switch to Maya and Devon — two other real listeners, frozen at their own reads right now), <b>when</b> (the live clock shapes the moment), and <b>your control</b> (the master switch, and ✦ → correct on any surface). The page models a person, not a profile.</p>
+    <p class="sim__foot">Scrub one listener through four states, switch to Maya or Devon, move the clock, or flip adaptation off. The ✦ on any surface explains and corrects it.</p>
   </div>
 </aside>
 
@@ -1355,13 +1355,13 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
            with a horizon, not an empty slot. Cold only; the earned modules replace it. -->
       <section class="wrap" id="coldPreview" data-lens="fixed" data-note="the hint: adaptivity announced up front, before it has anything to show" hidden>
         <div class="cold-hint">
-          <p class="cold-hint__lead"><span class="live-tag">This page adapts</span> Right now you see the standard page, same as everyone. Play a few songs and it starts becoming yours:</p>
+          <p class="cold-hint__lead"><span class="live-tag">This page adapts</span> Play a few songs and it starts becoming yours:</p>
           <div class="cold-hint__row">
             <span class="cold-hint__chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>Your top songs</span>
             <span class="cold-hint__chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>Your journey, era by era</span>
             <span class="cold-hint__chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>Earned exclusives</span>
           </div>
-          <p class="cold-hint__note">Each change explains itself with a ✦, and the standard page always stays one tap away.</p>
+          <p class="cold-hint__note">Every change explains itself with a ✦.</p>
         </div>
       </section>
 
@@ -1730,7 +1730,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       <div class="sheet__confbar"><i></i><i></i><i></i></div>
       <span class="sheet__conftxt" id="whyConfLbl">·</span>
     </div>
-    <p class="sheet__note">It can be wrong. Correct it below; the page adjusts instantly, and a standard version always exists.</p>
+    <p class="sheet__note">The app can be wrong. Correct it here; the standard page is always there.</p>
     <div class="sheet__row">
       <button class="sheet__btn" id="whyLess">Show less of this</button>
       <button class="sheet__btn" id="whyReset">Reset to standard page</button>
@@ -1742,7 +1742,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       <button class="lvl__opt" data-state="regular" role="radio" aria-checked="false">Shaped</button>
       <button class="lvl__opt" data-state="superfan" role="radio" aria-checked="false">Full</button>
     </div>
-    <p class="sheet__note" style="margin-top:10px">Dial down any time. <b>Full</b> is earned by listening — once you reach Super fan it stays yours, and the page never quietly drops you back.</p>
+    <p class="sheet__note" style="margin-top:10px">Dial down any time. Full unlocks by listening and stays unlocked.</p>
     <button class="sheet__btn" id="notFan" style="width:100%;margin-top:12px">Not into Olivia right now</button>
   </div>
 
@@ -1752,7 +1752,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     <p class="sheet__eyebrow">Presale · top-listener access</p>
     <h2 class="sheet__title" id="presaleTitle">You're in the first door, Livie.</h2>
     <p class="sheet__p">The <b>GUTS World Tour · Europe leg</b> presale opens <b>Thursday, 10:00 AM</b>. Top listeners get 24 hours before general access. Your code: <b>LIVIE26</b>.</p>
-    <p class="sheet__note">Save it and it pins to the top of this page until Thursday. Skip it and it waits in <b>Events</b>; nothing here vanishes.</p>
+    <p class="sheet__note">Save it to pin it to this page until Thursday, or find it later in Events.</p>
     <div class="sheet__row">
       <button class="sheet__btn sheet__btn--gold" id="presaleSave">Save my spot</button>
       <button class="sheet__btn" id="presaleSkip">Not now</button>
@@ -1764,20 +1764,20 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     <div class="sheet__grab"></div>
     <p class="sheet__eyebrow">Your exclusives · unlocked to date</p>
     <h2 class="sheet__title" id="vaultTitle">Everything you've unlocked with Olivia</h2>
-    <p class="sheet__p">Earned by listening, not bought — and yours to keep. Each one stays here after it appears on the page.</p>
+    <p class="sheet__p">Everything here was earned by listening, and it stays yours.</p>
     <p class="sheet__lbl">Available now</p>
     <div class="vault">
       <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor"/></svg></span><span class="vault-item__col"><span class="vault-item__t">Checking in with Olivia Rodrigo</span><span class="vault-item__m">Exclusive podcast · unlocked at your 50th listen</span></span><button class="vault-item__go" data-act="podcast">Play</button></div>
-      <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="vault-item__col"><span class="vault-item__t">GUTS (spilled) — first listen</span><span class="vault-item__m">You heard it 24 hours before release</span></span><button class="vault-item__go" data-act="prerelease">Replay</button></div>
-      <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12.6 11.4 5a2 2 0 0 1 1.4-.6H18a2 2 0 0 1 2 2v5.2a2 2 0 0 1-.6 1.4L12 20a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.2Z" stroke="currentColor" stroke-width="1.7"/><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor"/></svg></span><span class="vault-item__col"><span class="vault-item__t">GUTS Tour tee — first access</span><span class="vault-item__m">Top-listener early drop · official merch on Amazon</span></span><button class="vault-item__go" data-act="merch">View</button></div>
+      <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="vault-item__col"><span class="vault-item__t">GUTS (spilled) early listen</span><span class="vault-item__m">You heard it 24 hours before release</span></span><button class="vault-item__go" data-act="prerelease">Replay</button></div>
+      <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 12.6 11.4 5a2 2 0 0 1 1.4-.6H18a2 2 0 0 1 2 2v5.2a2 2 0 0 1-.6 1.4L12 20a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.2Z" stroke="currentColor" stroke-width="1.7"/><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor"/></svg></span><span class="vault-item__col"><span class="vault-item__t">GUTS Tour tee early access</span><span class="vault-item__m">Top-listener early drop · official merch on Amazon</span></span><button class="vault-item__go" data-act="merch">View</button></div>
       <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="7.5" cy="7.5" r="2.3" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="16.5" r="2.3" stroke="currentColor" stroke-width="1.7"/><path d="M6 18 18 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span class="vault-item__col"><span class="vault-item__t">20% off Olivia's official store</span><span class="vault-item__m">Member discount · code LIVIE20</span></span><button class="vault-item__go" data-act="discount">Copy code</button></div>
       <div class="vault-item"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z" stroke="currentColor" stroke-width="1.6"/><path d="M14 6v12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/></svg></span><span class="vault-item__col"><span class="vault-item__t">GUTS World Tour presale</span><span class="vault-item__m">24h before general access · code LIVIE26</span></span><button class="vault-item__go" data-act="presale">Set alert</button></div>
     </div>
     <p class="sheet__lbl">Not yet</p>
     <div class="vault">
-      <div class="vault-item vault-item--locked"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.7"/></svg></span><span class="vault-item__col"><span class="vault-item__t">A note from Olivia</span><span class="vault-item__m">A personal voice message — only if the artist opts in</span></span><span class="vault-item__lock">Locked</span></div>
+      <div class="vault-item vault-item--locked"><span class="vault-item__ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.7"/></svg></span><span class="vault-item__col"><span class="vault-item__t">A note from Olivia</span><span class="vault-item__m">A personal voice message, if she opts in</span></span><span class="vault-item__lock">Locked</span></div>
     </div>
-    <p class="sheet__note">Grounded in what Amazon can actually offer: pre-release listens, first access to official merch, member discounts, and presale windows. A personal note would need the artist to opt in, so it stays locked until then.</p>
+    <p class="sheet__note">A personal note from the artist unlocks only if she opts in.</p>
   </div>
 
   <!-- toast -->
@@ -1862,10 +1862,10 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   var adaptiveOn=true, resumeState="cold";
   var DP_ORDER=["morning","afternoon","evening","late"];
   var DAYPARTS={
-    morning:  {lbl:"morning",    hour:"8:12", flavor:"It's morning — the up-tempo cuts sit first."},
-    afternoon:{lbl:"afternoon",  hour:"1:24", flavor:"It's afternoon — the steady, standard order."},
-    evening:  {lbl:"evening",    hour:"7:47", flavor:"It's evening — the going-out energy comes up."},
-    late:     {lbl:"late night", hour:"2:14", flavor:"It's late — the page dims and the slow cuts rise."}
+    morning:  {lbl:"morning",    hour:"8:12", flavor:"Morning: the up-tempo cuts sit first."},
+    afternoon:{lbl:"afternoon",  hour:"1:24", flavor:"Afternoon: the standard order."},
+    evening:  {lbl:"evening",    hour:"7:47", flavor:"Evening: the going-out energy comes up."},
+    late:     {lbl:"late night", hour:"2:14", flavor:"Late night: the page dims and the slow cuts rise."}
   };
   function dpFromHour(h){ if(h>=5&&h<11)return"morning"; if(h>=11&&h<17)return"afternoon"; if(h>=17&&h<22)return"evening"; return"late"; }
   var daypart=dpFromHour(new Date().getHours()), dpManual=false;
@@ -1875,7 +1875,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       label:"Cold start", conf:0, confLbl:"BASELINE", job:"Figure out if she's for me",
       read:"<b>No history yet.</b> Nothing to adapt on. The standard page, same for everyone.",
       follow:false, proof:null,
-      toast:"<b>Cold start</b>: the null state. This is the baseline every change must be visible against.",
+      toast:"<b>Cold start</b>. The standard page; nothing is personalized yet.",
       ctx:{txt:"Playing <b>GUTS</b> right now. New here? Start with the story.", act:"About Olivia"},
       tsLens:{type:"fixed", conf:null, note:"null state: the global chart, same for everyone"}
     },
@@ -1883,7 +1883,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       label:"Casual", conf:1, confLbl:"LOW", job:"Coming back. Is this sticking?",
       read:"<b>6 plays over 3 weeks.</b> Signal is thin: small touches only, nothing structural.",
       follow:false, proof:null,
-      toast:"<b>Casual</b>: low confidence. One sprinkle: your plays get marked on the chart. Structure holds.",
+      toast:"<b>Casual</b>. Your plays get marked on the chart, and that's it.",
       ctx:{txt:"Back in <b>GUTS</b>, third session this week.", act:"Keep going"},
       tsLens:{type:"adaptive", conf:"low", note:"marked, not restructured"}
     },
@@ -1891,7 +1891,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       label:"Engaged", conf:2, confLbl:"MEDIUM", job:"Go deeper into her catalog",
       read:"<b>Weekly listener · 640 plays since 2024.</b> Knows the hits; structure may now shift.",
       follow:true, proof:"Since 2024",
-      toast:"<b>Engaged</b>: medium confidence. Your top songs lead, your journey appears. Popular stays one tap away.",
+      toast:"<b>Engaged</b>. Your top songs lead and your journey appears.",
       ctx:{txt:"3 GUTS tracks deep. Your <b>era mix</b> is one tap away.", act:"Play era mix"},
       tsLens:{type:"adaptive", conf:"med", note:"one widget, five dimensions; Popular folds in"}
     },
@@ -1899,7 +1899,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       label:"Super fan", conf:3, confLbl:"HIGH", job:"Don't miss anything, and feel seen",
       read:"<b>92 plays this month · 3 eras · top 1%.</b> High confidence: the big moves are earned.",
       follow:true, proof:"Since Mar 2021",
-      toast:"<b>Super fan</b>: high confidence. The surface goes live; presale privileges unlock. Frame still fixed.",
+      toast:"<b>Super fan</b>. Era artwork, full journey, presale access.",
       ctx:{txt:"Deep in the <b>Girl So in Love era</b> again, so the visuals follow along.", act:"Lyrics on"},
       tsLens:{type:"adaptive", conf:"med", note:"one widget, five dimensions; Popular folds in"}
     }
@@ -1907,36 +1907,36 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
 
   /* ---------- why-sheet copy: per placement, resolved at open ---------- */
   var WHY={
-    hero:{t:"The era visual", r:function(){return "The hero swapped its still portrait for a muted GUTS-era visual. That's the page's biggest move, and it only happens at the highest confidence: 92 plays this month, three eras of history. One step down and it returns to the portrait.";}},
-    ctx:{t:"The session line", r:function(){return "This line reads the moment, not your profile: the session you're in right now. It works even with zero history, and it leaves when the music stops. Nothing about you is stored to show it.";}},
+    hero:{t:"The era visual", r:function(){return "You're deep in GUTS this month, so the header picked up the era artwork. It only does this at the top listening tier. Drop a tier and the portrait comes back.";}},
+    ctx:{t:"The session line", r:function(){return "This line follows your current session. It works with no history at all, and it goes away when the music stops.";}},
     topsongs:{t:"Your songs with Olivia", r:function(){
-      if(state==="casual") return "Two songs you've played are marked on the global chart. That's the whole change. It's a content touch, not a new structure: at low confidence the page earns a mark, not a re-layout. Structure only shifts once confidence is higher.";
-      return "One songs widget, five dimensions — so songs stay at the top of the page and only the lens on them changes. Recent and All-Time are ranked by your plays; Popular is community data with two scopes (the global chart, or what super fans keep on repeat — not the same list); Forgotten is recency (songs you loved, then drifted from); Gems is coverage (songs you've never played — and once you've heard everything, it says so and pivots to your least-played). The standard view is never deleted.";}},
+      if(state==="casual") return "The chart marks the two songs you've played. That's the only change at this level.";
+      return "Songs stay at the top of the page. The tabs change what they show: your recent plays, your all-time plays, the charts, songs you've drifted from, and songs you've never tried. The standard chart is always one tap away.";}},
     history:{t:"You & Olivia", r:function(){
-      if(state==="casual") return "Chapter one: a single first play, three weeks ago. This card is grown from your listening history; it starts nearly empty and earns its size as you do.";
-      if(state==="superfan") return "Three eras of listening, top 1% of her listeners. The full journey earns the full card. Built from your history alone, not editorial. And “super fan” is read from your own pattern — depth, repeats, breadth each count. Knowing every word of one album is fandom too; there's more than one way to be one.";
-      return "Built from 640 plays since 2024: your history with her, not editorial content. It grows one step at a time; it never guesses ahead.";}},
-    pin:{t:"The pinned presale", r:function(){return "A popup became a fixture: you saved the presale, so it holds the top slot until Thursday. Takeovers like this need two things at once: super-fan state and a live event. Dismissed things wait in Events; nothing is one-time.";}},
-    since:{t:"Since your last visit", r:function(){return "This reads recency, not your profile. It shows what's new about Olivia since you were last here: a video, a TV spot, a tour add. It appears because you've been away and there's something to catch up on, and it clears once you're caught up.";}},
-    you:{t:"You & Olivia", r:function(){ if(state==="casual") return "Chapter one: a single first play, three weeks ago. This whole tab is grown from your listening history; it starts near-empty and earns its depth as you do."; return "This entire tab is built from your plays: eras, milestones, the time you spent together. It's your history with her, not editorial content, and it fills in only as far as you've actually listened."; }},
-    exclusive:{t:"Exclusive for you", r:function(){ return "This unlocked at your 50th listen: a milestone you reached, not something bought. It's an example of a reward that appears once you've earned it, then stays yours to revisit."; }},
-    replay:{t:"This moment", r:function(){ return "You just replayed the same passage three times: a live behavior, not a stored preference. The page reacts to what you're doing this second and clears the moment you stop. It would fire the same way on your very first visit, proof that adaptation isn't only about how long you've been a fan."; }},
+      if(state==="casual") return "Your first play was three weeks ago. This card grows as you listen.";
+      if(state==="superfan") return "Three eras of listening put you in her top 1%. Fandom here is read from your own pattern, so knowing one album inside out counts too.";
+      return "Built from 640 plays since 2024. It grows a step at a time and never guesses ahead.";}},
+    pin:{t:"The pinned presale", r:function(){return "You saved the presale, so it stays pinned up here until Thursday. Anything you dismiss waits in Events instead of disappearing.";}},
+    since:{t:"Since your last visit", r:function(){return "You've been away, so this shows what you missed: a video, a TV spot, a tour date. It clears once you're caught up.";}},
+    you:{t:"You & Olivia", r:function(){ if(state==="casual") return "Your first play was three weeks ago. This tab fills in as you listen."; return "Everything here comes from your plays: eras, milestones, time spent together. It only goes as deep as you've actually listened."; }},
+    exclusive:{t:"Exclusive for you", r:function(){ return "You unlocked this at your 50th listen. It stays in your unlocks for good."; }},
+    replay:{t:"This moment", r:function(){ return "You replayed that passage three times just now, so the page offered the story behind it. This clears when you stop."; }},
     page:{t:"Why your page looks like this", r:function(){
       var m=M[state];
-      /* client question (Jul 9): what about artists with two albums? — the honest
+      /* client question (Jul 9): what about artists with two albums? the honest
          answer is a threshold, stated here rather than hidden */
-      var thin=" One more rule: these modules also need a deep enough catalog. For an artist with only a handful of releases, they suppress rather than repeat the same few songs.";
-      if(state==="cold") return "It doesn't adapt yet. You're on the standard page everyone gets; nothing is personalized, because there's no history to personalize from. As you listen, sections earn their way in, and each one explains itself with a ✦."+thin;
-      var lead="The system reads you as a "+m.label.toLowerCase()+" listener at "+m.confLbl.toLowerCase()+" confidence, so it adapts only that far. ";
-      if(state==="casual") return lead+"That's one small content touch, your plays marked on the chart, and nothing structural. Most of the page is still fixed. Dial it down or reset below."+thin;
-      if(state==="regular") return lead+"Your top songs lead the widget, your journey appears, and recent catch-up shows. Real structure changes, but the catalog spine stays put. Popular is one tap away; reset anytime below."+thin;
-      return lead+"The big moves are earned: the hero goes to an era visual, your full journey unlocks, and a live event can take over. The frame never moves, and a standard version always exists; reset below."+thin;
+      var thin=" Artists with only a few releases keep the standard page; there isn't enough catalog to adapt around.";
+      if(state==="cold") return "Nothing is personalized yet. Sections appear as you listen, and each one carries a \u2726 that explains itself."+thin;
+      var lead="The app reads you as a "+m.label.toLowerCase()+" listener at "+m.confLbl.toLowerCase()+" confidence, so it adapts that far and no further. ";
+      if(state==="casual") return lead+"Your plays are marked on the chart and nothing structural has moved. You can dial it down or reset below."+thin;
+      if(state==="regular") return lead+"Your top songs lead the widget and your journey appears. The standard chart stays one tap away; reset anytime below."+thin;
+      return lead+"The header takes the era artwork, the full journey unlocks, and a live event can pin itself. The layout itself never moves, and you can reset below."+thin;
     }},
-    about:{t:"Why the About page adapts", r:function(){ if(state==="cold") return "Right now you see the short version: the essentials everyone gets. There's nothing deeper to add yet, because there's no listening history to earn it. The About page grows the more you play: a newcomer and a six-year fan shouldn't read the same page."; return "This page runs deeper than a newcomer's. You've listened enough that the fuller story, the production notes, and the interviews have earned their place; depth pulls in as you listen instead of being dumped on you at once. The core biography is the same; how much of it opens is what changes."; }},
-    notes:{t:"Layers reveal as you listen", r:function(){ return "These production notes unlock the more you play, one at a time, never all at once. The locked one opens once you've spent enough time in that song. It's “pull, not push”: depth you reach for, revealed when you've earned it, never forced on you. They live under Music because they belong to songs, not to the artist's story."; }},
-    infweb:{t:"The influence web", r:function(){ return "The web itself is editorial, drawn from interviews and press, the same for everyone. What's yours are the ★ ● ○ marks: they read your listening to show which of these artists you already know. New listeners see all ○; the marks fill in as your history does."; }},
-    mypl:{t:"Your playlists with Olivia", r:function(){ return "These come from your own library: playlists you've built where Olivia already lives. Nothing is generated: the section simply resurfaces what you made, and it doesn't exist until you've made something."; }},
-    drops:{t:"Around the newest drop", r:function(){ return "You know her story already, so this page leads with what's new instead: everything orbiting the latest release: tour adds, interviews, campaigns. Newcomers get the biography in this slot; the full story now waits at the bottom for you."; }}
+    about:{t:"Why the About page adapts", r:function(){ if(state==="cold") return "You're seeing the short version. It opens up as you listen; a newcomer and a six-year fan shouldn't read the same page."; return "You've listened enough to open the fuller story, the production notes, and the interviews. The biography is the same for everyone; how much of it opens is what changes."; }},
+    notes:{t:"Layers reveal as you listen", r:function(){ return "These unlock one at a time as you play. The locked one opens after you've spent enough time in that song."; }},
+    infweb:{t:"The influence web", r:function(){ return "The web itself is editorial and the same for everyone. The star and circle marks are yours: they show which of these artists you already listen to."; }},
+    mypl:{t:"Your playlists with Olivia", r:function(){ return "These are playlists you built that already include Olivia. This section doesn't exist until you've made one."; }},
+    drops:{t:"Around the newest drop", r:function(){ return "You know her story, so the page leads with what's new around the release. Newcomers get the biography here instead."; }}
   };
 
   /* ============================================================
@@ -1983,13 +1983,13 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     /* client feedback (Jul 9): one songs widget at the top, the DIMENSION varies —
        Forgotten favorites (recency) and Hidden gems (coverage) fold in here as
        tabs instead of standing as their own sections further down the page */
-    forgot:{cta:"Bring Them Back", plain:true, note:"You loved these once — quiet for months now",
+    forgot:{cta:"Bring Them Back", plain:true, note:"You loved these once and haven't played them in months",
       rows:[
       {t:"favorite crime", n:"SOUR · last played 8 months ago", art:"sour"},
       {t:"enough for you", n:"SOUR · last played 11 months ago", art:"sour"},
       {t:"happier", n:"SOUR · last played 7 months ago", art:"sour"}]},
     gems:{cta:"Play The Gaps", plain:true, note:"Songs you've never played",
-      noteHeard:"You've heard it all — here's what you reach for least",
+      noteHeard:"You've heard everything, so here's what you reach for least",
       rows:[
       {t:"pretty isn't pretty", n:"GUTS · never played", nHeard:"GUTS · 2 plays", art:"guts"},
       {t:"the grudge", n:"GUTS · never played", nHeard:"GUTS · 1 play", art:"guts"},
@@ -2015,7 +2015,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
        repeat — community data either way, never your profile */
     if(key==="popular"){
       var fans = popScope==="fans";
-      h+='<div class="pop-scope" role="group" aria-label="Popular — among whom">'
+      h+='<div class="pop-scope" role="group" aria-label="Popular: among whom">'
         +'<button class="pop-scope__opt'+(fans?'':' is-active')+'" data-scope="all" aria-pressed="'+(!fans)+'">Everyone</button>'
         +'<button class="pop-scope__opt'+(fans?' is-active':'')+'" data-scope="fans" aria-pressed="'+(fans)+'">Super fans</button>'
         +'</div>';
@@ -2028,7 +2028,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
         }).join("")+'</div><button class="mu-mix" id="rankCta">'+d.ctaFans+'</button>';
       }
     }
-    if(heardAll) h+='<div class="hg-heard" style="margin:0 0 12px"><span class="hg-heard__mark">✦</span> Every released song played — you’re one of the few. Here’s what you reach for least.</div>';
+    if(heardAll) h+='<div class="hg-heard" style="margin:0 0 12px"><span class="hg-heard__mark">✦</span> You\'ve played every released song. Here\'s what you reach for least.</div>';
     if(d.plain){
       h+='<div class="songlist">'+d.rows.map(function(r){
         return '<div class="mu-song"><button '+pHit(r.t,"art-"+r.art)+'><div class="mu-song__art art-'+r.art+'"></div>'
@@ -2059,7 +2059,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       tsSub.innerHTML='<span class="live-tag">Updates as you listen</span> One widget, five dimensions; <b>Popular</b> folds in';
       tsWhy.hidden=false;
       var DIMS=[["recent","Recent"],["alltime","All-Time"],["popular","Popular"],["forgot","Forgotten"],["gems","Gems"]];
-      tsBody.innerHTML='<div class="mu-tabs" role="tablist" aria-label="Your songs with Olivia — pick a dimension">'
+      tsBody.innerHTML='<div class="mu-tabs" role="tablist" aria-label="Your songs with Olivia: pick a dimension">'
         +DIMS.map(function(dm){
           return '<button class="mu-tab'+(rankKey===dm[0]?" is-active":"")+'" data-rank="'+dm[0]+'" role="tab" aria-selected="'+(rankKey===dm[0])+'">'+dm[1]+'</button>';
         }).join("")
@@ -2133,8 +2133,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   var HEART_SM='<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.6-9.3-9C1.2 9.1 2.3 5.5 5.6 5.1 7.7 4.8 9.3 6 12 8.7 14.7 6 16.3 4.8 18.4 5.1c3.3.4 4.4 4 2.9 6.9C19 16.4 12 21 12 21Z" fill="#25D1DA"/></svg>';
   var youBody=$("#youBody"), viewMusic=$("#viewMusic"), viewYou=$("#viewYou");
   var YO_ERAS=[
-    {art:"yo-art--gsil", ongoing:true, season:"2026 – now", name:"Girl So in Love Era", rank:"Top 1% listener",
-     head:{season:"2026 – now", t:"Girl So in Love Era", p:"You listened to a lot of love songs this spring, mostly played after midnight. This era is still being written.", daylist:"your after-midnight love-song spiral"},
+    {art:"yo-art--gsil", ongoing:true, season:"2026 - now", name:"Girl So in Love Era", rank:"Top 1% listener",
+     head:{season:"2026 - now", t:"Girl So in Love Era", p:"You listened to a lot of love songs this spring, mostly played after midnight. This era is still being written.", daylist:"your after-midnight love-song spiral"},
      time:{bg:"yo-art--gsil2", art:"yo-art--gsil", song:"stupid song", plays:"24 plays", mins:"1840", streak:"47", friends:"#1"},
      back:[{t:"honeybee",e:1,art:"yo-art--gsil2"},{t:"So American",e:1,art:"art-guts"},{t:"stupid song",e:0,art:"yo-art--gsil"}],
      lyr:[
@@ -2142,8 +2142,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
        {song:"maggots for brain", cover:"art-guts", text:"I'm a zombie in my body, I'm a train off of the track", fans:"by 12k fans"},
        {song:"Can’t Catch Me Now", cover:"art-guts", text:"But I’m in the trees, I’m in the breeze, my footsteps on the ground", fans:"by 12k fans"}],
      pls:[{t:"A girl in love",art:"yo-art--dejavu"},{t:"you seem pretty sad",art:"mu-art--talkshow"},{t:"late night drives",art:"mu-art--thecure"}]},
-    {art:"yo-art--sour", season:"2024 – 2025", name:"Sour Girl Era", rank:"Top 2% listener",
-     head:{season:"2024 – 2025", t:"Sour Girl Era", p:"Heartbreak on repeat, mostly after 11pm, weeks at a stretch.", daylist:"your 11pm heartbreak-on-loop stretch"},
+    {art:"yo-art--sour", season:"2024 - 2025", name:"Sour Girl Era", rank:"Top 2% listener",
+     head:{season:"2024 - 2025", t:"Sour Girl Era", p:"Heartbreak on repeat, mostly after 11pm, weeks at a stretch.", daylist:"your 11pm heartbreak-on-loop stretch"},
      time:{bg:"yo-art--sour", art:"art-dl", song:"drivers license", plays:"212 plays", mins:"2130", streak:"31", friends:"#1"},
      back:[{t:"drivers license",e:1,art:"art-dl"},{t:"deja vu",e:0,art:"art-sour"},{t:"traitor",e:0,art:"art-sour"}],
      lyr:[
@@ -2151,8 +2151,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
        {song:"drivers license", cover:"art-dl", text:"Cause you said forever, now I drive alone past your street", fans:"by 31k fans"},
        {song:"deja vu", cover:"art-sour", text:"Do you get deja vu when she’s with you?", fans:"by 14k fans"}],
      pls:[{t:"you seem pretty sad",art:"mu-art--talkshow"},{t:"crying in the car",art:"art-v1"},{t:"bittersweet spring",art:"yo-art--dejavu"}]},
-    {art:"yo-art--petty", season:"2022 – 2023", name:"Petty Era", rank:"Top 5% listener",
-     head:{season:"2022 – 2023", t:"Petty Era", p:"You played a lot of angry songs back then, loud and on repeat.", daylist:"your loud, on-repeat rage-pop phase"},
+    {art:"yo-art--petty", season:"2022 - 2023", name:"Petty Era", rank:"Top 5% listener",
+     head:{season:"2022 - 2023", t:"Petty Era", p:"You played a lot of angry songs back then, loud and on repeat.", daylist:"your loud, on-repeat rage-pop phase"},
      time:{bg:"yo-art--petty", art:"art-g4u", song:"good 4 u", plays:"96 plays", mins:"920", streak:"19", friends:"#2"},
      back:[{t:"good 4 u",e:1,art:"art-g4u"},{t:"brutal",e:1,art:"art-sour"},{t:"jealousy, jealousy",e:0,art:"art-sour"}],
      lyr:[
@@ -2244,7 +2244,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     /* journey — era cards on a timeline */
     h+='<section class="wrap" data-lens="adaptive" data-conf="'+(state==="superfan"?"high":"med")+'" data-note="built from your plays, era by era; not editorial">'
       +'<div class="sec-line"><h2 class="t">Your Journey with Olivia</h2><button class="whym" data-why="you" aria-label="Why am I seeing this?">'+STAR+'</button></div>'
-      +'<p class="sec-sub"><span class="live-tag">Updates as you listen</span> Grows era by era as you play — newest first</p></section>';
+      +'<p class="sec-sub"><span class="live-tag">Updates as you listen</span> Grows era by era as you play</p></section>';
     h+='<div class="jr-scroll"><div class="jr-row">'+eras.map(function(er,i){
       return '<button class="jr-era'+(i===yoEra?' is-active':'')+(er.ongoing?' is-now':'')+'" data-era="'+i+'" aria-pressed="'+(i===yoEra)+'">'
         +'<div class="jr-era__art '+er.art+'"></div>'
@@ -2352,12 +2352,12 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     el.setAttribute("data-mood", SONG_MOOD[normTitle(title)]||"cool");
     var inView=highlightReson(title), era=eraOfTrack(title);
     var maxEra = state==="superfan" ? YO_ERAS.length : 2;
-    if(inView){ txt.innerHTML='Playing <b>'+title+'</b> — one of your most-rewound lines this era.'; go.hidden=true; }
+    if(inView){ txt.innerHTML='Playing <b>'+title+'</b>, one of your most rewound this era.'; go.hidden=true; }
     else if(era){
-      txt.innerHTML='Playing <b>'+title+'</b> — it lives in your <b>'+era.name+'</b>.';
+      txt.innerHTML='Playing <b>'+title+'</b>. It lives in your <b>'+era.name+'</b>.';
       if(era.idx!==yoEra && era.idx<maxEra){ go.hidden=false; go.onclick=function(){ yoEra=era.idx; lyrSel=1; renderYou(); }; }
       else go.hidden=true;
-    } else { txt.innerHTML='Playing <b>'+title+'</b> — this page is tuned to it.'; go.hidden=true; }
+    } else { txt.innerHTML='Playing <b>'+title+'</b>.'; go.hidden=true; }
     el.hidden=false;
   }
 
@@ -2484,7 +2484,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       : "From bedroom demos to SOUR's record-breaking debut, then the sharper, restless GUTS: how Olivia turned teenage heartbreak into a generation's soundtrack, era by era, without ever losing the diary.";
     var story='<section class="wrap" data-lens="fixed" data-note="one biography, the same story for everyone"><div class="sec-line"><h2 class="t">The story so far</h2></div>'
       +'<div class="ab-story"><div class="ab-story__art art-guts"></div><div class="ab-story__grad"></div><div class="ab-story__body">'
-      +'<span class="ab-story__tag">THE ERA · 2021–2024</span><p class="ab-story__p">'+storyP+'</p>'
+      +'<span class="ab-story__tag">THE ERA · 2021-2024</span><p class="ab-story__p">'+storyP+'</p>'
       +'<button class="ab-story__more">Read the full story →</button></div></div></section>';
     var interviews='<section class="wrap" data-lens="fixed" data-note="editorial media: curated, not personalized"><div class="sec-line"><h2 class="t">Interviews &amp; behind the scenes</h2></div>'
       +videosListHTML()+'</section>';
@@ -2608,7 +2608,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     if(!DAYPARTS[dp]) return;
     daypart=dp; dpManual=true;
     renderMoment(); renderCtx();
-    if(!(opts&&opts.quiet)) showToast("Moment set to <b>"+DAYPARTS[dp].lbl+"</b>. "+DAYPARTS[dp].flavor+" It reads the clock, not you — nothing stored.");
+    if(!(opts&&opts.quiet)) showToast("Moment set to <b>"+DAYPARTS[dp].lbl+"</b>. "+DAYPARTS[dp].flavor);
   }
 
   /* --- WHO: the floating identity / adaptive-off indicator inside the device --- */
@@ -2638,8 +2638,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     document.body.classList.toggle("fixed-listener", id!=="you");
     var p=PROFILES[id], target=(id==="you")?youState:p.state;
     apply(target,{quiet:true});
-    if(id==="you") showToast("Back to <b>your</b> page. The stepper is yours again.");
-    else showToast("Now showing <b>"+p.name+"’s</b> page — "+p.line+". A real listener at their own read, this same moment; the stepper is theirs, so it’s locked.");
+    if(id==="you") showToast("Back to <b>your</b> page.");
+    else showToast("Now viewing <b>"+p.name+"’s</b> page: "+p.line+".");
   }
 
   /* --- WHETHER: the master switch --- */
@@ -2650,8 +2650,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     simMaster.classList.toggle("on",on); simMaster.setAttribute("aria-checked",on?"true":"false");
     simMasterLbl.innerHTML = on ? "Adaptive&nbsp;UI · On" : "Adaptive&nbsp;UI · Off";
     document.body.classList.toggle("adaptive-off",!on);
-    if(!on){ resumeState=state; apply("cold",{quiet:true}); showToast("<b>Adaptive UI off.</b> The whole page drops to standard — the same for everyone. Your call beats the model’s; flip it back any time."); }
-    else { apply(resumeState,{quiet:true}); showToast("<b>Adaptive UI on.</b> The page returns to where you were reading."); }
+    if(!on){ resumeState=state; apply("cold",{quiet:true}); showToast("<b>Adaptive UI off.</b> Everyone sees the standard page now."); }
+    else { apply(resumeState,{quiet:true}); showToast("<b>Adaptive UI on.</b>"); }
   }
 
   /* --- the one entry point --- */
@@ -2753,8 +2753,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     if(!signals.presale) presaleChoice=null;
     renderPresale();
     if(signals.presale && state==="superfan" && presaleChoice===null){ openPresaleSheet(); }
-    else if(signals.presale){ showToast("Presale announced. It lands in <b>Events</b> for everyone. Only a super fan earns the takeover."); }
-    else { showToast("Event over; the announcement and the pin retire together."); }
+    else if(signals.presale){ showToast("Presale announced. It shows in <b>Events</b>; top listeners get early access."); }
+    else { showToast("Event over. The pin is gone too."); }
   });
   var sigReplay=$("#sigReplay");
   sigReplay.addEventListener("click",function(){
@@ -2830,7 +2830,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     var slotFor={history:"slotHi", ctx:"slotCtx", pin:"slotPin", since:"slotSince", replay:"slotReplay", exclusive:"slotExcl", notes:"slotNotes", mypl:"slotMyPl"};
     var sid=slotFor[whyKey];
     closeSheets();
-    if(!sid){ showToast("Noted: <b>less of this</b>. The system dials it down here."); return; }
+    if(!sid){ showToast("Got it. You'll see less of this."); return; }
     hiddenSlots[sid]=true;
     var slot=$("#"+sid);
     if(!slot.querySelector(".undo")){
@@ -2843,19 +2843,19 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
         hiddenSlots[sid]=false;
         u.remove();
         apply(state,{quiet:true});
-        showToast("Restored; the section is back.");
+        showToast("Restored.");
       });
       slot.appendChild(u);
     }
     apply(state,{quiet:true});
-    showToast("Hidden. Your call beats the model’s; <b>Undo</b> sits where it was.");
+    showToast("Hidden. Tap <b>Undo</b> to bring it back.");
   });
   $("#whyReset").addEventListener("click",function(){
     closeSheets();
     hiddenSlots={};
     $$(".undo").forEach(function(u){ u.remove(); }); /* clear stale "hidden — Undo" rows */
     apply("cold",{quiet:true});
-    showToast("<b>Standard page restored</b>. The baseline always exists. It re-personalizes only as you listen.");
+    showToast("<b>Standard page restored.</b>");
   });
   /* Super fan is earned by listening, not chosen — lock the top level until reached */
   var LOCK_SM='<svg width="9" height="9" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="2"/></svg>';
@@ -2871,18 +2871,18 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   }
   $$(".lvl__opt").forEach(function(o){
     o.addEventListener("click",function(){
-      if(o.classList.contains("lvl__opt--locked")){ showToast("<b>Full</b> is earned by listening, not chosen. Dial down any time, or declare up to <b>Engaged</b> — but Super-fan treatment unlocks only once you've put in the plays."); return; }
+      if(o.classList.contains("lvl__opt--locked")){ showToast("<b>Full</b> unlocks by listening. You can set up to <b>Engaged</b> yourself."); return; }
       if(o.dataset.state===state) return;
       closeSheets();
       apply(o.dataset.state,{quiet:true});
-      showToast("Set to <b>"+(o.dataset.lbl||o.textContent.trim())+"</b>: your override, reflected everywhere. The rail follows you.");
+      showToast("Set to <b>"+(o.dataset.lbl||o.textContent.trim())+"</b>.");
     });
   });
   /* the negation: "not into Olivia right now" — eases the page off without losing history */
   $("#notFan").addEventListener("click",function(){
     closeSheets();
     apply("cold",{quiet:true});
-    showToast("Got it — we'll <b>ease off Olivia</b> on your pages for now. Nothing's lost; your history stays and it picks back up when you do.");
+    showToast("We'll ease off Olivia for now. Your history stays.");
   });
 
   /* presale sheet */
@@ -2890,13 +2890,13 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   $("#presaleSave").addEventListener("click",function(){
     presaleChoice="saved";
     closeSheets(); renderPresale();
-    showToast("Pinned to the top until Thursday: <b>ephemeral, made persistent</b>. Unpin any time via ✦.");
+    showToast("Pinned until Thursday. Unpin any time from ✦.");
   });
   function presaleSkipFn(silent){
     presaleChoice="skipped";
     closeSheets(); renderPresale();
-    if(!silent) showToast("No pin; it waits in <b>Events</b>. Dismissed never means deleted.");
-    else showToast("It waits in <b>Events</b>; dismissed never means deleted.");
+    if(!silent) showToast("It's waiting in <b>Events</b>.");
+    else showToast("It's waiting in <b>Events</b>.");
   }
   $("#presaleSkip").addEventListener("click",function(){ presaleSkipFn(false); });
   $("#pinGo").addEventListener("click",function(){ showToast("Alert set for <b>Thu 10:00 AM</b> · code LIVIE26"); });
@@ -3094,7 +3094,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       /* embedded in the DERBC client: hand navigation back to the host app */
       if(EMBED && window.parent!==window){ window.parent.postMessage({type:"v3-nav", nav:nav},"*"); return; }
       if(b.classList.contains("is-active")) showToast("You're on <b>Home</b>, Olivia's artist page");
-      else if(nav==="Maestro") showToast("<b>Maestro</b> would open here — ask about this song or artist. Out of scope for this draft.");
+      else if(nav==="Maestro") showToast("<b>Maestro</b> opens in the full app.");
       else showToast("Opening <b>"+nav+"</b>");
     });
   });
