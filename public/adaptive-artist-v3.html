@@ -3068,7 +3068,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   function appBase(){
     var h=location.hostname;
     if(h.indexOf("xiaobrook")>-1) return "/adaptive-ui/";
-    if(h.indexOf("vercel.app")>-1) return "/app/";
+    if(h.indexOf("vercel.app")>-1) return "/"; /* the client IS the site root there */
     return null; /* plain static servers have no SPA rewrites for app routes */
   }
   $("#back").addEventListener("click",function(){
