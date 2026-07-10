@@ -104,6 +104,44 @@ const SONG_PAGE_WIDTH = SCREEN_W - SONG_PAGE_PEEK
 // not once per Home re-mount.
 let artistPageHintSeen = false
 
+// "You and your favorites" — monthly listening-trend cards (Figma 114:6189).
+// Each dots row is 19 slots: 0 = quiet, 1-9 = listening intensity, T = today (cyan).
+const FAVORITE_TRENDS = [
+  {
+    artistId: 'olivia-rodrigo',
+    name: 'Olivia Rodrigo',
+    tier: 'Superfan',
+    insight: 'Your morning starter. 3 days running.',
+    dots: [
+      '6700000000000000000',
+      '9600078979937977777',
+      '3799000000037979777',
+    ],
+  },
+  {
+    artistId: 'bts',
+    name: 'BTS',
+    tier: 'In rotation',
+    insight: 'You came back this week.',
+    dots: [
+      '0000000000000000056',
+      '4534667786767777777',
+      '5677000004500007890',
+    ],
+  },
+  {
+    artistId: 'sza',
+    name: 'SZA',
+    tier: 'New crush',
+    insight: 'Three songs, on repeat.',
+    dots: [
+      '0000000000000000000',
+      '0000000789987789977',
+      '0000000899987909780',
+    ],
+  },
+].map(f => ({ ...f, dots: [f.dots[0], f.dots[1], f.dots[2].slice(0, 18) + 'T'] }))
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
@@ -1078,6 +1116,75 @@ export default function AdaptivePersonaHome() {
             </ScrollView>
           </EdgeFadeRow>
         </View>
+
+        {/* 9 — You and your favorites: monthly listening-trend cards (Figma 114:6189).
+            Each dot is one listening slot this month; the cyan dot is today. */}
+        <View style={s.block}>
+          <View style={s.favHead}>
+            <Text style={s.sectionTitle}>You and your favorites</Text>
+            <Text style={s.favSeeMore}>SEE MORE</Text>
+          </View>
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {FAVORITE_TRENDS.map(fav => {
+                const art = resolveArtistAvatar(fav.artistId)
+                return (
+                  <TouchableOpacity
+                    key={fav.artistId}
+                    style={s.favCard}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      fav.artistId === 'olivia-rodrigo'
+                        ? openOliviaPage('you')
+                        : router.push(`/artist/${fav.artistId}` as any)
+                    }
+                    accessibilityLabel={`${fav.tier} — ${fav.name}. ${fav.insight}`}
+                  >
+                    {art && <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.5)']}
+                      locations={[0.19, 0.52, 0.81]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.favTopRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        {art && <Image source={art} style={s.favAvatar} resizeMode="cover" />}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.favTier}>{fav.tier}</Text>
+                          <Text style={s.favName} numberOfLines={1}>{fav.name}</Text>
+                        </View>
+                      </View>
+                      <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
+                    </View>
+                    <View>
+                      <Text style={s.favMonth}>THIS MONTH</Text>
+                      <Text style={s.favInsight}>{fav.insight}</Text>
+                      <View style={s.favDots}>
+                        {fav.dots.map((row, ri) => (
+                          <View key={ri} style={s.favDotRow}>
+                            {row.split('').map((ch, ci) => (
+                              <View
+                                key={ci}
+                                style={[
+                                  s.favDot,
+                                  ch === 'T'
+                                    ? { backgroundColor: C.cyan }
+                                    : ch === '0'
+                                      ? null
+                                      : { backgroundColor: `rgba(255,255,255,${(0.1 + (Number(ch) / 9) * 0.75).toFixed(2)})` },
+                                ]}
+                              />
+                            ))}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </EdgeFadeRow>
+        </View>
         </>
         )}
 
@@ -1333,7 +1440,9 @@ const s = StyleSheet.create({
   ffBubbleDot1: { position: 'absolute', left: 8, top: 22, width: 11, height: 11, borderRadius: 5.5, backgroundColor: '#DE909C' },
   ffBubbleDot2: { position: 'absolute', left: 4, top: 33, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#DE909C' },
   ffTier: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  ffName: { fontSize: 33, fontWeight: '700', color: '#fff', lineHeight: 36, marginTop: 2 },
+  // Figma spec is 33px, but the flex-shrunk card gives the name ~187px of run —
+  // 29px is the largest size that never ellipsizes "Olivia Rodrigo".
+  ffName: { fontSize: 29, fontWeight: '700', color: '#fff', lineHeight: 32, marginTop: 2 },
   ffCol: { width: 120, gap: 12 },
   ffUnlock: {
     height: 139,
@@ -1366,6 +1475,29 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   ffTourPillText: { fontSize: 14, color: '#fff', lineHeight: 14 },
+
+  // "You and your favorites" trend cards
+  favHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 2 },
+  favSeeMore: { fontSize: 14, fontWeight: '700', color: '#757575' },
+  favCard: {
+    width: 212,
+    height: 212,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    overflow: 'hidden',
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  favTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  favAvatar: { width: 36, height: 36, borderRadius: 18 },
+  favTier: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  favName: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 3 },
+  favMonth: { fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.3 },
+  favInsight: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 5 },
+  favDots: { marginTop: 8, gap: 2 },
+  favDotRow: { flexDirection: 'row', gap: 2 },
+  favDot: { width: 8, height: 8, borderRadius: 4 },
 
   artistHint: {
     flexDirection: 'row',
