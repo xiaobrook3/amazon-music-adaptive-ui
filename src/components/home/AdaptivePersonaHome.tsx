@@ -1318,7 +1318,7 @@ const s = StyleSheet.create({
     padding: 12,
     justifyContent: 'flex-end',
   },
-  ffBubbleWrap: { position: 'absolute', left: 122, top: 7, width: 110, height: 40 },
+  ffBubbleWrap: { position: 'absolute', right: 6, top: 7, width: 110, height: 40 },
   ffBubble: {
     flexDirection: 'row',
     alignItems: 'center',
