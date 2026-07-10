@@ -370,6 +370,19 @@ body.hero-live .hero__livechip{display:inline-flex;}
 .live-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;background:rgba(37,209,218,.1);border:1px solid rgba(37,209,218,.28);color:#8fdfe4;font-family:var(--font-display);font-weight:700;font-size:9px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;vertical-align:middle;}
 .live-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:none;}
 @media (prefers-reduced-motion:no-preference){.live-tag::before{animation:jrBlink 2.4s var(--ease) infinite;}}
+/* Popular scope — Everyone ⇄ Super fans (community data, two lenses) */
+.pop-scope{display:inline-flex;gap:3px;background:#0a0f14;border:1px solid var(--line);border-radius:16px;padding:3px;margin:-2px 0 12px;}
+.pop-scope__opt{appearance:none;border:none;background:none;cursor:pointer;padding:6px 13px;border-radius:12px;
+  font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--faint);transition:color .2s,background .2s;}
+.pop-scope__opt:hover{color:#cfd6de;}
+.pop-scope__opt.is-active{background:rgba(0,213,221,.16);color:var(--accent);}
+/* cold-start hint — user-facing "this page adapts" preview (a null state with a horizon) */
+.cold-hint{border:1.5px dashed rgba(37,209,218,.32);border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;}
+.cold-hint__lead{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted);}
+.cold-hint__row{display:flex;flex-wrap:wrap;gap:7px;}
+.cold-hint__chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--faint);font-family:var(--font-display);font-weight:700;font-size:11.5px;}
+.cold-hint__chip svg{flex:none;opacity:.7;}
+.cold-hint__note{margin:0;font-size:11px;line-height:1.45;color:var(--faint);}
 /* daylist-style generated era descriptor — the "quirky name" the mentor asked for */
 .daylist{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:6px 12px;border-radius:20px;background:linear-gradient(90deg,rgba(37,209,218,.16),rgba(201,160,220,.14));border:1px solid rgba(37,209,218,.3);color:#e6f7f8;font-family:var(--font-display);font-weight:700;font-size:13px;line-height:1.2;}
 .daylist__mk{color:var(--accent);flex:none;font-size:12px;}
@@ -1003,6 +1016,10 @@ body.now-playing .player{opacity:1;visibility:visible;transform:none;pointer-eve
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;padding:0;
   color:#999;font-family:var(--font-display);font-weight:400;font-size:12px;line-height:1.2;}
 .navbar__item svg{width:23px;height:23px;flex:none;}
+.navbar__item img{width:23px;height:23px;flex:none;object-fit:contain;}
+/* the Alexa mark ships white; tint per focus like the app's tintColor */
+.navbar__item--logo img{filter:brightness(0) saturate(100%) invert(62%);} /* ≈ #999 */
+.navbar__item--logo.is-active img{filter:brightness(0) saturate(100%) invert(74%) sepia(43%) saturate(662%) hue-rotate(131deg) brightness(94%);} /* ≈ #25D1DA */
 .navbar__item.is-active{color:var(--accent);}
 .navbar__item:focus-visible{outline:2px solid #25D1DA;outline-offset:-2px;border-radius:10px;}
 
@@ -1332,6 +1349,22 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
         <div id="tsBody"></div>
       </section>
 
+      <!-- ============ COLD-START PREVIEW (user-facing hint that this page adapts) ============
+           Client question (Jul 9): how does a first-time customer know the experience
+           will be adaptive? Answer: say so, and preview what's coming — a null state
+           with a horizon, not an empty slot. Cold only; the earned modules replace it. -->
+      <section class="wrap" id="coldPreview" data-lens="fixed" data-note="the hint: adaptivity announced up front, before it has anything to show" hidden>
+        <div class="cold-hint">
+          <p class="cold-hint__lead"><span class="live-tag">This page adapts</span> Right now you see the standard page, same as everyone. Play a few songs and it starts becoming yours:</p>
+          <div class="cold-hint__row">
+            <span class="cold-hint__chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>Your top songs</span>
+            <span class="cold-hint__chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>Your journey, era by era</span>
+            <span class="cold-hint__chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>Earned exclusives</span>
+          </div>
+          <p class="cold-hint__note">Each change explains itself with a ✦, and the standard page always stays one tap away.</p>
+        </div>
+      </section>
+
       <!-- ============ YOUR HISTORY (durable identity: seed → teaser → full) ============ -->
       <div class="slot dormant" id="slotHi" data-slotnote="grows from history, empty on day one">
         <section class="wrap" id="hiSec" data-lens="adaptive" data-conf="med" data-note="grown from your plays, not editorial">
@@ -1340,45 +1373,6 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
             <button class="whym" data-why="history" aria-label="Why am I seeing this?"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.9 5.8L20 9l-4.5 3.4L17 19l-5-3.4L7 19l1.5-6.6L4 9l6.1-1.2L12 2Z" fill="currentColor"/></svg></button>
           </div>
           <div id="hiBody" style="margin-top:12px"></div>
-        </section>
-      </div>
-
-      <!-- ============ FORGOTTEN FAVORITES (loved once, gone quiet — re-engage) ============
-           Split out from the old "Deep cuts" per the Jul-9 mentor note: forgotten
-           favorites = songs you HAVEN'T played in a while (distinct mechanic from
-           Hidden gems = never played). Meta carries the recency so the mechanic reads. -->
-      <div class="slot dormant" id="slotForgot" data-slotnote="loved once, quiet for months — a second chance">
-        <section class="wrap" data-lens="adaptive" data-conf="high" data-note="you loved these, then drifted — recency, not the hits">
-          <div class="sec-line">
-            <h2 class="t">Forgotten favorites</h2>
-            <button class="whym" data-why="forgot" aria-label="Why am I seeing this?"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.9 5.8L20 9l-4.5 3.4L17 19l-5-3.4L7 19l1.5-6.6L4 9l6.1-1.2L12 2Z" fill="currentColor"/></svg></button>
-          </div>
-          <p class="sec-sub"><span class="live-tag">Updates as you listen</span> You loved these once — quiet for months now</p>
-          <div class="songlist">
-            <div class="mu-song"><button type="button" class="mu-hit" data-play data-title="favorite crime" data-art="art-sour" aria-label="Play favorite crime"><div class="mu-song__art art-sour"></div><div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">favorite crime</span></div><span class="mu-song__meta">SOUR · last played 8 months ago</span></div></button><button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button></div>
-            <div class="mu-song"><button type="button" class="mu-hit" data-play data-title="enough for you" data-art="art-sour" aria-label="Play enough for you"><div class="mu-song__art art-sour"></div><div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">enough for you</span></div><span class="mu-song__meta">SOUR · last played 11 months ago</span></div></button><button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button></div>
-            <div class="mu-song"><button type="button" class="mu-hit" data-play data-title="happier" data-art="art-sour" aria-label="Play happier"><div class="mu-song__art art-sour"></div><div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">happier</span></div><span class="mu-song__meta">SOUR · last played 7 months ago</span></div></button><button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button></div>
-          </div>
-        </section>
-      </div>
-
-      <!-- ============ HIDDEN GEMS (never played — or, once heard-all, least played) ============
-           Hidden gems = songs you've NEVER played. For a completionist super fan who
-           HAS heard everything, the mentor's fix: don't leave it empty — say so, and
-           pivot to least-played. #hgHeard + #hiddenSub are swapped in apply() by state. -->
-      <div class="slot dormant" id="slotHidden" data-slotnote="never played — closes as your gaps close">
-        <section class="wrap" data-lens="adaptive" data-conf="high" data-note="songs you've never played; when there are none left, it says so">
-          <div class="sec-line">
-            <h2 class="t">Hidden gems</h2>
-            <button class="whym" data-why="hidden" aria-label="Why am I seeing this?"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.9 5.8L20 9l-4.5 3.4L17 19l-5-3.4L7 19l1.5-6.6L4 9l6.1-1.2L12 2Z" fill="currentColor"/></svg></button>
-          </div>
-          <p class="sec-sub"><span class="live-tag">Updates as you listen</span> <span id="hiddenSub">Songs you've never played</span></p>
-          <div class="hg-heard" id="hgHeard" hidden><span class="hg-heard__mark">✦</span> Every released song played — you're one of the few. Here's what you reach for least.</div>
-          <div class="songlist">
-            <div class="mu-song"><button type="button" class="mu-hit" data-play data-title="pretty isn't pretty" data-art="art-guts" aria-label="Play pretty isn't pretty"><div class="mu-song__art art-guts"></div><div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">pretty isn't pretty</span></div><span class="mu-song__meta" data-never="GUTS · never played" data-least="GUTS · 2 plays">GUTS · never played</span></div></button><button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button></div>
-            <div class="mu-song"><button type="button" class="mu-hit" data-play data-title="the grudge" data-art="art-guts" aria-label="Play the grudge"><div class="mu-song__art art-guts"></div><div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">the grudge</span></div><span class="mu-song__meta" data-never="GUTS · never played" data-least="GUTS · 1 play">GUTS · never played</span></div></button><button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button></div>
-            <div class="mu-song"><button type="button" class="mu-hit" data-play data-title="obsessed" data-art="art-spill" aria-label="Play obsessed"><div class="mu-song__art art-spill"></div><div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">obsessed</span><span class="mu-e">E</span></div><span class="mu-song__meta" data-never="GUTS (spilled) · never played" data-least="GUTS (spilled) · 3 plays">GUTS (spilled) · never played</span></div></button><button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button></div>
-          </div>
         </section>
       </div>
 
@@ -1613,21 +1607,23 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   </div>
 
   <!-- ============ APP NAV BAR (fixed chrome) ============ -->
+  <!-- nav icons = the DERBC studio app's actual PNG assets (assets/nav/ + the
+       Alexa mark tinted per focus, exactly as its AmazonTabBar renders them) -->
   <nav class="navbar" aria-label="Amazon Music" data-lens="fixed" data-note="durable chrome; it never adapts">
     <button class="navbar__item is-active" data-nav="Home" aria-current="page">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.24 3.6 4.3 9.34A2 2 0 0 0 3.6 10.88V19a1.6 1.6 0 0 0 1.6 1.6H9.1v-4.5a1.4 1.4 0 0 1 1.4-1.4h3a1.4 1.4 0 0 1 1.4 1.4v4.5h3.9A1.6 1.6 0 0 0 20.4 19v-8.12a2 2 0 0 0-.7-1.54l-6.94-5.74a1.2 1.2 0 0 0-1.52 0Z" fill="currentColor"/></svg>
+      <img src="static/adaptive/nav/nav-home-active.png" data-active="static/adaptive/nav/nav-home-active.png" data-inactive="static/adaptive/nav/nav-home-inactive.png" alt="" aria-hidden="true">
       Home
     </button>
     <button class="navbar__item" data-nav="Find">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.7" stroke="currentColor" stroke-width="1.8"/><circle cx="10.5" cy="10.5" r="3.9" fill="currentColor"/><path d="M15.4 15.4 20.4 20.4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>
+      <img src="static/adaptive/nav/nav-find-inactive.png" alt="" aria-hidden="true">
       Find
     </button>
     <button class="navbar__item" data-nav="Library">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="3.5" width="11.4" height="11.4" rx="2.4" stroke="currentColor" stroke-width="1.7"/><rect x="8.6" y="8.6" width="12" height="12" rx="2.6" fill="currentColor"/><path d="M14.6 18.5c-.17 0-.33-.06-.45-.18l-2.32-2.18c-.92-.88-.92-2.35 0-3.23.85-.8 2.1-.67 2.77.07.67-.74 1.92-.87 2.77-.07.92.88.92 2.35 0 3.23l-2.32 2.18c-.12.12-.28.18-.45.18Z" fill="#000"/></svg>
+      <img src="static/adaptive/nav/nav-library-inactive.png" alt="" aria-hidden="true">
       Library
     </button>
-    <button class="navbar__item" data-nav="Maestro">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.26 19.52A8 8 0 1 1 16.59 18.55" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <button class="navbar__item navbar__item--logo" data-nav="Maestro">
+      <img src="static/adaptive/nav/alexa-logo.png" alt="" aria-hidden="true">
       Maestro
     </button>
   </nav>
@@ -1801,7 +1797,17 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   /* embed mode: v3 is the artist route inside the DERBC client (iframe). The host
      supplies chrome + navigation; nav/back hand control back via postMessage. */
   var EMBED=/[?&]embed=1/.test(location.search);
-  if(EMBED) document.body.classList.add("embed");
+  if(EMBED){
+    document.body.classList.add("embed");
+    /* faithful to the app's StandaloneTabBar: on an artist route no tab is
+       focused, so Home renders inactive inside the client */
+    var navHome=document.querySelector('.navbar__item.is-active');
+    if(navHome){
+      navHome.classList.remove("is-active"); navHome.removeAttribute("aria-current");
+      var hi=navHome.querySelector("img");
+      if(hi && hi.dataset.inactive) hi.src=hi.dataset.inactive;
+    }
+  }
 
   /* ---------- live clock + status bar ---------- */
   var clock=$("#clock");
@@ -1884,7 +1890,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       follow:true, proof:"Since 2024",
       toast:"<b>Engaged</b>: medium confidence. Your top songs lead, your journey appears. Popular stays one tap away.",
       ctx:{txt:"3 GUTS tracks deep. Your <b>era mix</b> is one tap away.", act:"Play era mix"},
-      tsLens:{type:"adaptive", conf:"med", note:"your plays rank it; Popular folds in"}
+      tsLens:{type:"adaptive", conf:"med", note:"one widget, five dimensions; Popular folds in"}
     },
     superfan:{
       label:"Super fan", conf:3, confLbl:"HIGH", job:"Don't miss anything, and feel seen",
@@ -1892,7 +1898,7 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       follow:true, proof:"Since Mar 2021",
       toast:"<b>Super fan</b>: high confidence. The surface goes live; presale privileges unlock. Frame still fixed.",
       ctx:{txt:"Deep in the <b>Girl So in Love era</b> again, so the visuals follow along.", act:"Lyrics on"},
-      tsLens:{type:"adaptive", conf:"med", note:"your plays rank it; Popular folds in"}
+      tsLens:{type:"adaptive", conf:"med", note:"one widget, five dimensions; Popular folds in"}
     }
   };
 
@@ -1900,27 +1906,28 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   var WHY={
     hero:{t:"The era visual", r:function(){return "The hero swapped its still portrait for a muted GUTS-era visual. That's the page's biggest move, and it only happens at the highest confidence: 92 plays this month, three eras of history. One step down and it returns to the portrait.";}},
     ctx:{t:"The session line", r:function(){return "This line reads the moment, not your profile: the session you're in right now. It works even with zero history, and it leaves when the music stops. Nothing about you is stored to show it.";}},
-    topsongs:{t:"Top songs", r:function(){
+    topsongs:{t:"Your songs with Olivia", r:function(){
       if(state==="casual") return "Two songs you've played are marked on the global chart. That's the whole change. It's a content touch, not a new structure: at low confidence the page earns a mark, not a re-layout. Structure only shifts once confidence is higher.";
-      return "Your plays rank this widget now, and it grew tabs: a format change, not just different rows. Popular is still one tap away; the standard view is never deleted.";}},
+      return "One songs widget, five dimensions — so songs stay at the top of the page and only the lens on them changes. Recent and All-Time are ranked by your plays; Popular is community data with two scopes (the global chart, or what super fans keep on repeat — not the same list); Forgotten is recency (songs you loved, then drifted from); Gems is coverage (songs you've never played — and once you've heard everything, it says so and pivots to your least-played). The standard view is never deleted.";}},
     history:{t:"You & Olivia", r:function(){
       if(state==="casual") return "Chapter one: a single first play, three weeks ago. This card is grown from your listening history; it starts nearly empty and earns its size as you do.";
-      if(state==="superfan") return "Three eras of listening, top 1% of her listeners. The full journey earns the full card. Built from your history alone, not editorial.";
+      if(state==="superfan") return "Three eras of listening, top 1% of her listeners. The full journey earns the full card. Built from your history alone, not editorial. And “super fan” is read from your own pattern — depth, repeats, breadth each count. Knowing every word of one album is fandom too; there's more than one way to be one.";
       return "Built from 640 plays since 2024: your history with her, not editorial content. It grows one step at a time; it never guesses ahead.";}},
     pin:{t:"The pinned presale", r:function(){return "A popup became a fixture: you saved the presale, so it holds the top slot until Thursday. Takeovers like this need two things at once: super-fan state and a live event. Dismissed things wait in Events; nothing is one-time.";}},
-    forgot:{t:"Forgotten favorites", r:function(){return "Songs you loved once and haven't played in months. The mechanic here is recency: these you know well, you've just drifted, so the page nudges a fading favorite back. That's what separates it from Hidden gems, which are songs you've never played at all.";}},
-    hidden:{t:"Hidden gems", r:function(){ if(state==="superfan") return "Normally these are songs you've never played. You've played every released one, so instead of showing nothing it says so and pivots to the tracks you reach for least. The mechanic is coverage: it closes as your gaps do, and when there are none left, it tells you."; return "Released songs you've never played, surfaced so nothing slips past you. It's coverage, not recency: distinct from Forgotten favorites, which are ones you knew and drifted from. It updates as your library gaps close.";}},
     since:{t:"Since your last visit", r:function(){return "This reads recency, not your profile. It shows what's new about Olivia since you were last here: a video, a TV spot, a tour add. It appears because you've been away and there's something to catch up on, and it clears once you're caught up.";}},
     you:{t:"You & Olivia", r:function(){ if(state==="casual") return "Chapter one: a single first play, three weeks ago. This whole tab is grown from your listening history; it starts near-empty and earns its depth as you do."; return "This entire tab is built from your plays: eras, milestones, the time you spent together. It's your history with her, not editorial content, and it fills in only as far as you've actually listened."; }},
     exclusive:{t:"Exclusive for you", r:function(){ return "This unlocked at your 50th listen: a milestone you reached, not something bought. It's an example of a reward that appears once you've earned it, then stays yours to revisit."; }},
     replay:{t:"This moment", r:function(){ return "You just replayed the same passage three times: a live behavior, not a stored preference. The page reacts to what you're doing this second and clears the moment you stop. It would fire the same way on your very first visit, proof that adaptation isn't only about how long you've been a fan."; }},
     page:{t:"Why your page looks like this", r:function(){
       var m=M[state];
-      if(state==="cold") return "It doesn't adapt yet. You're on the standard page everyone gets; nothing is personalized, because there's no history to personalize from. As you listen, sections earn their way in, and each one explains itself with a ✦.";
+      /* client question (Jul 9): what about artists with two albums? — the honest
+         answer is a threshold, stated here rather than hidden */
+      var thin=" One more rule: these modules also need a deep enough catalog. For an artist with only a handful of releases, they suppress rather than repeat the same few songs.";
+      if(state==="cold") return "It doesn't adapt yet. You're on the standard page everyone gets; nothing is personalized, because there's no history to personalize from. As you listen, sections earn their way in, and each one explains itself with a ✦."+thin;
       var lead="The system reads you as a "+m.label.toLowerCase()+" listener at "+m.confLbl.toLowerCase()+" confidence, so it adapts only that far. ";
-      if(state==="casual") return lead+"That's one small content touch, your plays marked on the chart, and nothing structural. Most of the page is still fixed. Dial it down or reset below.";
-      if(state==="regular") return lead+"Your top songs lead the widget, your journey appears, and recent catch-up shows. Real structure changes, but the catalog spine stays put. Popular is one tap away; reset anytime below.";
-      return lead+"The big moves are earned: the hero goes to an era visual, your full journey unlocks, and a live event can take over. The frame never moves, and a standard version always exists; reset below.";
+      if(state==="casual") return lead+"That's one small content touch, your plays marked on the chart, and nothing structural. Most of the page is still fixed. Dial it down or reset below."+thin;
+      if(state==="regular") return lead+"Your top songs lead the widget, your journey appears, and recent catch-up shows. Real structure changes, but the catalog spine stays put. Popular is one tap away; reset anytime below."+thin;
+      return lead+"The big moves are earned: the hero goes to an era visual, your full journey unlocks, and a live event can take over. The frame never moves, and a standard version always exists; reset below."+thin;
     }},
     about:{t:"Why the About page adapts", r:function(){ if(state==="cold") return "Right now you see the short version: the essentials everyone gets. There's nothing deeper to add yet, because there's no listening history to earn it. The About page grows the more you play: a newcomer and a six-year fan shouldn't read the same page."; return "This page runs deeper than a newcomer's. You've listened enough that the fuller story, the production notes, and the interviews have earned their place; depth pulls in as you listen instead of being dumped on you at once. The core biography is the same; how much of it opens is what changes."; }},
     notes:{t:"Layers reveal as you listen", r:function(){ return "These production notes unlock the more you play, one at a time, never all at once. The locked one opens once you've spent enough time in that song. It's “pull, not push”: depth you reach for, revealed when you've earned it, never forced on you. They live under Music because they belong to songs, not to the artist's story."; }},
@@ -1963,7 +1970,27 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     popular:{cta:"Play Top Songs", rows:[
       {t:"vampire", n:"2.1B streams", art:"vmp", e:true},
       {t:"drivers license", n:"1.9B streams", art:"dl", e:true},
-      {t:"good 4 u", n:"1.7B streams", art:"g4u", e:true}]}
+      {t:"good 4 u", n:"1.7B streams", art:"g4u", e:true}],
+      /* client (Matthew, Jul 9): "what's popular vs what's popular among super
+         fans might be different" — same dimension, two scopes */
+      ctaFans:"Play Fan Favorites", rowsFans:[
+      {t:"lacy", n:"on repeat for 62% of top fans", art:"guts"},
+      {t:"making the bed", n:"on repeat for 58% of top fans", art:"guts"},
+      {t:"favorite crime", n:"on repeat for 54% of top fans", art:"sour"}]},
+    /* client feedback (Jul 9): one songs widget at the top, the DIMENSION varies —
+       Forgotten favorites (recency) and Hidden gems (coverage) fold in here as
+       tabs instead of standing as their own sections further down the page */
+    forgot:{cta:"Bring Them Back", plain:true, note:"You loved these once — quiet for months now",
+      rows:[
+      {t:"favorite crime", n:"SOUR · last played 8 months ago", art:"sour"},
+      {t:"enough for you", n:"SOUR · last played 11 months ago", art:"sour"},
+      {t:"happier", n:"SOUR · last played 7 months ago", art:"sour"}]},
+    gems:{cta:"Play The Gaps", plain:true, note:"Songs you've never played",
+      noteHeard:"You've heard it all — here's what you reach for least",
+      rows:[
+      {t:"pretty isn't pretty", n:"GUTS · never played", nHeard:"GUTS · 2 plays", art:"guts"},
+      {t:"the grudge", n:"GUTS · never played", nHeard:"GUTS · 1 play", art:"guts"},
+      {t:"obsessed", n:"GUTS (spilled) · never played", nHeard:"GUTS (spilled) · 3 plays", art:"spill", e:true}]}
   };
   var tsSec=$("#topsongs"), tsTitle=$("#tsTitle"), tsSub=$("#tsSub"), tsBody=$("#tsBody"), tsWhy=$("#tsWhy");
   var MORE='<button class="mu-more" aria-label="More"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="2" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#fff"/><circle cx="19" cy="12" r="2" fill="#fff"/></svg></button>';
@@ -1973,10 +2000,41 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       +'<div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">'+r.t+'</span>'+(r.e?'<span class="mu-e">E</span>':'')+'</div>'
       +'<span class="mu-song__meta">'+r.n+(marked&&r.heard?'<span class="you">you’ve played this</span>':'')+'</span></div></button>'+heartBtn(false)+MORE+'</div>';
   }
-  var rankKey="recent";
+  var rankKey="recent", popScope="all";
   function rankRows(key){
-    var d=RANKS[key];
-    return '<div class="mu-ranks">'+d.rows.map(function(r,i){
+    var d=RANKS[key], h='';
+    /* per-dimension mechanic line, so Forgotten (recency) and Gems (coverage)
+       stay distinct even though they now share one widget */
+    var heardAll = key==="gems" && state==="superfan";
+    var note = heardAll ? d.noteHeard : d.note;
+    if(note) h+='<p class="sec-sub" style="margin:-6px 0 12px">'+note+'</p>';
+    /* Popular carries two scopes: the global chart, and what super fans keep on
+       repeat — community data either way, never your profile */
+    if(key==="popular"){
+      var fans = popScope==="fans";
+      h+='<div class="pop-scope" role="group" aria-label="Popular — among whom">'
+        +'<button class="pop-scope__opt'+(fans?'':' is-active')+'" data-scope="all" aria-pressed="'+(!fans)+'">Everyone</button>'
+        +'<button class="pop-scope__opt'+(fans?' is-active':'')+'" data-scope="fans" aria-pressed="'+(fans)+'">Super fans</button>'
+        +'</div>';
+      if(fans){
+        return h+'<div class="mu-ranks">'+d.rowsFans.map(function(r,i){
+          return '<div class="mu-rank mu-rank--'+(i+1)+'"><button '+pHit(r.t,"art-"+r.art)+'><span class="mu-rank__n">'+(i+1)+'</span>'
+            +'<div class="mu-rank__art art-'+r.art+'"></div>'
+            +'<div class="mu-rank__col"><div class="mu-song__line"><span class="mu-rank__title">'+r.t+'</span>'+(r.e?'<span class="mu-e">E</span>':'')+'</div><span class="mu-rank__plays">'+r.n+'</span></div></button>'
+            +heartBtn(false)+MORE+'</div>';
+        }).join("")+'</div><button class="mu-mix" id="rankCta">'+d.ctaFans+'</button>';
+      }
+    }
+    if(heardAll) h+='<div class="hg-heard" style="margin:0 0 12px"><span class="hg-heard__mark">✦</span> Every released song played — you’re one of the few. Here’s what you reach for least.</div>';
+    if(d.plain){
+      h+='<div class="songlist">'+d.rows.map(function(r){
+        return '<div class="mu-song"><button '+pHit(r.t,"art-"+r.art)+'><div class="mu-song__art art-'+r.art+'"></div>'
+          +'<div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">'+r.t+'</span>'+(r.e?'<span class="mu-e">E</span>':'')+'</div>'
+          +'<span class="mu-song__meta">'+(heardAll&&r.nHeard?r.nHeard:r.n)+'</span></div></button>'+heartBtn(false)+MORE+'</div>';
+      }).join("")+'</div><button class="mu-mix" id="rankCta" style="margin-top:12px">'+d.cta+'</button>';
+      return h;
+    }
+    return h+'<div class="mu-ranks">'+d.rows.map(function(r,i){
       return '<div class="mu-rank mu-rank--'+(i+1)+'"><button '+pHit(r.t,"art-"+r.art)+'><span class="mu-rank__n">'+(i+1)+'</span>'
         +'<div class="mu-rank__art art-'+r.art+'"></div>'
         +'<div class="mu-rank__col"><div class="mu-song__line"><span class="mu-rank__title">'+r.t+'</span>'+(r.e?'<span class="mu-e">E</span>':'')+'</div><span class="mu-rank__plays">'+r.n+'</span></div></button>'
@@ -1994,28 +2052,39 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       tsWhy.hidden = state==="cold";
       tsBody.innerHTML='<div class="songlist">'+POPULAR.map(function(r){return songRow(r, state==="casual");}).join("")+'</div>';
     } else {
-      tsTitle.textContent="Your top songs";
-      tsSub.innerHTML="Ranked by your listening; <b>Popular</b> folds in";
+      tsTitle.textContent="Your songs with Olivia";
+      tsSub.innerHTML='<span class="live-tag">Updates as you listen</span> One widget, five dimensions; <b>Popular</b> folds in';
       tsWhy.hidden=false;
-      tsBody.innerHTML='<div class="mu-tabs" role="tablist" aria-label="Top songs">'
-        +'<button class="mu-tab'+(rankKey==="recent"?" is-active":"")+'" data-rank="recent" role="tab" aria-selected="'+(rankKey==="recent")+'">Recent Favorites</button>'
-        +'<button class="mu-tab'+(rankKey==="alltime"?" is-active":"")+'" data-rank="alltime" role="tab" aria-selected="'+(rankKey==="alltime")+'">All-Time</button>'
-        +'<button class="mu-tab'+(rankKey==="popular"?" is-active":"")+'" data-rank="popular" role="tab" aria-selected="'+(rankKey==="popular")+'">Popular</button>'
+      var DIMS=[["recent","Recent"],["alltime","All-Time"],["popular","Popular"],["forgot","Forgotten"],["gems","Gems"]];
+      tsBody.innerHTML='<div class="mu-tabs" role="tablist" aria-label="Your songs with Olivia — pick a dimension">'
+        +DIMS.map(function(dm){
+          return '<button class="mu-tab'+(rankKey===dm[0]?" is-active":"")+'" data-rank="'+dm[0]+'" role="tab" aria-selected="'+(rankKey===dm[0])+'">'+dm[1]+'</button>';
+        }).join("")
         +'</div><div id="rankBody" role="tabpanel">'+rankRows(rankKey)+'</div>';
       $$(".mu-tab",tsBody).forEach(function(tab){
         tab.addEventListener("click",function(){
           rankKey=tab.dataset.rank;
           $$(".mu-tab",tsBody).forEach(function(o){var on=o===tab;o.classList.toggle("is-active",on);o.setAttribute("aria-selected",on?"true":"false");});
           $("#rankBody").innerHTML=rankRows(rankKey);
-          bindRankCta();
+          bindRankBody();
         });
       });
-      bindRankCta();
+      bindRankBody();
     }
   }
-  function bindRankCta(){
+  function bindRankBody(){
     var c=$("#rankCta");
-    if(c) c.addEventListener("click",function(){ showToast("Playing <b>"+(rankKey==="popular"?"Top Songs":"your mix")+"</b>"); });
+    var what={recent:"your mix", alltime:"your mix", popular:(popScope==="fans"?"Fan Favorites":"Top Songs"), forgot:"your forgotten favorites", gems:"the songs you’ve missed"};
+    if(c) c.addEventListener("click",function(){ showToast("Playing <b>"+(what[rankKey]||"your mix")+"</b>"); });
+    /* Popular's Everyone ⇄ Super fans scope */
+    $$(".pop-scope__opt").forEach(function(o){
+      o.addEventListener("click",function(){
+        if(o.dataset.scope===popScope) return;
+        popScope=o.dataset.scope;
+        $("#rankBody").innerHTML=rankRows(rankKey);
+        bindRankBody();
+      });
+    });
   }
 
   /* --- your history: seed → teaser → full --- */
@@ -2147,10 +2216,16 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   function renderYou(){
     var h="";
     if(state==="cold"){
-      h='<section class="wrap" data-lens="fixed" data-note="null state: no journey yet; start with the hits">'
+      var LK='<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.8"/></svg>';
+      h='<section class="wrap" data-lens="fixed" data-note="null state with a horizon: what this tab becomes, announced up front">'
         +'<div class="sec-line"><h2 class="t">Your journey starts here</h2></div>'
-        +'<p class="sec-sub">Play a few songs and this space fills with your story: eras, milestones, the time you spent together.</p>'
-        +'<div class="songlist" style="margin-top:14px">'+POPULAR.map(function(r){return songRow(r,false);}).join("")+'</div></section>';
+        +'<p class="sec-sub">Play a few songs and this space fills with your story:</p>'
+        +'<div class="cold-hint__row" style="margin-top:10px">'
+        +'<span class="cold-hint__chip">'+LK+'Your eras</span>'
+        +'<span class="cold-hint__chip">'+LK+'Milestones</span>'
+        +'<span class="cold-hint__chip">'+LK+'Time you spent together</span>'
+        +'</div>'
+        +'<div class="songlist" style="margin-top:16px">'+POPULAR.map(function(r){return songRow(r,false);}).join("")+'</div></section>';
       youBody.innerHTML=h; bindYou(); updateYouResonance(); return;
     }
     if(state==="casual"){
@@ -2612,14 +2687,9 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
     renderAbout();
     renderNotes();
     setSlot("#slotHi", state!=="cold");
-    setSlot("#slotForgot", state==="regular"||state==="superfan");
-    setSlot("#slotHidden", state==="regular"||state==="superfan");
-    /* hidden gems adapts by depth: a completionist super fan has heard everything,
-       so it acknowledges that and pivots to least-played instead of showing nothing */
-    var heardAll = state==="superfan";
-    var hg=$("#hgHeard"); if(hg) hg.hidden=!heardAll;
-    var hs=$("#hiddenSub"); if(hs) hs.textContent = heardAll ? "You've heard it all — here's what you reach for least" : "Songs you've never played";
-    $$("#slotHidden .mu-song__meta").forEach(function(m){ var v=heardAll?m.getAttribute("data-least"):m.getAttribute("data-never"); if(v) m.textContent=v; });
+    /* the user-facing "this page adapts" preview exists only before there's
+       anything real to show — the earned modules replace it, never join it */
+    var cp=$("#coldPreview"); if(cp) cp.hidden = state!=="cold" || !adaptiveOn;
     setSlot("#slotSince", state==="regular"||state==="superfan");
     setSlot("#slotCtx", signals.session);
     setSlot("#slotReplay", signals.replay);
@@ -2752,9 +2822,9 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   });
   $("#liveChip").addEventListener("click",function(){ openWhy("hero"); });
 
-  var SLOT_NAMES={slotHi:"You &amp; Olivia", slotForgot:"Forgotten favorites", slotHidden:"Hidden gems", slotCtx:"The session line", slotPin:"The pinned presale", slotSince:"Since your last visit", slotReplay:"This moment", slotExcl:"Exclusive For You", slotNotes:"Production notes", slotMyPl:"Your playlists"};
+  var SLOT_NAMES={slotHi:"You &amp; Olivia", slotCtx:"The session line", slotPin:"The pinned presale", slotSince:"Since your last visit", slotReplay:"This moment", slotExcl:"Exclusive For You", slotNotes:"Production notes", slotMyPl:"Your playlists"};
   $("#whyLess").addEventListener("click",function(){
-    var slotFor={history:"slotHi", forgot:"slotForgot", hidden:"slotHidden", ctx:"slotCtx", pin:"slotPin", since:"slotSince", replay:"slotReplay", exclusive:"slotExcl", notes:"slotNotes", mypl:"slotMyPl"};
+    var slotFor={history:"slotHi", ctx:"slotCtx", pin:"slotPin", since:"slotSince", replay:"slotReplay", exclusive:"slotExcl", notes:"slotNotes", mypl:"slotMyPl"};
     var sid=slotFor[whyKey];
     closeSheets();
     if(!sid){ showToast("Noted: <b>less of this</b>. The system dials it down here."); return; }
