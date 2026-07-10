@@ -203,6 +203,13 @@ export default function NowPlayingScreen() {
     transform: [{ translateY: dismissY.value }],
   }))
 
+  // Dismiss must always land somewhere: opened via a deep link (or a reload on
+  // web) this screen has no back stack, and router.back() would no-op.
+  const dismiss = () => {
+    if (router.canGoBack()) router.back()
+    else router.replace('/' as any)
+  }
+
   const dismissPan = Gesture.Pan()
     .activeOffsetY(DISMISS_ACTIVE_OFFSET_Y)
     .failOffsetX([-DISMISS_FAIL_OFFSET_X, DISMISS_FAIL_OFFSET_X])
@@ -211,7 +218,7 @@ export default function NowPlayingScreen() {
     })
     .onEnd(e => {
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > DISMISS_VELOCITY) {
-        runOnJS(router.back)()
+        runOnJS(dismiss)()
       } else {
         dismissY.value = withSpring(0, { damping: 22, stiffness: 320 })
       }
@@ -270,7 +277,7 @@ export default function NowPlayingScreen() {
 
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={s.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={s.navBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={dismiss} style={s.navBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="chevron-down" size={26} color={C.textPrimary} />
           </TouchableOpacity>
           <View style={{ alignItems: 'center' }}>

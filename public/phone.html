@@ -118,7 +118,7 @@
             <svg width="28" height="13" viewBox="0 0 28 13" fill="none"><rect x="0.5" y="0.8" width="23" height="11.4" rx="3.2" stroke="#fff" stroke-opacity="0.4"/><rect x="2" y="2.3" width="20" height="8.4" rx="1.8" fill="#fff"/><path d="M25.5 4.3v4.4c.9-.4 1.4-1.2 1.4-2.2s-.5-1.8-1.4-2.2Z" fill="#fff" fill-opacity="0.5"/></svg>
           </div>
         </div>
-        <iframe class="appframe" id="appframe" src="./" title="Amazon Music Adaptive UI" allow="autoplay"></iframe>
+        <iframe class="appframe" id="appframe" src="./?b=20260710a" title="Amazon Music Adaptive UI" allow="autoplay"></iframe>
       </div>
     </div>
   </div>
@@ -173,7 +173,8 @@
     var paths=[].slice.call(document.querySelectorAll(".path[data-app]"));
     paths.forEach(function(p){
       p.addEventListener("click",function(){
-        frame.src=p.getAttribute("data-app");
+        var t=p.getAttribute("data-app");
+        frame.src=t+(t.indexOf("?")>-1?"&":"?")+"b=20260710a";
         paths.forEach(function(o){ o.classList.toggle("active", o===p); });
       });
     });
