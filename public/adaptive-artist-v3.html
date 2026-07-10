@@ -614,10 +614,14 @@ body.hero-live .hero__livechip{display:inline-flex;}
 .jr-era__name{font-weight:700;font-size:16px;line-height:1.25;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .jr-era__rank{font-size:12px;line-height:1.2;color:#fff;}
 .jr-line{position:relative;height:14px;margin-top:14px;}
-.jr-line__bar{position:absolute;left:60px;right:14px;top:50%;height:1px;background:rgba(255,255,255,.35);}
-/* the ongoing era is still being written — a dotted line trails off the leading
-   (newest) edge and the newest dot pulses "now" (mentor: "it's a loading screen") */
-.jr-line__future{position:absolute;left:0;width:60px;top:50%;height:0;border-top:1.6px dotted rgba(37,209,218,.6);transform:translateY(-50%);}
+/* time flows right → left (oldest era at the right, now at the left): the bar
+   spans dot-to-dot only and brightens toward the newest edge so the journey
+   reads as filled-up-to-now, not a scrubber sitting at 0% */
+.jr-line__bar{position:absolute;left:60px;top:50%;height:1px;background:linear-gradient(90deg,rgba(37,209,218,.8),rgba(37,209,218,.35) 55%,rgba(255,255,255,.22));}
+/* the ongoing era is still being written — a dotted stub continues past "now"
+   and fades out toward the left edge (the unwritten future), while the newest
+   dot pulses "now" (mentor: "it's a loading screen") */
+.jr-line__future{position:absolute;left:0;width:60px;top:50%;height:0;border-top:1.6px dotted rgba(37,209,218,.6);transform:translateY(-50%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 85%);mask-image:linear-gradient(90deg,transparent,#000 85%);}
 .jr-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;appearance:none;border:none;background:none;cursor:pointer;padding:0;display:grid;place-items:center;}
 .jr-dot i{width:8px;height:8px;border-radius:50%;background:#7b8590;transition:all .25s var(--ease);}
 .jr-dot.is-active i{width:12px;height:12px;background:var(--accent);box-shadow:0 0 0 3px rgba(37,209,218,.22);}
@@ -2251,7 +2255,9 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
         +(er.ongoing?'<span class="jr-era__now">Now</span>':'')
         +'<div class="jr-era__meta"><span class="jr-era__yr">'+er.season+'</span><span class="jr-era__name">'+er.name+'</span><span class="jr-era__rank">'+er.rank+'</span></div></button>';
     }).join("")
-      +'</div><div class="jr-line" style="width:'+(eras.length*132-12)+'px"><span class="jr-line__future" aria-hidden="true"></span><span class="jr-line__bar"></span>'
+      +'</div><div class="jr-line" style="width:'+(eras.length*132-12)+'px">'
+      +(eras[0]&&eras[0].ongoing?'<span class="jr-line__future" aria-hidden="true"></span>':'')
+      +'<span class="jr-line__bar" style="width:'+((eras.length-1)*132)+'px"></span>'
       +eras.map(function(er,i){
         return '<button class="jr-dot'+(i===yoEra?' is-active':'')+(er.ongoing?' is-now':'')+'" data-era="'+i+'" style="left:'+(i*132+60)+'px" aria-label="'+er.season+' · '+er.name+(er.ongoing?' · this era is still being written':'')+'"><i></i></button>';
       }).join("")+'</div></div>';
