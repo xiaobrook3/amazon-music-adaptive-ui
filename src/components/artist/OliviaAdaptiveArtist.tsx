@@ -22,7 +22,11 @@ const NAV_ROUTES: Record<string, string> = {
   Maestro: '/maestro',
 }
 
-export default function OliviaAdaptiveArtist() {
+// Tabs the embedded page can deep-link to (?tab=…), e.g. Home's "Top 1% listener"
+// lands in You & Olivia and the tour card lands in Events.
+const DEEP_TABS = ['you', 'about', 'events', 'merch']
+
+export default function OliviaAdaptiveArtist({ tab }: { tab?: string }) {
   const router = useRouter()
 
   // Resolve the embed URL relative to wherever the export is hosted
@@ -30,8 +34,9 @@ export default function OliviaAdaptiveArtist() {
   const src = useMemo(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return ''
     const base = window.location.pathname.replace(/artist\/[^/]*\/?$/, '')
-    return `${base}adaptive-artist-v3.html?embed=1&state=superfan`
-  }, [])
+    const deepTab = tab && DEEP_TABS.includes(tab) ? `&tab=${tab}` : ''
+    return `${base}adaptive-artist-v3.html?embed=1&state=superfan${deepTab}`
+  }, [tab])
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return
