@@ -12,27 +12,21 @@ export default function NotFound() {
   const router = useRouter()
   return (
     <View style={s.screen}>
-      <Text style={s.kicker}>AMAZON MUSIC · ADAPTIVE UI</Text>
-      <Text style={s.title}>This corner isn't built yet</Text>
-      <Text style={s.sub}>
-        You've reached a path this prototype doesn't cover. The working flows
-        are one tap away:
-      </Text>
+      <Text style={s.title}>That page doesn't exist</Text>
       <TouchableOpacity
         style={[s.btn, s.btnPrimary]}
         activeOpacity={0.85}
         onPress={() => router.replace('/artist/olivia-rodrigo' as any)}
       >
-        <Text style={s.btnPrimaryText}>Open the adaptive artist profile</Text>
+        <Text style={s.btnPrimaryText}>Open the artist profile</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={s.btn}
         activeOpacity={0.85}
         onPress={() => router.replace('/' as any)}
       >
-        <Text style={s.btnText}>Go to Home</Text>
+        <Text style={s.btnText}>Go Home</Text>
       </TouchableOpacity>
-      <Text style={s.foot}>DERBC Studio · CMU MHCI 2026 × Amazon Music</Text>
     </View>
   )
 }
