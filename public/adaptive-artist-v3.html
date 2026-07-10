@@ -3063,8 +3063,19 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   $("#shuffle").addEventListener("click",function(){ var on=this.classList.toggle("on"); this.setAttribute("aria-pressed",on); showToast(on?"Shuffle <b>on</b>":"Shuffle off"); });
   $("#more").addEventListener("click",function(){ showToast("More options"); });
   $("#search").addEventListener("click",function(){ showToast("Search Olivia's catalog"); });
+  /* the DERBC client, when it's deployed beside this page. Standalone back and
+     nav land in the real app so the whole thing behaves as one product. */
+  function appBase(){
+    var h=location.hostname;
+    if(h.indexOf("xiaobrook")>-1) return "/adaptive-ui/";
+    if(h.indexOf("vercel.app")>-1) return "/app/";
+    return null; /* plain static servers have no SPA rewrites for app routes */
+  }
   $("#back").addEventListener("click",function(){
     if(EMBED && window.parent!==window){ window.parent.postMessage({type:"v3-back"},"*"); return; }
+    if(history.length>1){ history.back(); return; }
+    var ab=appBase();
+    if(ab){ location.href=ab; return; }
     showToast("Back");
   });
   $("#tix").addEventListener("click",function(){ showToast("Opening tickets for <b>GUTS World Tour</b>"); });
@@ -3093,6 +3104,13 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
       var nav=b.dataset.nav||"Home";
       /* embedded in the DERBC client: hand navigation back to the host app */
       if(EMBED && window.parent!==window){ window.parent.postMessage({type:"v3-nav", nav:nav},"*"); return; }
+      /* standalone with the client deployed beside this page: open the real tab */
+      var ab=appBase();
+      if(ab){
+        var routes={Home:"", Find:"search", Library:"library", Maestro:"maestro"};
+        location.href=ab+(routes[nav]||"");
+        return;
+      }
       if(b.classList.contains("is-active")) showToast("You're on <b>Home</b>, Olivia's artist page");
       else if(nav==="Maestro") showToast("<b>Maestro</b> opens in the full app.");
       else showToast("Opening <b>"+nav+"</b>");
