@@ -46,12 +46,19 @@ npx serve dist                   # any static server works
 ## Hosting the web export
 
 `npx expo export --platform web` places the @expo/vector-icons fonts under
-`dist/assets/node_modules/…`. If you mirror the export into a repo whose
-`.gitignore` excludes `node_modules/`, those fonts silently never deploy and
-**every Ionicons glyph renders as a tofu box** (skip buttons, chevrons, add /
-bookmark on Now Playing) while PNG icons keep working. Add a scoped exception,
-e.g. `!<export-dir>/assets/node_modules/`, or deploy with a tool that uploads
-the working tree.
+`dist/assets/node_modules/…` — and **Vercel (and several other hosts) refuse
+to upload or serve any `node_modules` directory, even when the files are
+committed**. The symptom: every Ionicons glyph renders as a tofu box (skip
+buttons, chevrons, add / bookmark on Now Playing) while PNG icons keep
+working. A `.gitignore` exception is NOT enough.
+
+The fix that works everywhere — rename the path and patch the bundle after
+each export:
+
+```bash
+mv dist/assets/node_modules dist/assets/vendor
+sed -i '' 's|assets/node_modules/|assets/vendor/|g' dist/_expo/static/js/web/entry-*.js
+```
 
 A live deployment is maintained at **https://derbc-adaptive-ui.vercel.app**
 (root = phone-framed client, `/adaptive-artist-v3.html` = the standalone
