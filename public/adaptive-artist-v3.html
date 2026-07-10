@@ -1796,7 +1796,10 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
   /* embed mode: v3 is the artist route inside the DERBC client (iframe). The host
      supplies chrome + navigation; nav/back hand control back via postMessage. */
-  var EMBED=/[?&]embed=1/.test(location.search);
+  /* embed mode only counts inside a host frame — a direct open of an ?embed=1
+     URL (e.g. "open frame in new tab") gets the full standalone page instead
+     of a chrome-less orphan */
+  var EMBED=/[?&]embed=1/.test(location.search) && window.parent!==window;
   if(EMBED){
     document.body.classList.add("embed");
     /* faithful to the app's StandaloneTabBar: on an artist route no tab is
