@@ -100,6 +100,10 @@ const SONGS_PER_PAGE = 3
 const SONG_PAGE_PEEK = Math.round(SCREEN_W * 0.3)
 const SONG_PAGE_WIDTH = SCREEN_W - SONG_PAGE_PEEK
 
+// Module-level so the artist-page coach mark shows once per app session,
+// not once per Home re-mount.
+let artistPageHintSeen = false
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
@@ -241,6 +245,18 @@ export default function AdaptivePersonaHome() {
     router.push('/now-playing')
   }
 
+  // One-time coach mark on the artist-page entry card; stays dismissed for the
+  // rest of the session once tapped away or once the page has been visited.
+  const [showArtistHint, setShowArtistHint] = useState(!artistPageHintSeen)
+  const dismissArtistHint = () => {
+    artistPageHintSeen = true
+    setShowArtistHint(false)
+  }
+  const openOliviaPage = () => {
+    dismissArtistHint()
+    router.push('/artist/olivia-rodrigo' as any)
+  }
+
   const jumpBackIn = useMemo(
     () => filterContinueListening(continueListeningItems, activeTheme, songs).slice(0, 4),
     [activeTheme],
@@ -260,6 +276,12 @@ export default function AdaptivePersonaHome() {
     [albumsForYou],
   )
   const featuredArtists = useMemo(() => getFeaturedArtists(activeTheme, homeFeaturedArtistIds, 16), [activeTheme])
+  // "More like Olivia Rodrigo" suggests artists LIKE her — never Olivia herself;
+  // her page gets its own entry card in the fandom world block instead.
+  const moreLikeArtists = useMemo(
+    () => (isOlivia ? featuredArtists.filter(a => a.id !== activeTheme?.heroArtistId) : featuredArtists),
+    [featuredArtists, isOlivia, activeTheme],
+  )
   const onRepeat = useMemo(() => filterSongsForTheme(BASE_FREQUENT_PLAYS, activeTheme), [activeTheme])
   const rising = useMemo(() => filterSongsForTheme(BASE_RISING, activeTheme), [activeTheme])
   const hiddenGems = useMemo(() => getHiddenGemArtists(hiddenGemsArtistIds), [])
@@ -600,6 +622,43 @@ export default function AdaptivePersonaHome() {
             </View>
           )}
 
+          {/* The front door to the adaptive artist profile — a first-class card,
+              not a face hidden in the "More like" rail. */}
+          {isOlivia && (
+            <>
+              {showArtistHint && (
+                <View style={s.artistHint}>
+                  <Ionicons name="sparkles" size={12} color={C.cyan} />
+                  <Text style={s.artistHintText}>New — Olivia&apos;s artist page now adapts to you. Open yours below.</Text>
+                  <TouchableOpacity
+                    onPress={dismissArtistHint}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel="Dismiss hint"
+                  >
+                    <Ionicons name="close" size={14} color={C.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {showArtistHint && <View style={s.artistHintCaret} />}
+              <TouchableOpacity
+                style={[s.artistEntry, { borderColor: tintFromHue(accent, 0.5) }]}
+                activeOpacity={0.85}
+                onPress={openOliviaPage}
+                accessibilityLabel="Open your Olivia Rodrigo artist page"
+              >
+                <Image source={artistAssets['olivia-rodrigo']} style={s.artistEntryAvatar} resizeMode="cover" />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.rowEyebrow}>YOUR ARTIST PAGE</Text>
+                  <Text style={s.rowTitle}>Olivia Rodrigo</Text>
+                  <Text style={s.rowSub} numberOfLines={1}>Shaped by your listening — eras, favorites, exclusives</Text>
+                </View>
+                <View style={s.artistEntryGo}>
+                  <Ionicons name="arrow-forward" size={16} color="#06121a" />
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
+
           {isOlivia ? (
             <View style={s.bentoRow}>
               {/* LEFT — medium feature card (≈2/3 width, square aspect ratio) */}
@@ -863,7 +922,7 @@ export default function AdaptivePersonaHome() {
           <SectionHeader title={followingFocus ? 'New from your artists' : `More like ${fandomLabel}`} />
           <EdgeFadeRow>
             <HRail
-              data={featuredArtists}
+              data={followingFocus ? featuredArtists : moreLikeArtists}
               keyExtractor={artist => artist.id}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.rail}
@@ -1271,6 +1330,51 @@ const s = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#fff',
     marginTop: 1,
+  },
+
+  // Artist-page entry card + its one-time coach mark (fandom world block)
+  artistEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 10,
+  },
+  artistEntryAvatar: { width: 48, height: 48, borderRadius: 24 },
+  artistEntryGo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: C.cyan,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  artistHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(37,209,218,0.12)',
+    borderColor: 'rgba(37,209,218,0.45)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  artistHintText: { flex: 1, fontSize: 12, lineHeight: 16, color: '#CFF6F8' },
+  artistHintCaret: {
+    width: 0,
+    height: 0,
+    marginLeft: 22,
+    marginBottom: 6,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'rgba(37,209,218,0.45)',
   },
 
   rowCard: {
