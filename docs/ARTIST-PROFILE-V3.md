@@ -43,6 +43,20 @@ npx serve dist                   # any static server works
 - The standalone profile (with the moderator console for state-scrubbing) is at
   `/adaptive-artist-v3.html?state=superfan`.
 
+## Hosting the web export
+
+`npx expo export --platform web` places the @expo/vector-icons fonts under
+`dist/assets/node_modules/…`. If you mirror the export into a repo whose
+`.gitignore` excludes `node_modules/`, those fonts silently never deploy and
+**every Ionicons glyph renders as a tofu box** (skip buttons, chevrons, add /
+bookmark on Now Playing) while PNG icons keep working. Add a scoped exception,
+e.g. `!<export-dir>/assets/node_modules/`, or deploy with a tool that uploads
+the working tree.
+
+A live deployment is maintained at **https://derbc-adaptive-ui.vercel.app**
+(root = phone-framed client, `/adaptive-artist-v3.html` = the standalone
+moderator version).
+
 ## Known seam
 
 Playback state inside the embedded profile is simulated independently of the
