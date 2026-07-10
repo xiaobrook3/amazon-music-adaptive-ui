@@ -318,6 +318,7 @@ export default function AdaptivePersonaHome() {
   const [sessionCollapsed, setSessionCollapsed] = useState(false)
   const [ffPage, setFfPage] = useState(0)
   const [pagerW, setPagerW] = useState(0)
+  const pagerRef = useRef<ScrollView>(null)
   const newInSession = useMemo(() => getHiddenGemArtists(NEW_IN_SESSION_IDS), [])
 
   // One-time coach mark on the artist-page entry card; stays dismissed for the
@@ -707,7 +708,10 @@ export default function AdaptivePersonaHome() {
               </View>
               <TouchableOpacity
                 style={s.csCollapse}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 onPress={() => setSessionCollapsed(v => !v)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !sessionCollapsed }}
                 accessibilityLabel={sessionCollapsed ? 'Expand current session' : 'Collapse current session'}
               >
                 <Ionicons name={sessionCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#fff" />
@@ -754,6 +758,7 @@ export default function AdaptivePersonaHome() {
                 <View onLayout={e => setPagerW(e.nativeEvent.layout.width)}>
                   {pagerW > 0 && (
                     <ScrollView
+                      ref={pagerRef}
                       horizontal
                       pagingEnabled
                       snapToInterval={pagerW}
@@ -846,7 +851,19 @@ export default function AdaptivePersonaHome() {
                 </View>
                 <View style={s.ffDots}>
                   {FEATURED_PAGES.map((pg, i) => (
-                    <View key={pg.id} style={[s.ffDot, i === ffPage && s.ffDotActive]} />
+                    <TouchableOpacity
+                      key={pg.id}
+                      hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                      onPress={() => {
+                        pagerRef.current?.scrollTo({ x: i * pagerW, animated: true })
+                        setFfPage(i)
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Featured favorite ${i + 1} of ${FEATURED_PAGES.length}: ${pg.name}`}
+                      accessibilityState={{ selected: i === ffPage }}
+                    >
+                      <View style={[s.ffDot, i === ffPage && s.ffDotActive]} />
+                    </TouchableOpacity>
                   ))}
                 </View>
 

@@ -47,6 +47,22 @@ const FRAME_CSS = `
     #root::after{content:"9:41";position:absolute;top:19px;left:34px;z-index:9990;pointer-events:none;
       font:600 16px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff;
       font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+    /* React Native Web portals (modals, sheets) mount as body-level fixed
+       overlays that span the browser viewport — clip them to the same device
+       frame as #root so sheets stay inside the phone */
+    body > div:not(#root){
+      position:fixed !important;
+      left:50% !important;top:50% !important;right:auto !important;bottom:auto !important;
+      transform:translate(-50%,-50%);
+      width:402px !important;
+      height:min(874px, calc(100dvh - 64px)) !important;
+      min-height:560px;
+      border-radius:54px;
+      overflow:hidden;
+      outline:none !important;
+      pointer-events:none;
+    }
+    body > div:not(#root) > *{pointer-events:auto;}
   }
   `
 const idx = join(dist, 'index.html')
