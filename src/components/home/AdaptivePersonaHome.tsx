@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -103,6 +103,44 @@ const SONG_PAGE_WIDTH = SCREEN_W - SONG_PAGE_PEEK
 // Module-level so the artist-page coach mark shows once per app session,
 // not once per Home re-mount.
 let artistPageHintSeen = false
+
+// "You and your favorites" — monthly listening-trend cards (Figma 114:6189).
+// Each dots row is 19 slots: 0 = quiet, 1-9 = listening intensity, T = today (cyan).
+const FAVORITE_TRENDS = [
+  {
+    artistId: 'olivia-rodrigo',
+    name: 'Olivia Rodrigo',
+    tier: 'Superfan',
+    insight: 'Your morning starter. 3 days running.',
+    dots: [
+      '6700000000000000000',
+      '9600078979937977777',
+      '3799000000037979777',
+    ],
+  },
+  {
+    artistId: 'bts',
+    name: 'BTS',
+    tier: 'In rotation',
+    insight: 'You came back this week.',
+    dots: [
+      '0000000000000000056',
+      '4534667786767777777',
+      '5677000004500007890',
+    ],
+  },
+  {
+    artistId: 'sza',
+    name: 'SZA',
+    tier: 'New crush',
+    insight: 'Three songs, on repeat.',
+    dots: [
+      '0000000000000000000',
+      '0000000789987789977',
+      '0000000899987909780',
+    ],
+  },
+].map(f => ({ ...f, dots: [f.dots[0], f.dots[1], f.dots[2].slice(0, 18) + 'T'] }))
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
@@ -252,9 +290,9 @@ export default function AdaptivePersonaHome() {
     artistPageHintSeen = true
     setShowArtistHint(false)
   }
-  const openOliviaPage = () => {
+  const openOliviaPage = (tab?: 'you' | 'events' | 'about' | 'merch') => {
     dismissArtistHint()
-    router.push('/artist/olivia-rodrigo' as any)
+    router.push((tab ? `/artist/olivia-rodrigo?tab=${tab}` : '/artist/olivia-rodrigo') as any)
   }
 
   const jumpBackIn = useMemo(
@@ -612,57 +650,45 @@ export default function AdaptivePersonaHome() {
             pointerEvents="none"
           />
           <View style={s.fandomHead}>
-            <Ionicons name="heart" size={14} color={accent} />
-            <Text style={s.fandomTitle}>Your {fandomLabel} world</Text>
+            {!isOlivia && <Ionicons name="heart" size={14} color={accent} />}
+            <Text style={s.fandomTitle}>{isOlivia ? 'Your featured favorite' : `Your ${fandomLabel} world`}</Text>
           </View>
-          {(isOlivia || isKpop) && (
+          {isKpop && (
             <View style={s.fanTier}>
               <Ionicons name="star" size={11} color={C.cyan} />
               <Text style={[s.fanTierText, { color: C.cyan }]}>Top 1% of {fandomLabel} fans on Amazon Music</Text>
             </View>
           )}
 
-          {/* The front door to the adaptive artist profile — a first-class card,
-              not a face hidden in the "More like" rail. */}
-          {isOlivia && (
+          {/* One-time coach mark: the featured photo below is the front door to
+              the adaptive artist profile */}
+          {isOlivia && showArtistHint && (
             <>
-              {showArtistHint && (
-                <View style={s.artistHint}>
-                  <Ionicons name="sparkles" size={12} color={C.cyan} />
-                  <Text style={s.artistHintText}>New — Olivia&apos;s artist page now adapts to you. Open yours below.</Text>
-                  <TouchableOpacity
-                    onPress={dismissArtistHint}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Dismiss hint"
-                  >
-                    <Ionicons name="close" size={14} color={C.textMuted} />
-                  </TouchableOpacity>
-                </View>
-              )}
-              {showArtistHint && <View style={s.artistHintCaret} />}
-              <TouchableOpacity
-                style={[s.artistEntry, { borderColor: tintFromHue(accent, 0.5) }]}
-                activeOpacity={0.85}
-                onPress={openOliviaPage}
-                accessibilityLabel="Open your Olivia Rodrigo artist page"
-              >
-                <Image source={artistAssets['olivia-rodrigo']} style={s.artistEntryAvatar} resizeMode="cover" />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.rowEyebrow}>YOUR ARTIST PAGE</Text>
-                  <Text style={s.rowTitle}>Olivia Rodrigo</Text>
-                  <Text style={s.rowSub} numberOfLines={1}>Shaped by your listening — eras, favorites, exclusives</Text>
-                </View>
-                <View style={s.artistEntryGo}>
-                  <Ionicons name="arrow-forward" size={16} color="#06121a" />
-                </View>
-              </TouchableOpacity>
+              <View style={s.artistHint}>
+                <Ionicons name="sparkles" size={12} color={C.cyan} />
+                <Text style={s.artistHintText}>New — Olivia&apos;s page adapts to you. Tap her photo to open it.</Text>
+                <TouchableOpacity
+                  onPress={dismissArtistHint}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel="Dismiss hint"
+                >
+                  <Ionicons name="close" size={14} color={C.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <View style={s.artistHintCaret} />
             </>
           )}
 
           {isOlivia ? (
-            <View style={s.bentoRow}>
-              {/* LEFT — medium feature card (≈2/3 width, square aspect ratio) */}
-              <TouchableOpacity style={s.bentoMedCard} activeOpacity={0.88} onPress={() => openSong(onRepeat[0]?.id ?? songs[0].id)}>
+            <View style={s.ffRow}>
+              {/* LEFT — featured favorite photo card (Figma 114:6101 "newest update");
+                  the whole photo is the artist-page entry */}
+              <TouchableOpacity
+                style={s.ffCard}
+                activeOpacity={0.88}
+                onPress={() => openOliviaPage()}
+                accessibilityLabel="Open Olivia Rodrigo's adaptive artist page"
+              >
                 {(() => {
                   const art = activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null
                   return art ? (
@@ -672,66 +698,54 @@ export default function AdaptivePersonaHome() {
                   )
                 })()}
                 <LinearGradient
-                  colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.78)']}
+                  colors={['rgba(102,102,102,0)', 'rgba(0,0,0,0.6)']}
+                  locations={[0.59, 1]}
                   style={StyleSheet.absoluteFill}
                 />
-                <View style={s.featureText}>
-                  <Text style={s.featureEyebrow}>{activeTheme?.heroEyebrow ?? 'FOR YOU'}</Text>
-                  <Text style={s.featureTitle} numberOfLines={2}>{activeTheme?.heroTitle ?? fandomLabel}</Text>
+                {/* following bubble — heart pill with a thought-bubble tail */}
+                <View style={s.ffBubbleWrap} pointerEvents="none">
+                  <View style={s.ffBubble}>
+                    <Ionicons name="heart" size={13} color="#fff" />
+                    <Text style={s.ffBubbleText}>Since Mar 2020</Text>
+                  </View>
+                  <View style={s.ffBubbleDot1} />
+                  <View style={s.ffBubbleDot2} />
                 </View>
-                <View style={s.featurePlay}><PlayBadge size={40} /></View>
+                {/* Top 1% listener → your journey (You & Olivia) */}
+                <TouchableOpacity
+                  onPress={() => openOliviaPage('you')}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 2, left: 4, right: 12 }}
+                  accessibilityLabel="Top 1% listener — see your journey with Olivia"
+                >
+                  <Text style={s.ffTier}>Top 1% listener</Text>
+                </TouchableOpacity>
+                <Text style={s.ffName} numberOfLines={1}>Olivia Rodrigo</Text>
               </TouchableOpacity>
 
-              {/* RIGHT — 3 compact tiles stacked (≈1/3 width each) */}
-              <View style={s.bentoColRight}>
-                {/* Card 1: YOUR #1 TRACK — full-bleed album art + gradient */}
+              {/* RIGHT — what you unlocked (→ music) + tour news (→ events) */}
+              <View style={s.ffCol}>
                 <TouchableOpacity
-                  style={s.bentoSmallArtBg}
-                  activeOpacity={0.75}
-                  onPress={() => openSong(OLIVIA_TOP_TRACK.songId)}
+                  style={[s.ffUnlock, Platform.OS === 'web' ? ({ backdropFilter: 'blur(4.4px)' } as any) : null]}
+                  activeOpacity={0.8}
+                  onPress={() => openOliviaPage()}
+                  accessibilityLabel="What you unlocked — exclusive for you"
                 >
-                  <Image
-                    source={resolveBannerArt(OLIVIA_TOP_TRACK.artKey) ?? artistAssets['olivia-rodrigo']}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="cover"
-                  />
-                  <LinearGradient
-                    colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.75)']}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={s.bentoSmallArtContent}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.bentoSmallEyebrow}>★ #1</Text>
-                      <Text style={s.bentoSmallLabel} numberOfLines={1}>{OLIVIA_TOP_TRACK.title}</Text>
-                    </View>
-                    <Ionicons name="play-circle" size={16} color="rgba(255,255,255,0.85)" />
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <Text style={s.ffUnlockEyebrow}>WHAT YOU UNLOCKED</Text>
+                    <Text style={s.ffUnlockTitle}>Exclusive for you</Text>
                   </View>
+                  <Ionicons name="chevron-forward" size={16} color="#fff" style={{ alignSelf: 'flex-end' }} />
                 </TouchableOpacity>
-
-                {/* Card 2: EXCLUSIVE — lock icon + label + chevron */}
                 <TouchableOpacity
-                  style={s.bentoSmallCard}
-                  activeOpacity={0.75}
-                  onPress={() => openSong('s-or4')}
+                  style={s.ffTour}
+                  activeOpacity={0.8}
+                  onPress={() => openOliviaPage('events')}
+                  accessibilityLabel="Guts world tour announced — find tickets"
                 >
-                  <Ionicons name="lock-open-outline" size={15} color={C.cyan} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.bentoSmallEyebrow}>EXCLUSIVE</Text>
-                    <Text style={s.bentoSmallLabel} numberOfLines={1}>{OLIVIA_EXCLUSIVE_TRACK.title}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={13} color="rgba(255,255,255,0.35)" />
-                </TouchableOpacity>
-
-                {/* Card 3: TOUR NEWS — teal accent bar + headline + chevron */}
-                <TouchableOpacity
-                  style={s.bentoSmallNewsCard}
-                  activeOpacity={0.75}
-                  onPress={() => router.push('/announcement?id=ann-olivia-1' as any)}
-                >
-                  <View style={s.bentoSmallAccentBar} />
-                  <View style={s.bentoSmallNewsBody}>
-                    <Text style={s.bentoSmallNewsText} numberOfLines={2}>{OLIVIA_NEWS.headline}</Text>
-                    <Ionicons name="chevron-forward" size={11} color={C.cyan} style={s.bentoSmallNewsChevron} />
+                  <Text style={s.ffTourTitle}>Guts world tour announced</Text>
+                  <View style={s.ffTourPill}>
+                    <Text style={s.ffTourPillText}>Find tickets</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -1102,6 +1116,75 @@ export default function AdaptivePersonaHome() {
             </ScrollView>
           </EdgeFadeRow>
         </View>
+
+        {/* 9 — You and your favorites: monthly listening-trend cards (Figma 114:6189).
+            Each dot is one listening slot this month; the cyan dot is today. */}
+        <View style={s.block}>
+          <View style={s.favHead}>
+            <Text style={s.sectionTitle}>You and your favorites</Text>
+            <Text style={s.favSeeMore}>SEE MORE</Text>
+          </View>
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {FAVORITE_TRENDS.map(fav => {
+                const art = resolveArtistAvatar(fav.artistId)
+                return (
+                  <TouchableOpacity
+                    key={fav.artistId}
+                    style={s.favCard}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      fav.artistId === 'olivia-rodrigo'
+                        ? openOliviaPage('you')
+                        : router.push(`/artist/${fav.artistId}` as any)
+                    }
+                    accessibilityLabel={`${fav.tier} — ${fav.name}. ${fav.insight}`}
+                  >
+                    {art && <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.5)']}
+                      locations={[0.19, 0.52, 0.81]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.favTopRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        {art && <Image source={art} style={s.favAvatar} resizeMode="cover" />}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.favTier}>{fav.tier}</Text>
+                          <Text style={s.favName} numberOfLines={1}>{fav.name}</Text>
+                        </View>
+                      </View>
+                      <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
+                    </View>
+                    <View>
+                      <Text style={s.favMonth}>THIS MONTH</Text>
+                      <Text style={s.favInsight}>{fav.insight}</Text>
+                      <View style={s.favDots}>
+                        {fav.dots.map((row, ri) => (
+                          <View key={ri} style={s.favDotRow}>
+                            {row.split('').map((ch, ci) => (
+                              <View
+                                key={ci}
+                                style={[
+                                  s.favDot,
+                                  ch === 'T'
+                                    ? { backgroundColor: C.cyan }
+                                    : ch === '0'
+                                      ? null
+                                      : { backgroundColor: `rgba(255,255,255,${(0.1 + (Number(ch) / 9) * 0.75).toFixed(2)})` },
+                                ]}
+                              />
+                            ))}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </EdgeFadeRow>
+        </View>
         </>
         )}
 
@@ -1332,26 +1415,90 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Artist-page entry card + its one-time coach mark (fandom world block)
-  artistEntry: {
+  // "Your featured favorite" module (Figma 114:6101) — photo card + right column
+  ffRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  ffCard: {
+    flex: 1,
+    height: 244,
+    borderRadius: 12,
+    overflow: 'hidden',
+    padding: 12,
+    justifyContent: 'flex-end',
+  },
+  ffBubbleWrap: { position: 'absolute', right: 6, top: 7, width: 110, height: 40 },
+  ffBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    gap: 4,
+    height: 27,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: '#DE909C',
+    alignSelf: 'flex-start',
+  },
+  ffBubbleText: { fontSize: 12, color: '#fff' },
+  ffBubbleDot1: { position: 'absolute', left: 8, top: 22, width: 11, height: 11, borderRadius: 5.5, backgroundColor: '#DE909C' },
+  ffBubbleDot2: { position: 'absolute', left: 4, top: 33, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#DE909C' },
+  ffTier: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  // Figma spec is 33px, but the flex-shrunk card gives the name ~187px of run —
+  // 29px is the largest size that never ellipsizes "Olivia Rodrigo".
+  ffName: { fontSize: 29, fontWeight: '700', color: '#fff', lineHeight: 32, marginTop: 2 },
+  ffCol: { width: 120, gap: 12 },
+  ffUnlock: {
+    height: 139,
     borderRadius: 12,
     borderWidth: 1,
-    padding: 10,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    padding: 12,
   },
-  artistEntryAvatar: { width: 48, height: 48, borderRadius: 24 },
-  artistEntryGo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.cyan,
-    alignItems: 'center',
+  ffUnlockEyebrow: { fontSize: 12, fontWeight: '700', color: C.cyan, letterSpacing: 0.3 },
+  ffUnlockTitle: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 4 },
+  ffTour: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     justifyContent: 'center',
+    gap: 12,
   },
+  ffTourTitle: { fontSize: 14, fontWeight: '700', color: '#fff', lineHeight: 16 },
+  ffTourPill: {
+    borderWidth: 1,
+    borderColor: '#fff',
+    borderRadius: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  ffTourPillText: { fontSize: 14, color: '#fff', lineHeight: 14 },
+
+  // "You and your favorites" trend cards
+  favHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 2 },
+  favSeeMore: { fontSize: 14, fontWeight: '700', color: '#757575' },
+  favCard: {
+    width: 212,
+    height: 212,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    overflow: 'hidden',
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  favTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  favAvatar: { width: 36, height: 36, borderRadius: 18 },
+  favTier: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  favName: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 3 },
+  favMonth: { fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.3 },
+  favInsight: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 5 },
+  favDots: { marginTop: 8, gap: 2 },
+  favDotRow: { flexDirection: 'row', gap: 2 },
+  favDot: { width: 8, height: 8, borderRadius: 4 },
+
   artistHint: {
     flexDirection: 'row',
     alignItems: 'center',
