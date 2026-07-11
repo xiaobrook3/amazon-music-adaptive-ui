@@ -93,6 +93,13 @@ const DEEP_TABS: Record<string, string> = {
 
 export default function ArtistJourneyScreen({ id, initialTab }: { id: string; initialTab?: string }) {
   const router = useRouter()
+
+  // Deep-linked or reloaded pages have no history entry — a bare router.back()
+  // silently no-ops and the back chevron reads as broken. Land on Home instead.
+  const goBack = () => {
+    if (router.canGoBack()) router.back()
+    else router.replace('/')
+  }
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
@@ -135,6 +142,17 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
   const [following, setFollowing] = useState(converged)
   // Popular community scope — Everyone's chart vs what super fans replay.
   const [popScope, setPopScope] = useState<'everyone' | 'superfans'>('everyone')
+
+  // If the route instance is ever reused with a different artist (replace/
+  // setParams instead of push), reseed the per-artist state — otherwise the
+  // previous artist's follow state, era index, and tab label leak through.
+  useEffect(() => {
+    setFollowing(converged)
+    setSelectedIdx(0)
+    setPopScope('everyone')
+    setTab(initialTab === 'you' ? journeyTab : DEEP_TABS[initialTab ?? ''] ?? 'Music')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artist.id])
 
   // Popular rows: dedupe by title; the super-fan scope reads the community's
   // replay chart (a deterministic alternate ordering of the same catalog).
@@ -214,7 +232,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 activeProfile={activeProfile}
                 following={following}
                 showProof={converged}
-                onBack={() => router.back()}
+                onBack={goBack}
                 onToggleFollow={() => setFollowing(f => !f)}
                 onPlay={() => playByTitle()}
                 onShuffle={shufflePlay}
@@ -230,7 +248,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 activeProfile={activeProfile}
                 following={following}
                 showProof={converged}
-                onBack={() => router.back()}
+                onBack={goBack}
                 onToggleFollow={() => setFollowing(f => !f)}
                 onPlay={() => playByTitle()}
                 onShuffle={shufflePlay}
@@ -317,7 +335,9 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 <View style={s.block}>
                   <View style={s.sectionHeaderRow}>
                     <Text style={s.sectionTitle}>Your Journey with {page.firstName}</Text>
-                    <Text style={s.sectionLink}>Back to Now</Text>
+                    <TouchableOpacity onPress={() => setSelectedIdx(0)} hitSlop={8}>
+                      <Text style={s.sectionLink}>Back to Now</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <ScrollView
@@ -373,7 +393,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
             )}
 
             {/* Time together */}
-            {hasJourney && selectedEra && (
+            {selectedEra && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Time You Spent Together</Text>
                 <ImageBackground
@@ -414,7 +434,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>What you played back then</Text>
-                  <Text style={s.sectionLink}>SEE MORE</Text>
                 </View>
                 <LinearGradient
                   colors={['rgba(80,76,118,0.48)', 'rgba(0,0,0,0.95)']}
@@ -451,7 +470,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>Your Favorite Lyrics</Text>
-                  <Text style={s.sectionLink}>SEE MORE</Text>
                 </View>
                 <View style={s.lyricStack}>
                   {page.lyrics[1] && (
@@ -485,7 +503,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>Playlists Similar to this Era</Text>
-                  <Text style={s.sectionLink}>SEE MORE</Text>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.playlistRail}>
                   {page.playlists.map(pl => (
@@ -529,7 +546,9 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>Shop {page.firstName} Merch</Text>
-                  <Text style={s.sectionLink}>SEE ALL</Text>
+                  <TouchableOpacity onPress={() => setTab('Merch')} hitSlop={8}>
+                    <Text style={s.sectionLink}>SEE ALL</Text>
+                  </TouchableOpacity>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.merchRail}>
                   {page.merch.map(item => (
@@ -558,12 +577,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               </View>
             )}
 
-            {/* Fallback for very thin artists: at least offer their tracks */}
-            {!hasJourney && (
-              <View style={s.emptyTab}>
-                <Text style={s.emptyTabText}>We're still building your story with {page.firstName}.</Text>
-              </View>
-            )}
           </View>
           )
         ) : tab === 'About' ? (
@@ -800,7 +813,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
             <View style={s.block}>
               <View style={s.sectionHeaderRow}>
                 <Text style={s.sectionTitle}>Official Store</Text>
-                {merchItems.length > 0 && <Text style={s.sectionLink}>SEE ALL</Text>}
+
               </View>
               {merchItems.length > 0 ? (
                 <ArtistMerchGrid items={merchItems} resolveArt={resolveArt} />

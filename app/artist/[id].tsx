@@ -2,6 +2,8 @@ import { useLocalSearchParams } from 'expo-router'
 import OliviaRodrigoArtistScreen from '../../src/screens/OliviaRodrigoArtistScreen'
 import TaylorSwiftArtistScreen from '../../src/screens/TaylorSwiftArtistScreen'
 import ArtistJourneyScreen from '../../src/screens/ArtistJourneyScreen'
+import NotFound from '../+not-found'
+import { artists } from '../../src/data/mockData'
 
 // One React artist page everywhere — the same screens render on web and on
 // Expo Go. Olivia and Taylor keep their hand-tuned screens; every other
@@ -16,7 +18,13 @@ export default function ArtistScreen() {
   }
 
   if (id === 'tswift') {
-    return <TaylorSwiftArtistScreen />
+    return <TaylorSwiftArtistScreen initialTab={deepTab} />
+  }
+
+  // A mistyped or stale artist link gets the honest dead-end screen — not
+  // another artist's page wearing the wrong name.
+  if (!artists.some(a => a.id === id)) {
+    return <NotFound />
   }
 
   return <ArtistJourneyScreen id={id ?? ''} initialTab={deepTab} />
