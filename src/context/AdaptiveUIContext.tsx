@@ -617,10 +617,6 @@ type AdaptiveUIContextValue = {
   /** Show a transient toast confirmation from anywhere (rendered once in the root layout). */
   showConfirmation: (message: string) => void
   clearConfirmation: () => void
-  /** Adaptive lens — the moderator annotation layer (parity with the artist
-   * pages' ✦ / ?lens=1). Marks what adapts, what's fixed, what's temporal. */
-  lensOn: boolean
-  setLensOn: (on: boolean) => void
 }
 
 const AdaptiveUIContext = createContext<AdaptiveUIContextValue | null>(null)
@@ -631,7 +627,6 @@ export function AdaptiveUIProvider({ children }: { children: ReactNode }) {
   const [dynamicThemes, setDynamicThemes] = useState<AdaptiveTheme[]>([])
   const [blockedArtistIds, setBlockedArtistIds] = useState<string[]>([])
   const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null)
-  const [lensOn, setLensOn] = useState(false)
 
   const availableThemes = useMemo(() => {
     const blocked = new Set(blockedArtistIds)
@@ -761,8 +756,6 @@ export function AdaptiveUIProvider({ children }: { children: ReactNode }) {
       confirmationMessage,
       showConfirmation,
       clearConfirmation,
-      lensOn,
-      setLensOn,
     }),
     [
       adaptiveEnabled,
@@ -779,7 +772,6 @@ export function AdaptiveUIProvider({ children }: { children: ReactNode }) {
       confirmationMessage,
       showConfirmation,
       clearConfirmation,
-      lensOn,
     ],
   )
 

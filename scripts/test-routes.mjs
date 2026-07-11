@@ -34,29 +34,24 @@ function fetchPath(path, hops = 0) {
 }
 
 const APP_SHELL = b => b.includes('id="root"')
-const V3_PAGE = b => b.includes('jr-line__bar')
 const PHONE = b => b.includes('appframe')
 
 const CASES = [
   // entry pages
   ['/', 200, APP_SHELL, 'client root serves the app shell'],
   ['/phone.html', 200, PHONE, 'framed reviewer view'],
-  ['/adaptive-artist-v3.html', 200, V3_PAGE, 'standalone artist profile'],
-  ['/adaptive-artist-v3.html?embed=1&state=superfan&tab=you', 200, V3_PAGE, 'embedded artist profile deep link'],
-  ['/adaptive-artist-v3.html?state=cold', 200, V3_PAGE, 'cold-start persona deep link'],
-  ['/adaptive-artist-v3.html?state=superfan&lens=1', 200, V3_PAGE, 'research-lens deep link'],
-  // SPA routes (client-side router owns these)
+  // SPA routes (client-side router owns these — artist pages are React now)
   ['/artist/olivia-rodrigo', 200, APP_SHELL, 'artist route (no trailing slash)'],
   ['/artist/olivia-rodrigo/', 200, APP_SHELL, 'artist route (trailing slash)'],
   ['/artist/olivia-rodrigo?tab=you', 200, APP_SHELL, 'artist route with tab deep link'],
+  ['/artist/olivia-dean', 200, APP_SHELL, 'journey-screen artist route'],
+  ['/artist/bruno-mars?tab=merch', 200, APP_SHELL, 'journey-screen tab deep link'],
   ['/search', 200, APP_SHELL, 'find route'],
   ['/library', 200, APP_SHELL, 'library route'],
   // real-world mangled share links must land IN the app, not on a host error page
-  ['/adaptive-artist-v3.html.', 200, b => V3_PAGE(b) || APP_SHELL(b), 'trailing period from a sentence'],
-  ['/Adaptive-artist-v3.html', 200, APP_SHELL, 'auto-capitalized path'],
+  ['/Artist/olivia-rodrigo', 200, APP_SHELL, 'auto-capitalized path'],
   ['/some/route/that/does/not/exist', 200, APP_SHELL, 'unknown route falls back to the app'],
   // static assets keep strict semantics (a stale hashed asset must 404, never HTML)
-  ['/static/adaptive/nav/nav-home-active.png', 200, () => true, 'v3 nav asset'],
   ['/_expo/static/js/web/definitely-not-a-real-bundle.js', 404, () => true, 'missing bundle 404s (no HTML fallback)'],
 ]
 
