@@ -15,6 +15,7 @@ import StickyFindHeader, {
   useFindFixedHeaderHeight,
 } from '../../src/components/StickyFindHeader'
 import { EdgeFadeRow } from '../../src/components/EdgeFadeRow'
+import { LensMark } from '../../src/components/AdaptiveLens'
 
 const FIND_PILLS = [
   'Fan Groups',
@@ -297,17 +298,17 @@ export default function FindScreen() {
         )}
 
         {showBrowse && (
-          <>
+          <LensMark type="fixed" note="the catalog browse; same for everyone">
             <BrowseSection title="Browse all" items={browseAll} onPressItem={handleCategory('genre')} />
             <BrowseSection title="Music by genre" items={musicByGenre} onPressItem={handleCategory('genre')} />
             <BrowseSection title="Listen your way" items={listenYourWay} onPressItem={handleCategory('genre')} />
             <BrowseSection title="From Audible" items={fromAudible} onPressItem={handleCategory('audible')} />
             <BrowseSection title="From podcast" items={fromPodcast} onPressItem={handleCategory('podcast')} />
-          </>
+          </LensMark>
         )}
 
         {showResults && (
-          <>
+          <LensMark type="fixed" note="search hits the whole catalog, not your model">
             {showSection('Artists') && artistResults.length > 0 && (
               <>
                 <View style={s.sectionHeader}>
@@ -478,7 +479,7 @@ export default function FindScreen() {
               podcastResults.length === 0 && fanGroupResults.length === 0 && (
               <Text style={[s.emptyResults, { paddingHorizontal: 16 }]}>No results for "{query}"</Text>
             )}
-          </>
+          </LensMark>
         )}
       </ScrollView>
     </View>
