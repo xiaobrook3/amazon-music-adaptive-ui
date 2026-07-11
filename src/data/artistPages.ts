@@ -458,6 +458,20 @@ export function lyricForSong(artistId: string, songTitle: string): ArtistLyric |
   return lyrics.find(l => l.song.toLowerCase() === songTitle.toLowerCase()) ?? null
 }
 
+/** The durable listener state the client opens an artist profile in.
+ * Mirrors mockData's bond tiers; the moderator stepper on the profile page
+ * can still scrub all four states. Also used by scripts/generate-artist-registry.mjs
+ * so the embedded page and the client agree on the default. */
+export type ListenerState = 'cold' | 'casual' | 'regular' | 'superfan'
+export function listenerStateFor(artistId: string): ListenerState {
+  const a = artists.find(x => x.id === artistId)
+  if (!a) return 'cold'
+  if (a.milestoneTierId === 'devoted' || a.milestoneTierId === 'legendary' || a.topPercent <= 2) return 'superfan'
+  if (a.milestoneTierId === 'fan') return 'regular'
+  if (a.userBondWeeks >= 4) return 'casual'
+  return 'cold'
+}
+
 export function buildArtistPage(artistId: string): ArtistPageData {
   const artist = artists.find(a => a.id === artistId) ?? artists[0]
   const artistSongs = songs.filter(s => s.artistId === artist.id)
