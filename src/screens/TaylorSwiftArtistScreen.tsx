@@ -44,6 +44,12 @@ import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import TaylorMusicTab from '../components/artist/TaylorMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid } from '../components/artist/ArtistCommerce'
 
+
+// RN-web sizes an ImageBackground's inner image from the asset's intrinsic
+// dimensions when the style has no explicit width/height (native stretches
+// it). Force full-bleed so web and Expo Go render identically.
+const COVER_IMG = { width: '100%', height: '100%' } as const
+
 const SCREEN_W = Dimensions.get('window').width
 const TABS = ['Music', 'Events', 'Merch', 'About', 'You & Taylor'] as const
 const ERA_CARD_W = 120
@@ -176,6 +182,7 @@ export default function TaylorSwiftArtistScreen() {
           <ImageBackground
             source={albumArtAssets['ts-showgirl']}
             style={s.heroBg}
+            imageStyle={COVER_IMG}
             resizeMode="cover"
           >
             <LinearGradient
@@ -337,7 +344,7 @@ export default function TaylorSwiftArtistScreen() {
                 <ImageBackground
                   source={resolveArt(TAYLOR_EXCLUSIVE_TRACK.artKey)}
                   style={s.exclusiveImg}
-                  imageStyle={s.exclusiveImgRadius}
+                  imageStyle={[COVER_IMG, s.exclusiveImgRadius]}
                   resizeMode="cover"
                 >
                   <LinearGradient

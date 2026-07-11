@@ -1,33 +1,35 @@
-# Adaptive Artist Profile (v3) — in-client integration
+# Artist profiles — native React everywhere
 
-The Olivia Rodrigo artist route now ships the refined **adaptive artist profile**
-(hi-fi v3) inside this client on web, so the adaptive home and the adaptive
-artist page demo as one prototype.
+The HTML artist-page prototypes (`adaptive-artist-v3.html`, the generalized
+`adaptive-artist-profile.html`, and their iframe embed components) are retired.
+Artist pages are now React screens end to end, so web and Expo Go render the
+same experience from the same code.
 
 ## How it works
 
-- `public/adaptive-artist-v3.html` is the self-contained artist profile
-  (HTML/CSS/JS + `public/static/adaptive/` assets). Expo copies `public/` into
-  the web export automatically.
-- On **web**, `app/artist/[id].tsx` routes `olivia-rodrigo` to
-  `src/components/artist/OliviaAdaptiveArtist.tsx`, which embeds the page in
-  `?embed=1` mode: the page drops its own phone chrome / moderator console and
-  hands navigation back to the app via `postMessage`
-  (`v3-back` → router back, `v3-nav` → Home / Find / Library / Maestro tabs).
-- On **native** (Expo Go / simulators) nothing changes — the existing
-  hand-tuned `OliviaRodrigoArtistScreen` renders as before.
+- `app/artist/[id].tsx` — one dispatcher on every platform:
+  `olivia-rodrigo` → `OliviaRodrigoArtistScreen`, `tswift` →
+  `TaylorSwiftArtistScreen`, everyone else → `ArtistJourneyScreen`.
+- `src/screens/ArtistJourneyScreen.tsx` carries the adaptive staging that
+  used to live only in the HTML pages:
+  - a durable listener state per artist (`listenerStateFor` in
+    `src/data/artistPages.ts`: cold / casual / regular / superfan, derived
+    from the listener's bond in `mockData`),
+  - the relationship proof cluster in the hero and the default Follow state
+    appear only once the relationship is real,
+  - **Popular** starts as the standard chart, gets a "You play this most"
+    marker at casual, converges to ranked your-top-songs rows at regular+,
+    and gains an Everyone ⇄ Super fans scope toggle at superfan,
+  - a session context strip, a "You & {artist}" history card that opens the
+    journey tab, and a journey tab that stays an honest null state until the
+    listener has earned a timeline,
+  - the milestone "Exclusive For You" unlock renders only at superfan.
+- Deep links: `/artist/<id>?tab=you|about|events|merch` selects the initial
+  tab on both the Olivia screen and the journey screen.
 
-The design language is shared by construction: Ember Modern type, Music Cyan
-`#25D1DA` accent, and the same 4-item bottom nav (Home / Find / Library /
-Maestro with the Alexa ring).
-
-## What the profile demonstrates
-
-One page, three forces: **who you are** (cold start → casual → engaged → super
-fan, with Super fan *earned*, never self-declared), **the moment** (session,
-presale, replay signals; time of day), and **your control** (✦ "why this
-changed" on every adaptive surface, show-less/undo, adaptation level,
-"not into Olivia right now", reset to standard page).
+The moderator annotation lens (✦ overlays / `?lens=1`) was removed with the
+HTML pages; the product explains itself through what appears and when, not
+through an overlay.
 
 ## Viewing / grading
 
@@ -40,8 +42,7 @@ npx serve dist                   # any static server works
 - Open **`/phone.html`** on a laptop — the client runs true-to-size inside an
   iPhone frame (recommended for grading on desktop).
 - Open `/` directly on a phone-sized viewport for the raw client.
-- The standalone profile (with the moderator console for state-scrubbing) is at
-  `/adaptive-artist-v3.html?state=superfan`.
+- On a phone, `npx expo start` and scan the QR in Expo Go — same screens.
 
 ## Hosting the web export
 
@@ -52,8 +53,9 @@ committed**. The symptom: every Ionicons glyph renders as a tofu box (skip
 buttons, chevrons, add / bookmark on Now Playing) while PNG icons keep
 working. A `.gitignore` exception is NOT enough.
 
-The fix that works everywhere — rename the path and patch the bundle after
-each export:
+The fix that works everywhere — `node scripts/patch-web-export.mjs` after each
+export (vendor rename + bundle path rewrite + desktop iPhone-frame CSS), or by
+hand:
 
 ```bash
 mv dist/assets/node_modules dist/assets/vendor
@@ -61,13 +63,4 @@ sed -i '' 's|assets/node_modules/|assets/vendor/|g' dist/_expo/static/js/web/ent
 ```
 
 A live deployment is maintained at **https://derbc-adaptive-ui.vercel.app**
-(root = phone-framed client, `/adaptive-artist-v3.html` = the standalone
-moderator version).
-
-## Known seam
-
-Playback state inside the embedded profile is simulated independently of the
-app's global playback context (they never show at the same time, but a song
-started on the artist page won't appear in the app's mini player on Home).
-Unifying them would mean invasive changes to the RN playback provider, which
-we deliberately avoided.
+(root = the client, `/phone.html` = phone-framed reviewer view).
