@@ -20,6 +20,8 @@ import { ArtistEventsCard, ArtistMerchGrid, type MerchItem } from './ArtistComme
 import { usePlaybackState } from '../../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import { C, FONT_FAMILY, typeHeadline } from '../../theme'
+import InfluenceWeb from './InfluenceWeb'
+import { buildInfluenceWeb } from '../../data/influenceWeb'
 
 const SCREEN_W = Dimensions.get('window').width
 const CARD_W = (SCREEN_W - 44) / 2
@@ -54,11 +56,13 @@ export default function ArtistAboutTab({
   artistName,
   sinceYear,
   merch,
+  hubImage,
 }: {
   data: ArtistAboutData
   artistName?: string
   sinceYear?: number
   merch?: MerchItem[]
+  hubImage?: any
 }) {
   const who = artistName ?? 'this artist'
   const firstName = who.split(' ')[0]
@@ -198,33 +202,26 @@ export default function ArtistAboutTab({
         </View>
       ) : null}
 
-      {/* Influence web */}
-      {(data.influencedBy?.length || data.inspires?.length) ? (
-        <View style={a.influencePanel}>
-          <Text style={a.sectionTitle18}>Influence web</Text>
-          <Text style={a.muted13}>Tap anyone to ask Alexa about them.</Text>
-          {data.influencedBy && data.influencedBy.length > 0 ? (
-            <>
-              <Text style={a.influenceLabel}>INFLUENCED BY</Text>
-              <View style={a.influenceRow}>
-                {data.influencedBy.map(p => (
-                  <InfluenceAvatar key={p.name} person={p} onPress={() => setQuery(`Tell me about ${p.name}`)} />
-                ))}
-              </View>
-            </>
-          ) : null}
-          {data.inspires && data.inspires.length > 0 ? (
-            <>
-              <Text style={a.influenceLabel}>{firstName.toUpperCase()} INSPIRES</Text>
-              <View style={a.influenceRow}>
-                {data.inspires.map(p => (
-                  <InfluenceAvatar key={p.name} person={p} onPress={() => setQuery(`Tell me about ${p.name}`)} />
-                ))}
-              </View>
-            </>
-          ) : null}
-        </View>
-      ) : null}
+      {/* Influence web — the same hub-and-spoke canvas as the flagship,
+          built from this artist's about data */}
+      {(() => {
+        const web = buildInfluenceWeb(
+          who,
+          hubImage ?? resolveArt(data.storyArtKey),
+          sinceYear ? `★ You're a fan · since ${sinceYear}` : `● You've started listening to ${firstName}`,
+          data.influencedBy,
+          data.inspires,
+        )
+        if (!web) return null
+        return (
+          <View style={a.influencePanel}>
+            <InfluenceWeb
+              data={web}
+              onAsk={name => askAlexa(`Tell me about ${name}`)}
+            />
+          </View>
+        )
+      })()}
 
       {/* Events & shows */}
       {data.events && data.events.length > 0 ? (

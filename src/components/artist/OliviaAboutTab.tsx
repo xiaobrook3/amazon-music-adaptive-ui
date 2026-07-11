@@ -27,6 +27,8 @@ import {
   OLIVIA_ABOUT_EVENTS,
 } from '../../data/oliviaRodrigoAbout'
 import { C, FONT_FAMILY, typeHeadline } from '../../theme'
+import InfluenceWeb from './InfluenceWeb'
+import { OLIVIA_INFLUENCE_WEB } from '../../data/influenceWeb'
 
 const SCREEN_W = Dimensions.get('window').width
 const CARD_W = (SCREEN_W - 44) / 2
@@ -225,37 +227,19 @@ export default function OliviaAboutTab() {
       </View>
 
       <View style={a.influencePanel}>
-        <Text style={a.sectionTitle18}>Influence web</Text>
-        <Text style={a.muted13}>Who shaped her sound — and who she's shaping</Text>
-        <Text style={a.influenceLabel}>INFLUENCED BY</Text>
-        <View style={a.influenceRow}>
-          {OLIVIA_ABOUT_INFLUENCED_BY.map(person => (
-            <InfluenceAvatar
-              key={person.name}
-              name={person.name}
-              artKey={person.artKey}
-              onPress={() => setQuery(`Tell me about ${person.name}`)}
-            />
-          ))}
-        </View>
-        <View style={a.influenceHub}>
-          <View style={a.hubRing}>
-            <Image source={oliviaPageAssets.profile} style={a.hubPhoto} resizeMode="cover" />
-          </View>
-          <Text style={a.hubName}>Olivia Rodrigo</Text>
-          <Text style={a.hubTag}>THE ARTIST</Text>
-        </View>
-        <Text style={a.influenceLabel}>SHE INSPIRES</Text>
-        <View style={a.influenceRow}>
-          {OLIVIA_ABOUT_INSPIRES.map(person => (
-            <InfluenceAvatar
-              key={person.name}
-              name={person.name}
-              artKey={person.artKey}
-              onPress={() => setQuery(`Tell me about ${person.name}`)}
-            />
-          ))}
-        </View>
+        <InfluenceWeb
+          data={OLIVIA_INFLUENCE_WEB}
+          onPlayTrack={(title, byName) => {
+            const related = songs.find(sg => sg.title.toLowerCase() === title.toLowerCase())
+            if (related) {
+              playSongAt(related.id)
+              router.push('/now-playing' as any)
+            } else {
+              showConfirmation(`Playing ${title} · ${byName}`)
+            }
+          }}
+          onAsk={name => askAlexa(`Tell me about ${name}`)}
+        />
       </View>
 
       <View style={a.fanHeader}>

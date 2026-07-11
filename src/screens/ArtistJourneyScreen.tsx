@@ -586,6 +586,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               artistName={page.name}
               sinceYear={Number(page.sinceLabel.replace(/\D/g, '')) || undefined}
               merch={merchItems}
+              hubImage={avatar}
             />
           ) : (
           <View style={s.content}>
