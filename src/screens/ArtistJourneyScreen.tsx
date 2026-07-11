@@ -29,6 +29,7 @@ import { useProfiles } from '../context/ProfilesContext'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import { ArtistEventsCard, ArtistMerchGrid, FanPostsCarousel, type MerchItem } from '../components/artist/ArtistCommerce'
 import JourneyTimeline from '../components/artist/JourneyTimeline'
+import StandaloneTabBar from '../components/StandaloneTabBar'
 import { C, typeHeadline } from '../theme'
 
 
@@ -338,7 +339,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                           key={era.id}
                           activeOpacity={0.9}
                           onPress={() => setSelectedIdx(i)}
-                          style={[s.eraCard, selected && s.eraCardSelected]}
+                          style={[s.eraCard, selected ? s.eraCardSelected : s.eraCardDimmed]}
                         >
                           <ImageBackground
                             source={resolveArt(era.eraImageKey)}
@@ -780,6 +781,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
           </View>
         )}
       </ScrollView>
+      <StandaloneTabBar />
     </View>
   )
 }
@@ -1003,6 +1005,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
+  eraCardDimmed: { opacity: 0.45 },
   eraCardFooter: { backgroundColor: 'rgba(30,30,30,0.56)', paddingHorizontal: 12, paddingVertical: 8, gap: 2 },
   eraSeason: { fontSize: 8, color: '#a6a6a6' },
   eraTitle: { fontSize: 12, color: '#fff', fontWeight: '700' },

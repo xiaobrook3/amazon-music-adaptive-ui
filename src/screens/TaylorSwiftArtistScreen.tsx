@@ -43,6 +43,7 @@ import { C, typeHeadline } from '../theme'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import TaylorMusicTab from '../components/artist/TaylorMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid } from '../components/artist/ArtistCommerce'
+import StandaloneTabBar from '../components/StandaloneTabBar'
 
 
 // RN-web sizes an ImageBackground's inner image from the asset's intrinsic
@@ -543,6 +544,7 @@ export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: s
           </View>
         )}
       </ScrollView>
+      <StandaloneTabBar />
     </View>
   )
 }

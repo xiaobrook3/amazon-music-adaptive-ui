@@ -38,6 +38,7 @@ import OliviaAboutTab from '../components/artist/OliviaAboutTab'
 import OliviaMusicTab from '../components/artist/OliviaMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard, FanPostsCarousel, FanCommunityCard } from '../components/artist/ArtistCommerce'
 import JourneyTimeline from '../components/artist/JourneyTimeline'
+import StandaloneTabBar from '../components/StandaloneTabBar'
 import { EdgeFadeRow } from '../components/EdgeFadeRow'
 
 
@@ -322,7 +323,7 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
                         key={era.id}
                         activeOpacity={0.9}
                         onPress={() => setSelectedEraId(era.id)}
-                        style={[s.eraCard, selected && s.eraCardSelected]}
+                        style={[s.eraCard, selected ? s.eraCardSelected : s.eraCardDimmed]}
                       >
                         <ImageBackground
                           source={resolveArt(era.eraImageKey)}
@@ -543,6 +544,7 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
           </View>
         )}
       </ScrollView>
+      <StandaloneTabBar />
     </View>
   )
 }
@@ -689,6 +691,9 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
+  // Selection reads as contrast: the chosen era at full strength, the rest
+  // receded — the timeline's fill never moves.
+  eraCardDimmed: { opacity: 0.45 },
   eraCardFooter: {
     backgroundColor: 'rgba(30,30,30,0.56)',
     paddingHorizontal: 12,
