@@ -27,7 +27,7 @@ import { useAdaptiveUI } from '../context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
 import { useProfiles } from '../context/ProfilesContext'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
-import { ArtistEventsCard, ArtistMerchGrid, type MerchItem } from '../components/artist/ArtistCommerce'
+import { ArtistEventsCard, ArtistMerchGrid, FanPostCard, type MerchItem } from '../components/artist/ArtistCommerce'
 import { C, typeHeadline } from '../theme'
 
 
@@ -541,42 +541,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               </View>
             )}
 
-            {/* Merch — only for artists with a curated capsule */}
-            {page.merch.length > 0 && (
-              <View style={s.block}>
-                <View style={s.sectionHeaderRow}>
-                  <Text style={s.sectionTitle}>Shop {page.firstName} Merch</Text>
-                  <TouchableOpacity onPress={() => setTab('Merch')} hitSlop={8}>
-                    <Text style={s.sectionLink}>SEE ALL</Text>
-                  </TouchableOpacity>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.merchRail}>
-                  {page.merch.map(item => (
-                    <TouchableOpacity
-                      key={item.name}
-                      style={s.merchCard}
-                      activeOpacity={0.85}
-                      onPress={() => showConfirmation(`Added to bag — ${item.name} · ${item.price}`)}
-                    >
-                      <View style={s.merchArtWrap}>
-                        <Image source={resolveArt(item.artKey)} style={s.merchArt} />
-                        <View style={s.merchTypeChip}>
-                          <Text style={s.merchTypeText}>{item.type.toUpperCase()}</Text>
-                        </View>
-                      </View>
-                      <Text style={s.merchName} numberOfLines={2}>{item.name}</Text>
-                      <View style={s.merchPriceRow}>
-                        <Text style={s.merchPrice}>{item.price}</Text>
-                        <View style={s.merchBuyBtn}>
-                          <Ionicons name="bag-add-outline" size={14} color={C.bg} />
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
           </View>
           )
         ) : tab === 'About' ? (
@@ -585,7 +549,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               data={about}
               artistName={page.name}
               sinceYear={Number(page.sinceLabel.replace(/\D/g, '')) || undefined}
-              merch={merchItems}
               hubImage={avatar}
             />
           ) : (
@@ -808,6 +771,13 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 </View>
               )}
             </View>
+            {/* v3.1 IA: the fandom gathers around the live moments */}
+            {about?.fanPost && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Popular posts from fan groups</Text>
+                <FanPostCard post={about.fanPost} resolveArt={resolveArt} />
+              </View>
+            )}
           </View>
         ) : tab === 'Merch' ? (
           <View style={s.content}>

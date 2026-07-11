@@ -36,7 +36,7 @@ import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
 import { C, typeHeadline } from '../theme'
 import OliviaAboutTab from '../components/artist/OliviaAboutTab'
 import OliviaMusicTab from '../components/artist/OliviaMusicTab'
-import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard } from '../components/artist/ArtistCommerce'
+import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard, FanPostCard, FanCommunityCard } from '../components/artist/ArtistCommerce'
 import { EdgeFadeRow } from '../components/EdgeFadeRow'
 
 
@@ -541,6 +541,27 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
             <View style={s.block}>
               <Text style={s.sectionTitle}>Past Events</Text>
               <PastArtistEventsCard events={OLIVIA_PAST_EVENTS} />
+            </View>
+            {/* v3.1 IA: the fandom gathers around the live moments */}
+            <View style={s.block}>
+              <Text style={s.sectionTitle}>Popular posts from fan groups</Text>
+              <FanPostCard
+                post={{
+                  group: 'Sad Girl Hour',
+                  handle: '@i<3orod',
+                  time: '2 days ago',
+                  body: 'Whenever I just need to unwind and let things out, this album is the one. six years and it still hits the exact same.',
+                  artKey: 'olivia-about-fan-post',
+                  likes: '1.2k',
+                  comments: '84',
+                }}
+                resolveArt={key => oliviaAboutAssets[key] ?? resolveArt(key)}
+              />
+              <FanCommunityCard
+                name="Livies"
+                members="12,480"
+                note="A fan space, not a public feed — your posts stay among Livies."
+              />
             </View>
           </View>
         ) : (

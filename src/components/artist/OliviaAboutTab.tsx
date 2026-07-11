@@ -19,12 +19,8 @@ import { usePlaybackState } from '../../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import {
   OLIVIA_ABOUT_ASK_CHIPS,
-  OLIVIA_ABOUT_INSPIRES,
-  OLIVIA_ABOUT_INFLUENCED_BY,
   OLIVIA_ABOUT_LYRIC_NOTES,
-  OLIVIA_ABOUT_MERCH,
   OLIVIA_ABOUT_VIDEOS,
-  OLIVIA_ABOUT_EVENTS,
 } from '../../data/oliviaRodrigoAbout'
 import { C, FONT_FAMILY, typeHeadline } from '../../theme'
 import InfluenceWeb from './InfluenceWeb'
@@ -88,7 +84,6 @@ export default function OliviaAboutTab() {
   const router = useRouter()
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
-  const [joined, setJoined] = useState(false)
   const [query, setQuery] = useState('')
 
   // Ask-Alexa hands the question to Maestro, which actually answers it.
@@ -242,108 +237,8 @@ export default function OliviaAboutTab() {
         />
       </View>
 
-      <View style={a.fanHeader}>
-        <Text style={a.sectionTitle16}>Popular posts from fan groups</Text>
-        <Text style={a.seeMore}>See more</Text>
-      </View>
-      <View style={a.postCard}>
-        <View style={a.groupPill}>
-          <Text style={a.groupPillText}>Sad Girl Hour</Text>
-        </View>
-        <View style={a.postUserRow}>
-          <LinearGradient colors={['#f472b6', '#7c3aed']} style={a.postAvatar}>
-            <Ionicons name="person" size={16} color="#fff" />
-          </LinearGradient>
-          <View>
-            <Text style={a.postHandle}>@i&lt;3orod</Text>
-            <Text style={a.postTime}>2 days ago</Text>
-          </View>
-        </View>
-        <Text style={a.bodyText}>
-          Whenever I just need to unwind and let things out, this album is the one. six years and it still hits the exact same.
-        </Text>
-        <Image source={resolveAboutArt('olivia-about-fan-post')} style={a.postImage} resizeMode="cover" />
-        <View style={a.reactionsRow}>
-          <View style={a.reaction}>
-            <Ionicons name="heart-outline" size={14} color="#a7aeb6" />
-            <Text style={a.reactionText}>1.2k</Text>
-          </View>
-          <View style={a.reaction}>
-            <Ionicons name="chatbubble-outline" size={14} color="#a7aeb6" />
-            <Text style={a.reactionText}>84</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={a.titleRow}>
-        <Text style={a.sectionTitle18}>The Livies</Text>
-        <SectionTag label="community, opt-in" variant="gold" />
-      </View>
-      <View style={a.liviesCard}>
-        <View style={a.liviesRow}>
-          <View style={a.avatarStack}>
-            {['#f472b6', '#0ea5e9', '#4fe3c0', '#e8b860'].map((color, i) => (
-              <View
-                key={color}
-                style={[a.stackAvatar, { backgroundColor: color, marginLeft: i === 0 ? 0 : -12, zIndex: 4 - i }]}
-              />
-            ))}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={a.liviesCount}>12,480 Livies</Text>
-            <Text style={a.liviesSub}>shared meaning, opt-in</Text>
-          </View>
-          <TouchableOpacity
-            style={[a.joinBtn, joined && a.joinedBtn]}
-            onPress={() => setJoined(!joined)}
-            activeOpacity={0.85}
-          >
-            <Text style={[a.joinBtnText, joined && { color: '#c2c9d1' }]}>
-              {joined ? 'Joined' : 'Join'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={a.muted13}>
-          A fan space, not a public feed — your posts stay among Livies.
-        </Text>
-      </View>
-
-      <View style={a.eventsCard}>
-        <View style={a.eventRow}>
-          <View style={a.dateBox}>
-            <Text style={a.dateMonth}>{OLIVIA_ABOUT_EVENTS[0].month}</Text>
-            <Text style={a.dateDay}>{OLIVIA_ABOUT_EVENTS[0].day}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={a.eventTitle}>{OLIVIA_ABOUT_EVENTS[0].title}</Text>
-            <Text style={a.eventVenue}>{OLIVIA_ABOUT_EVENTS[0].venue}</Text>
-            <Text style={a.eventTime}>{OLIVIA_ABOUT_EVENTS[0].time}</Text>
-          </View>
-          <TouchableOpacity
-            style={a.ticketsBtn}
-            activeOpacity={0.85}
-            onPress={() => showConfirmation(`Opening Ticketmaster — ${OLIVIA_ABOUT_EVENTS[0].title}`)}
-          >
-            <Text style={a.ticketsBtnText}>Tickets</Text>
-          </TouchableOpacity>
-        </View>
-        <EdgeFadeRow fadeColor="#161c23">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={a.merchRail}>
-            {OLIVIA_ABOUT_MERCH.map(item => (
-              <TouchableOpacity
-                key={item.title}
-                style={a.merchCard}
-                activeOpacity={0.85}
-                onPress={() => showConfirmation(`Added to bag — ${item.title} · ${item.price}`)}
-              >
-                <Image source={resolveAboutArt(item.artKey)} style={a.merchArt} resizeMode="cover" />
-                <Text style={a.merchTitle}>{item.title}</Text>
-                <Text style={a.merchPrice}>{item.price}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </EdgeFadeRow>
-      </View>
+      {/* v3.1 IA: fan posts + the Livies live with the live moments on the
+          Events tab; the storefront lives on Merch. About stays the story. */}
     </View>
   )
 }

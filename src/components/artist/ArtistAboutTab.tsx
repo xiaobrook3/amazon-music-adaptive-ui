@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons'
 import { albumArtAssets, artistAssets, logoAssets } from '../../data/assetMap'
 import { songs } from '../../data/mockData'
 import type { ArtistAboutData, AboutInfluence } from '../../data/artistAbout'
-import { ArtistEventsCard, ArtistMerchGrid, type MerchItem } from './ArtistCommerce'
 import { usePlaybackState } from '../../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import { C, FONT_FAMILY, typeHeadline } from '../../theme'
@@ -55,13 +54,11 @@ export default function ArtistAboutTab({
   data,
   artistName,
   sinceYear,
-  merch,
   hubImage,
 }: {
   data: ArtistAboutData
   artistName?: string
   sinceYear?: number
-  merch?: MerchItem[]
   hubImage?: any
 }) {
   const who = artistName ?? 'this artist'
@@ -223,60 +220,8 @@ export default function ArtistAboutTab({
         )
       })()}
 
-      {/* Events & shows */}
-      {data.events && data.events.length > 0 ? (
-        <View style={a.block}>
-          <Text style={a.sectionTitle18}>Events & shows</Text>
-          <ArtistEventsCard events={data.events} />
-        </View>
-      ) : null}
-
-      {/* Merch */}
-      {merch && merch.length > 0 ? (
-        <View style={a.block}>
-          <View style={a.titleRow}>
-            <Text style={a.sectionTitle18}>Merch</Text>
-            <Text style={a.tagInline}>official store</Text>
-          </View>
-          <ArtistMerchGrid items={merch} resolveArt={resolveArt} />
-        </View>
-      ) : null}
-
-      {/* Fan post */}
-      {data.fanPost ? (
-        <>
-          <View style={a.fanHeader}>
-            <Text style={a.sectionTitle16}>Popular posts from fan groups</Text>
-            <Text style={a.seeMore}>See more</Text>
-          </View>
-          <View style={a.postCard}>
-            <View style={a.groupPill}>
-              <Text style={a.groupPillText}>{data.fanPost.group}</Text>
-            </View>
-            <View style={a.postUserRow}>
-              <LinearGradient colors={['#f472b6', '#7c3aed']} style={a.postAvatar}>
-                <Ionicons name="person" size={16} color="#fff" />
-              </LinearGradient>
-              <View>
-                <Text style={a.postHandle}>{data.fanPost.handle}</Text>
-                <Text style={a.postTime}>{data.fanPost.time}</Text>
-              </View>
-            </View>
-            <Text style={a.bodyText}>{data.fanPost.body}</Text>
-            <Image source={resolveArt(data.fanPost.artKey)} style={a.postImage} resizeMode="cover" />
-            <View style={a.reactionsRow}>
-              <View style={a.reaction}>
-                <Ionicons name="heart-outline" size={14} color="#a7aeb6" />
-                <Text style={a.reactionText}>{data.fanPost.likes}</Text>
-              </View>
-              <View style={a.reaction}>
-                <Ionicons name="chatbubble-outline" size={14} color="#a7aeb6" />
-                <Text style={a.reactionText}>{data.fanPost.comments}</Text>
-              </View>
-            </View>
-          </View>
-        </>
-      ) : null}
+      {/* v3.1 IA: events live on the Events tab, merch on the Merch tab, and
+          fan posts with the live moments on Events — About stays the story. */}
     </View>
   )
 }

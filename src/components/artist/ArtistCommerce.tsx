@@ -1,15 +1,16 @@
-import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { useState } from 'react'
+import { View, TouchableOpacity, StyleSheet } from 'react-native'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import { C, FONT_FAMILY, typeHeadline } from '../../theme'
 import type { PastArtistEvent } from '../../data/oliviaRodrigoAbout'
+import type { AboutFanPost } from '../../data/artistAbout'
 
 // Shared Events + Merch presentation so the dedicated Events / Merch tabs and
 // the About tab render the exact same cards throughout an artist page.
-
-const MERCH_CARD_W = (Dimensions.get('window').width - 44) / 2
 
 export interface ArtistEvent {
   month: string
@@ -116,26 +117,100 @@ export function ArtistMerchGrid({
   resolveArt: (key: string) => any
 }) {
   const { showConfirmation } = useAdaptiveUI()
+  // v3.1 storefront proportions: two compact cards per row, 110px art, the
+  // whole card is the tap target (no oversized Buy pill fighting the price).
   return (
     <View style={s.merchGrid}>
       {items.map(item => (
-        <View key={item.title} style={s.merchCard}>
+        <TouchableOpacity
+          key={item.title}
+          style={s.merchCard}
+          activeOpacity={0.85}
+          onPress={() => showConfirmation(`Opening ${item.title} · ${item.price}`)}
+        >
           <Image source={resolveArt(item.artKey)} style={s.merchArt} resizeMode="cover" />
           <Text style={s.merchTitle} numberOfLines={2}>{item.title}</Text>
-          {item.subtitle ? <Text style={s.merchSubtitle}>{item.subtitle}</Text> : null}
-          <View style={s.merchBottom}>
-            <Text style={s.merchPrice}>{item.price}</Text>
-            <TouchableOpacity
-              style={s.merchBuyBtn}
-              activeOpacity={0.85}
-              onPress={() => showConfirmation(`Added to bag — ${item.title} · ${item.price}`)}
-            >
-              <Ionicons name="bag-handle-outline" size={13} color="#06222a" />
-              <Text style={s.merchBuyText}>Buy</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          <Text style={s.merchPrice}>
+            {item.price}{item.subtitle ? <Text style={s.merchSubtitle}>  ·  {item.subtitle}</Text> : null}
+          </Text>
+        </TouchableOpacity>
       ))}
+    </View>
+  )
+}
+
+/* v3.1 IA: the fandom gathers around the live moments, so fan-group posts and
+ * the community card live on the EVENTS tab — not About. */
+export function FanPostCard({ post, resolveArt }: { post: AboutFanPost; resolveArt: (key: string) => any }) {
+  const { showConfirmation } = useAdaptiveUI()
+  const [joined, setJoined] = useState(false)
+  const [liked, setLiked] = useState(false)
+  return (
+    <View style={s.postCard}>
+      <TouchableOpacity
+        style={[s.groupPill, joined && s.groupPillJoined]}
+        activeOpacity={0.8}
+        onPress={() => {
+          const next = !joined
+          setJoined(next)
+          showConfirmation(next ? `Joined ${post.group} — its posts now surface here` : `Left ${post.group}`)
+        }}
+      >
+        <Text style={[s.groupPillText, joined && { color: C.cyan }]}>
+          {post.group}{joined ? '  ✓ Joined' : '  · Join'}
+        </Text>
+      </TouchableOpacity>
+      <View style={s.postUserRow}>
+        <LinearGradient colors={['#f472b6', '#7c3aed']} style={s.postAvatar}>
+          <Ionicons name="person" size={16} color="#fff" />
+        </LinearGradient>
+        <View>
+          <Text style={s.postHandle}>{post.handle}</Text>
+          <Text style={s.postTime}>{post.time}</Text>
+        </View>
+      </View>
+      <Text style={s.postBody}>{post.body}</Text>
+      <Image source={resolveArt(post.artKey)} style={s.postImage} resizeMode="cover" />
+      <View style={s.reactionsRow}>
+        <TouchableOpacity style={s.reaction} activeOpacity={0.7} onPress={() => setLiked(v => !v)}>
+          <Ionicons name={liked ? 'heart' : 'heart-outline'} size={14} color={liked ? '#f472b6' : '#a7aeb6'} />
+          <Text style={[s.reactionText, liked && { color: '#f472b6' }]}>{post.likes}</Text>
+        </TouchableOpacity>
+        <View style={s.reaction}>
+          <Ionicons name="chatbubble-outline" size={14} color="#a7aeb6" />
+          <Text style={s.reactionText}>{post.comments}</Text>
+        </View>
+      </View>
+    </View>
+  )
+}
+
+export function FanCommunityCard({ name, members, note }: { name: string; members: string; note: string }) {
+  const [joined, setJoined] = useState(false)
+  return (
+    <View style={s.communityCard}>
+      <View style={s.communityRow}>
+        <View style={s.avatarStack}>
+          {['#f472b6', '#0ea5e9', '#4fe3c0', '#e8b860'].map((color, i) => (
+            <View
+              key={color}
+              style={[s.stackAvatar, { backgroundColor: color, marginLeft: i === 0 ? 0 : -12, zIndex: 4 - i }]}
+            />
+          ))}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.communityCount}>{members} {name}</Text>
+          <Text style={s.communitySub}>shared meaning, opt-in</Text>
+        </View>
+        <TouchableOpacity
+          style={[s.joinBtn, joined && s.joinedBtn]}
+          onPress={() => setJoined(v => !v)}
+          activeOpacity={0.85}
+        >
+          <Text style={[s.joinBtnText, joined && { color: '#c2c9d1' }]}>{joined ? 'Joined' : 'Join'}</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={s.communityNote}>{note}</Text>
     </View>
   )
 }
@@ -182,20 +257,50 @@ const s = StyleSheet.create({
   replayBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
   merchGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  merchCard: { width: MERCH_CARD_W, gap: 6 },
-  merchArt: { width: '100%', height: MERCH_CARD_W, borderRadius: 12, backgroundColor: '#161616' },
-  merchTitle: { fontFamily: FONT_FAMILY.medium, fontSize: 14, color: '#fff', lineHeight: 18, minHeight: 36 },
-  merchSubtitle: { fontFamily: FONT_FAMILY.regular, fontSize: 12, color: '#8b939c', marginTop: -2 },
-  merchBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
-  merchPrice: { fontFamily: FONT_FAMILY.medium, fontSize: 14, color: C.cyan },
-  merchBuyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.cyan,
+  merchCard: { flexBasis: '46%', flexGrow: 1, maxWidth: '48%', gap: 8 },
+  merchArt: { width: '100%', height: 110, borderRadius: 12, backgroundColor: '#161616' },
+  merchTitle: { fontFamily: FONT_FAMILY.medium, fontSize: 12.5, color: '#fff', lineHeight: 16 },
+  merchSubtitle: { fontFamily: FONT_FAMILY.regular, fontSize: 11, color: '#8b939c' },
+  merchPrice: { fontFamily: FONT_FAMILY.medium, fontSize: 12, color: C.cyan },
+
+  postCard: {
+    backgroundColor: '#141414',
     borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    padding: 14,
+    gap: 12,
   },
-  merchBuyText: { fontFamily: FONT_FAMILY.medium, fontSize: 12, color: '#06222a' },
+  groupPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#1d1d1f',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  groupPillJoined: { backgroundColor: 'rgba(0,213,221,0.14)' },
+  groupPillText: { fontFamily: FONT_FAMILY.medium, fontSize: 11, color: '#c9b6e0' },
+  postUserRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  postAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  postHandle: { fontFamily: FONT_FAMILY.medium, fontSize: 13, color: '#fff' },
+  postTime: { fontFamily: FONT_FAMILY.medium, fontSize: 11, color: '#6e7681', marginTop: 1 },
+  postBody: { fontFamily: FONT_FAMILY.regular, fontSize: 14, lineHeight: 21, color: '#c2c9d1' },
+  postImage: { width: '100%', height: 120, borderRadius: 12, backgroundColor: '#161616' },
+  reactionsRow: { flexDirection: 'row', gap: 18 },
+  reaction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  reactionText: { fontFamily: FONT_FAMILY.medium, fontSize: 12, color: '#a7aeb6' },
+
+  communityCard: {
+    backgroundColor: '#141414',
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+  },
+  communityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatarStack: { flexDirection: 'row' },
+  stackAvatar: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: '#10161d' },
+  communityCount: { fontFamily: FONT_FAMILY.medium, fontSize: 14, color: '#fff' },
+  communitySub: { fontFamily: FONT_FAMILY.regular, fontSize: 11.5, color: '#8b939c', marginTop: 1 },
+  joinBtn: { backgroundColor: C.cyan, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 8 },
+  joinedBtn: { backgroundColor: '#1c232b' },
+  joinBtnText: { fontFamily: FONT_FAMILY.medium, fontSize: 12.5, color: '#06222a' },
+  communityNote: { fontFamily: FONT_FAMILY.regular, fontSize: 12.5, lineHeight: 18, color: '#8b939c' },
 })
