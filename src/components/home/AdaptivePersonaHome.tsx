@@ -9,7 +9,6 @@ import { EdgeFadeRow } from '../EdgeFadeRow'
 import { HRail } from '../HRail'
 import StickyHomeHeader, { useStickyHomeHeaderHeight, useStickyHomeScroll } from '../StickyHomeHeader'
 import AdaptiveThemePills from '../AdaptiveThemePills'
-import { LensMark } from '../AdaptiveLens'
 import { useSharedValue } from 'react-native-reanimated'
 import { useProfiles } from '../../context/ProfilesContext'
 import { useAdaptiveUI, isOliviaSuperFanTheme } from '../../context/AdaptiveUIContext'
@@ -612,20 +611,18 @@ export default function AdaptivePersonaHome() {
         <View style={{ height: stickyHeaderHeight + 22 }} />
 
         {/* 1 — Contextual greeting (recognition + situational) */}
-        <LensMark type="temporal" conf="time of day" note="reads the clock, stores nothing">
-          <View style={s.greetWrap}>
-            <View style={s.greetRow}>
-              <Text style={s.greetHello}>{greeting},</Text>
-              <Ionicons name="sparkles" size={14} color={accent} style={{ marginLeft: 6 }} />
-            </View>
-            <Text style={s.greetName}>{activeProfile.name.split(' ')[0]}</Text>
+        <View style={s.greetWrap}>
+          <View style={s.greetRow}>
+            <Text style={s.greetHello}>{greeting},</Text>
+            <Ionicons name="sparkles" size={14} color={accent} style={{ marginLeft: 6 }} />
           </View>
-        </LensMark>
+          <Text style={s.greetName}>{activeProfile.name.split(' ')[0]}</Text>
+        </View>
 
         {/* 2 — Jump back in (fast return) — music domain only; podcasts have their own.
             For Olivia superfan, Jump back in is repositioned after the featured-artists section. */}
         {!podcastFirst && !musicFocus && !isOlivia && jumpBackIn.length > 0 && (
-          <LensMark type="adaptive" conf="med" note="fast return; grown from your recent plays" style={s.block}>
+          <View style={s.block}>
             <SectionHeader title="Jump back in" />
             <View style={s.quickGrid}>
               {jumpBackIn.map(item => {
@@ -662,7 +659,7 @@ export default function AdaptivePersonaHome() {
                 )
               })}
             </View>
-          </LensMark>
+          </View>
         )}
 
 
@@ -674,7 +671,7 @@ export default function AdaptivePersonaHome() {
         {!podcastFirst && (
         <>
         {/* 3 — Your <fandom> world — music loyalty group */}
-        <LensMark type="adaptive" conf="high" note="your fandom leads; earned, revocable" style={[s.block, s.fandomShadow]}>
+        <View style={[s.block, s.fandomShadow]}>
           <View style={[s.fandomInner, { borderColor: tintFromHue(accent, 0.42) }]}>
           {/* Top-right corner bloom — fades toward bottom-left */}
           <LinearGradient
@@ -962,7 +959,7 @@ export default function AdaptivePersonaHome() {
           </EdgeFadeRow>
           )}
           </View>
-        </LensMark>
+        </View>
 
         {/* Love Island world: the Villa + Cast cards (same design as the
             official-playlist treatment) — shown only for the Love Island theme */}
@@ -1156,7 +1153,7 @@ export default function AdaptivePersonaHome() {
         )}
 
         {/* Theme switcher — tap a pill to re-skin the whole home on the fly. */}
-        <LensMark type="control" note="you pick the center; the page follows" style={s.block}>
+        <View style={s.block}>
           <SectionHeader title="Switch your vibe" sub="Tap a theme to reshape your home" />
           <AdaptiveThemePills
             onDragStart={noop}
@@ -1167,7 +1164,7 @@ export default function AdaptivePersonaHome() {
             dragY={pillDragY}
             heroHue={hue}
           />
-        </LensMark>
+        </View>
 
         {/* 6 — Recognition-led discovery: broad picks + rising artists.
             Hidden under the "Following" focus, which stays close to home. */}
