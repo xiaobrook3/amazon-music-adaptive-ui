@@ -28,6 +28,7 @@ import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
 import { useProfiles } from '../context/ProfilesContext'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import { ArtistEventsCard, ArtistMerchGrid, FanPostsCarousel, type MerchItem } from '../components/artist/ArtistCommerce'
+import JourneyTimeline from '../components/artist/JourneyTimeline'
 import { C, typeHeadline } from '../theme'
 
 
@@ -174,21 +175,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
   const selectedEra = page.eras[selectedIdx] ?? page.eras[0]
   const hasJourney = page.eras.length > 0
 
-  // Timeline progress — fills to the selected era's position and slides as the
-  // listener taps forward/backward through their journey.
-  const timelineFillPct = page.eras.length > 1
-    ? ((selectedIdx + 1) / page.eras.length) * 100
-    : 100
-  const fillProgress = useSharedValue(timelineFillPct)
-  useEffect(() => {
-    fillProgress.value = withTiming(timelineFillPct, {
-      duration: 340,
-      easing: Easing.out(Easing.cubic),
-    })
-  }, [timelineFillPct, fillProgress])
-  const timelineFillStyle = useAnimatedStyle(() => ({
-    width: `${fillProgress.value}%`,
-  }))
 
   const playByTitle = (title?: string) => {
     const match = title
@@ -375,11 +361,11 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                     })}
                   </ScrollView>
 
-                  <View style={s.timelineTrack}>
-                    <Animated.View style={[s.timelineFill, timelineFillStyle]}>
-                      <View style={s.timelineThumb} />
-                    </Animated.View>
-                  </View>
+                  <JourneyTimeline
+                    count={page.eras.length}
+                    activeIndex={selectedIdx}
+                    onSelect={setSelectedIdx}
+                  />
                 </View>
 
                 {selectedEra && (

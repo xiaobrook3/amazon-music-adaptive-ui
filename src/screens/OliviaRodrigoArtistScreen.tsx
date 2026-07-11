@@ -37,6 +37,7 @@ import { C, typeHeadline } from '../theme'
 import OliviaAboutTab from '../components/artist/OliviaAboutTab'
 import OliviaMusicTab from '../components/artist/OliviaMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard, FanPostsCarousel, FanCommunityCard } from '../components/artist/ArtistCommerce'
+import JourneyTimeline from '../components/artist/JourneyTimeline'
 import { EdgeFadeRow } from '../components/EdgeFadeRow'
 
 
@@ -134,20 +135,7 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
     [selectedEraId],
   )
 
-  // Timeline progress — the blue line fills to the position of the selected era
-  // in the journey, sliding forward/backward as you tap through the eras.
   const selectedEraIndex = OLIVIA_ERAS.findIndex(e => e.id === selectedEraId)
-  const timelineFillPct = ((selectedEraIndex + 1) / OLIVIA_ERAS.length) * 100
-  const fillProgress = useSharedValue(timelineFillPct)
-  useEffect(() => {
-    fillProgress.value = withTiming(timelineFillPct, {
-      duration: 340,
-      easing: Easing.out(Easing.cubic),
-    })
-  }, [timelineFillPct, fillProgress])
-  const timelineFillStyle = useAnimatedStyle(() => ({
-    width: `${fillProgress.value}%`,
-  }))
 
   const firstSong = songs.find(s => s.artistId === 'olivia-rodrigo')
 
@@ -358,11 +346,11 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
                 </ScrollView>
               </EdgeFadeRow>
 
-              <View style={s.timelineTrack}>
-                <Animated.View style={[s.timelineFill, timelineFillStyle]}>
-                  <View style={s.timelineThumb} />
-                </Animated.View>
-              </View>
+              <JourneyTimeline
+                count={OLIVIA_ERAS.length}
+                activeIndex={selectedEraIndex}
+                onSelect={i => setSelectedEraId(OLIVIA_ERAS[i].id)}
+              />
             </View>
 
             <View style={s.eraDetail}>
