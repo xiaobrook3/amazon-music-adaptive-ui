@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Amazon Music · Artist page · Adaptive UI · generalized profile</title>
+<meta name="description" content="The generalized adaptive artist profile: every artist in the catalog rendered with the same content placement, grammar, and lens vocabulary as the Olivia Rodrigo flagship page.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+/* ============================================================
+   AMAZON MUSIC — ARTIST PAGE · ADAPTIVE UI · GENERALIZED PROFILE
+   The data-driven sibling of adaptive-artist-v3.html (the Olivia
+   flagship). Same tokens, same placement, same lens vocabulary —
+   hydrated per artist from artist-registry.js (?artist=<id>).
+   Design rule carried over: adaptive slots that a state hasn't
+   earned stay dormant; the standard page holds.
+   ============================================================ */
+@font-face{font-family:"Ember Modern Display";src:url("static/adaptive/fonts/EmberModernDisplay-Regular.otf") format("opentype");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"Ember Modern Display";src:url("static/adaptive/fonts/EmberModernDisplay-Bold.otf") format("opentype");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"Ember Modern Display";src:url("static/adaptive/fonts/EmberModernDisplay-Italic.otf") format("opentype");font-weight:400;font-style:italic;font-display:swap;}
+
+:root{
+  --bg:#000000; --ink:#FFFFFF; --muted:#C2C9D1; --dim:#A6A6A6; --faint:#8A93A0; --soft:#ACB3B4;
+  --accent:#25D1DA; --accent-2:#25D1DA; --accent-3:#4FE7EE; /* AM Music Cyan #25D1DA — single interactive accent (brand token) */
+  --mint:#4FE3C0; --purple:#C9B6E0; --gold:#E8B860; --pink:#F472B6;
+  --panel:#161C23; --panel-2:#11161C; --panel-3:#1C232B; --inbar:#1C232B; --card:#141414; --card-2:#1D1D1F;
+  --line:#242C35; --line-2:#1C2A30; --banner-bg:#121A22;
+  --font-display:"Ember Modern Display","Amazon Ember","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --w:402px; --radius-card:16px;
+  --ease:cubic-bezier(.22,.61,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+[hidden]{display:none !important;} /* class rules like .whym/.erow otherwise override the hidden attribute */
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-display);
+  background:radial-gradient(120% 90% at 50% -10%, #16121f 0%, #0a0a0e 42%, #050507 100%),#050507;
+  color:var(--ink);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  gap:16px;padding:34px 16px 60px;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(40% 30% at 22% 16%, rgba(124,58,237,.16), transparent 70%),
+             radial-gradient(36% 28% at 82% 30%, rgba(0,213,221,.12), transparent 70%);
+  filter:saturate(1.1);}
+.page-cap{position:relative;z-index:2;text-align:center;color:#8b95a2;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;}
+.page-cap b{color:#aeb6c2;font-weight:700;}
+.page-cap .dot{color:var(--accent);}
+
+/* ============================================================
+   SIMULATION RAIL — moderator console (not part of the product)
+   Durable identity = cyan (matches lens ADAPTS), live context =
+   amber (matches lens TEMPORAL). One listener, four moments in time.
+   ============================================================ */
+.sim{position:relative;z-index:2;width:var(--w);max-width:100%;display:flex;flex-direction:column;gap:10px;
+  padding:13px 14px 12px;border-radius:16px;background:rgba(13,17,23,.88);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.09);box-shadow:0 14px 38px -14px rgba(0,0,0,.7);}
+.sim__row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.sim__lbl{flex:none;width:74px;font-weight:800;font-size:9px;letter-spacing:.12em;text-transform:uppercase;line-height:1.5;color:var(--faint);}
+.sim__lbl.state{color:#5fd9df;}
+.sim__lbl--sig{color:#d9b072;}
+.sim__steps{display:flex;flex:1;gap:4px;background:#0a0f14;border:1px solid var(--line);border-radius:20px;padding:3px;}
+.sim__step{appearance:none;border:none;background:none;cursor:pointer;flex:1;padding:7px 2px;border-radius:16px;
+  font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--faint);white-space:nowrap;
+  transition:color .2s,background .2s;}
+.sim__step:hover{color:#cfd6de;}
+.sim__step.active{background:rgba(0,213,221,.16);color:var(--accent);}
+.sim__sigs{display:flex;flex:1;gap:8px;flex-wrap:wrap;}
+.sim__sig{appearance:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-align:center;gap:7px;flex:1 1 46%;padding:7px 12px;border-radius:16px;
+  background:#0a0f14;border:1px solid var(--line);font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--faint);
+  transition:color .2s,border-color .2s,background .2s;}
+.sim__sig i{width:7px;height:7px;border-radius:50%;background:#39424d;flex:none;transition:background .2s,box-shadow .2s;}
+.sim__sig.on{background:rgba(232,184,96,.12);border-color:rgba(232,184,96,.45);color:#F0CB80;}
+.sim__sig.on i{background:var(--gold);box-shadow:0 0 8px rgba(232,184,96,.8);}
+.sim__read{display:flex;align-items:baseline;gap:8px;padding-top:9px;border-top:1px solid rgba(255,255,255,.07);}
+.sim__readlbl{flex:none;font-weight:800;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);}
+.sim__readtxt{font-size:12px;line-height:1.45;color:#aeb6c2;}
+.sim__readtxt b{color:#e7ebf0;font-weight:700;}
+.sim__conf{flex:none;display:inline-flex;align-items:center;gap:3px;margin-left:auto;padding-left:8px;}
+.sim__conf i{width:12px;height:4px;border-radius:2px;background:#2b333d;transition:background .3s;}
+.sim__conf.c1 i:nth-child(1){background:var(--gold);}
+.sim__conf.c2 i:nth-child(-n+2){background:#9adf65;}
+.sim__conf.c3 i{background:var(--accent);}
+.sim__conflbl{font-weight:800;font-size:9px;letter-spacing:.1em;color:var(--faint);margin-left:3px;}
+.sim__job{display:flex;align-items:baseline;gap:8px;margin:-2px 0 0;}
+.sim__joblbl{flex:none;font-weight:800;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);}
+.sim__job b{color:#d7dde5;font-weight:700;font-size:12.5px;}
+.sim__foot{font-size:10.5px;letter-spacing:.02em;color:#7a828d;margin:-2px 0 0;}
+/* collapsed-details toggle — hidden on desktop, where .sim__more is always open */
+.sim__more{display:flex;flex-direction:column;gap:10px;}
+.sim__toggle{display:none;width:100%;appearance:none;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line);background:#0a0f14;cursor:pointer;padding:8px;border-radius:12px;
+  font-family:var(--font-display);font-weight:700;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--faint);transition:color .2s,border-color .2s;}
+.sim__toggle:hover{color:#cfd6de;}
+.sim__toggle svg{flex:none;transition:transform .25s var(--ease);}
+.sim__toggle[aria-expanded="true"] svg{transform:rotate(180deg);}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px;}
+/* div/article rows wired as role="button" (mu-song, start-card, yot__song, mcard, ab-note…)
+   don't match the bare `button` selector above and were getting no focus ring at all */
+[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px;}
+
+/* ============================================================
+   v3 CONSOLE ADDITIONS — identity (who) · master switch (control) ·
+   ambient moment (when). Same token vocabulary as the lens:
+   cyan=identity/ADAPTS, gold=TEMPORAL, pink=YOU CONTROL.
+   ============================================================ */
+.sim__lbl.id{color:#b79be0;}
+.sim__ids{display:flex;flex:1;gap:4px;background:#0a0f14;border:1px solid var(--line);border-radius:20px;padding:3px;min-width:0;}
+.sim__id{appearance:none;border:none;background:none;cursor:pointer;flex:1;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  padding:6px 4px;border-radius:16px;font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--faint);white-space:nowrap;
+  transition:color .2s,background .2s;}
+.sim__id:hover{color:#cfd6de;}
+.sim__id.active{background:rgba(183,155,224,.16);color:#d7c4f2;}
+.sim__id .idav{width:15px;height:15px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:800;font-style:normal;color:#06121a;background:var(--pc);}
+.sim__master{appearance:none;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:16px;
+  background:#0a0f14;border:1px solid var(--line);font-family:var(--font-display);font-weight:700;font-size:10.5px;color:var(--faint);white-space:nowrap;
+  transition:color .2s,border-color .2s,background .2s;}
+.sim__master i{width:20px;height:12px;border-radius:20px;background:#39424d;flex:none;position:relative;transition:background .22s;}
+.sim__master i::after{content:"";position:absolute;top:1.5px;left:1.5px;width:9px;height:9px;border-radius:50%;background:#0a0f14;transition:transform .22s;}
+.sim__master.on{background:rgba(241,167,200,.12);border-color:rgba(241,167,200,.45);color:#F1A7C8;}
+.sim__master.on i{background:#F1A7C8;}
+.sim__master.on i::after{transform:translateX(8px);}
+.sim__row--amb{align-items:center;}
+.sim__lbl--amb{color:#d9b072;}
+.sim__amb{appearance:none;cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:16px;
+  background:rgba(232,184,96,.1);border:1px solid rgba(232,184,96,.4);font-family:var(--font-display);font-weight:700;font-size:11px;color:#F0CB80;
+  transition:border-color .2s,background .2s;}
+.sim__amb:hover{background:rgba(232,184,96,.18);}
+.sim__amb i{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(232,184,96,.7);flex:none;}
+.sim__ambtime{font-variant-numeric:tabular-nums;}
+.sim__ambdp{font-weight:800;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#caa25f;}
+.sim__ambnote{font-size:10px;color:#7a828d;letter-spacing:.02em;}
+/* narrow console: let the identity row wrap so pills keep room and the master
+   switch drops to its own full-width line, rather than squeezing into overlap */
+@media (max-width:520px){
+  .sim__row--id{flex-wrap:wrap;}
+  .sim__ids{flex:1 1 auto;}
+  .sim__master{flex:1 1 100%;justify-content:center;margin-top:2px;}
+}
+
+/* master OFF / fixed-listener: dim & lock the moderator controls those modes freeze */
+body.adaptive-off .sim__steps,body.adaptive-off #lvlCtl,body.adaptive-off .sim__sigs,body.adaptive-off .sim__amb,
+body.fixed-listener .sim__steps{opacity:.4;pointer-events:none;filter:grayscale(.4);}
+body.adaptive-off .sim__id{opacity:.5;pointer-events:none;}
+body.adaptive-off .sim__id.active{opacity:1;}
+
+/* subtle whole-screen desaturation when adaptation is off — the page reads "standard" */
+.screen{transition:filter .35s var(--ease);}
+body.adaptive-off .screen{filter:saturate(.72) brightness(.97);}
+
+/* identity / adaptive-off indicator — an in-flow banner just below the status
+   bar (only shown off the default view, so the small layout shift is contextual) */
+.topbar{position:relative;z-index:58;margin:54px 12px -8px;display:flex;align-items:center;gap:9px;
+  padding:8px 10px 8px 11px;border-radius:13px;font-size:11.5px;line-height:1.35;color:#e7ebf0;
+  background:rgba(12,16,22,.92);backdrop-filter:blur(12px) saturate(1.1);border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 12px 30px -12px rgba(0,0,0,.7);}
+.topbar[hidden]{display:none;}
+.topbar b{font-weight:800;color:#fff;}
+.topbar .tb-av{flex:none;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:#06121a;background:var(--pc,#25D1DA);}
+.topbar .tb-txt{flex:1;min-width:0;}
+.topbar button{appearance:none;cursor:pointer;flex:none;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);
+  color:#dfe4ea;font-family:var(--font-display);font-weight:700;font-size:10.5px;padding:5px 9px;border-radius:9px;white-space:nowrap;
+  transition:background .2s,border-color .2s;}
+.topbar button:hover{background:rgba(255,255,255,.13);}
+.topbar--off{border-color:rgba(241,167,200,.4);background:rgba(28,16,22,.86);}
+.topbar--off .tb-av{background:#F1A7C8;}
+@media (max-width:440px){ .topbar{margin:48px 8px -8px;font-size:11px;} }
+
+/* ambient daypart: a quiet wash on the moment surface (the session line), never the whole identity */
+.ctx__dp{display:block;margin-top:3px;color:#caa25f;font-size:11px;font-weight:600;letter-spacing:.01em;}
+body.dp-morning .ctx__dp{color:#d9b072;} body.dp-evening .ctx__dp{color:#d99a6b;} body.dp-late .ctx__dp{color:#8fa3cf;}
+
+/* ambient light for the hour: a soft glow from the top of the device, never a
+   theme swap. Afternoon is the neutral "standard light" (no wash). */
+.dpwash{position:absolute;inset:0;z-index:52;pointer-events:none;border-radius:inherit;opacity:0;
+  transition:opacity .6s var(--ease),background .6s var(--ease);}
+body.dp-morning .dpwash{opacity:1;background:radial-gradient(130% 55% at 50% -10%, rgba(255,214,140,.15), transparent 58%);}
+body.dp-evening .dpwash{opacity:1;background:radial-gradient(130% 62% at 50% -10%, rgba(226,122,72,.17), transparent 56%),linear-gradient(0deg, rgba(80,40,120,.1), transparent 42%);}
+body.dp-late .dpwash{opacity:1;background:radial-gradient(130% 72% at 50% -12%, rgba(30,44,86,.3), transparent 60%),linear-gradient(0deg, rgba(6,8,16,.32), transparent 46%);}
+body.adaptive-off .dpwash{opacity:0;}
+
+/* ============================================================
+   DEVICE FRAME (v1 standard)
+   ============================================================ */
+.iphone{position:relative;z-index:1;width:var(--w);max-width:100%;height:min(862px, calc(100vh - 96px));min-height:560px;}
+.iphone::before{content:"";position:absolute;inset:-13px;border-radius:67px;
+  background:linear-gradient(155deg,#6a6e77 0%,#2c2e35 16%,#191a1f 36%,#41444c 52%,#1b1c21 72%,#5b5f68 100%);
+  box-shadow:0 42px 90px -18px rgba(0,0,0,.82),0 10px 32px -8px rgba(0,0,0,.6),inset 0 0 1px rgba(255,255,255,.25);}
+.iphone::after{content:"";position:absolute;inset:-9px;border-radius:63px;background:#020203;}
+.ip-btn{position:absolute;width:3.5px;border-radius:2px;background:linear-gradient(180deg,#565a63,#23252b 18%,#3a3d45 50%,#1e2026 84%,#4d515a);}
+.ip-btn--action{left:-16px;top:186px;height:24px;}
+.ip-btn--vol1{left:-16px;top:236px;height:46px;}
+.ip-btn--vol2{left:-16px;top:292px;height:46px;}
+.ip-btn--power{right:-16px;top:266px;height:72px;}
+.device{position:relative;z-index:1;width:100%;height:100%;border-radius:54px;background:#000;overflow:hidden;}
+.device::after{content:"";position:absolute;inset:0;z-index:80;border-radius:inherit;pointer-events:none;
+  box-shadow:inset 0 0 2px rgba(255,255,255,.16),inset 0 0 14px rgba(255,255,255,.04);}
+.device::before{content:"";position:absolute;left:0;right:0;bottom:0;height:124px;z-index:54;pointer-events:none;
+  background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.9) 62%, #000 100%);}
+.home-ind{position:absolute;left:50%;bottom:7px;transform:translateX(-50%);z-index:70;width:134px;height:5px;border-radius:100px;background:rgba(255,255,255,.32);pointer-events:none;}
+@media (max-width:440px){
+  /* on an actual phone the mockup shouldn't be a phone-shaped rectangle floating
+     inside your real phone with its own fake status bar competing with the real
+     one below a full moderator console — drop the bezel and let the device fill
+     whatever the (collapsed-by-default) sim rail leaves, via flex, not a guessed
+     dvh percentage, so it always fills the real viewport with no double-scroll */
+  body{height:100dvh;overflow-y:auto;padding:10px 10px 8px;gap:8px;}
+  .page-cap{display:none;}
+  .iphone{width:100%;flex:1 1 auto;min-height:0;height:auto;}
+  .iphone::before,.iphone::after,.ip-btn,.home-ind{display:none;}
+  .device{border-radius:22px;}
+  .sim{width:100%;flex:none;}
+  .sim__toggle{display:flex;}
+  .sim__more{display:none;}
+  .sim__more.expanded{display:flex;}
+}
+/* ============ EMBED MODE (?embed=1) — v3 runs INSIDE the DERBC client ============
+   The host app (React Native web build) supplies the phone frame, status bar and
+   navigation context; v3 drops its moderator console and mockup chrome and becomes
+   the artist route itself. Standalone rendering is untouched. */
+body.embed{display:block;height:100dvh;padding:0;gap:0;background:#000;overflow:hidden;}
+body.embed .page-cap,body.embed .sim,body.embed .statusbar{display:none;}
+body.embed .iphone{width:100%;max-width:var(--w);height:100dvh;min-height:0;margin:0 auto;}
+body.embed .iphone::before,body.embed .iphone::after,body.embed .ip-btn,
+body.embed .home-ind,body.embed .dynamic-island{display:none;}
+body.embed .device{border-radius:0;}
+body.embed .device::after{display:none;}
+/* inside the client the host draws the home indicator, so the nav sits exactly
+   like the app's own tab bar: 8px top/bottom, 28px sides, content 8px off the edge */
+body.embed .navbar{padding:8px 28px 8px;}
+.screen{position:absolute;inset:0;background:var(--bg);overflow-y:auto;overflow-x:hidden;border-radius:inherit;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scroll-padding-top:64px;scroll-padding-bottom:120px;}
+.screen::-webkit-scrollbar{display:none;}
+.frame{display:flex;flex-direction:column;align-items:stretch;width:var(--w);max-width:100%;background:var(--bg);gap:24px;padding-bottom:0;}
+@media (max-width:440px){ .frame{width:100%;} }
+
+/* ---------- pinned iOS status bar ---------- */
+.statusbar{position:absolute;top:0;left:0;right:0;z-index:60;height:54px;display:flex;align-items:center;justify-content:space-between;
+  padding:16px 30px 8px;pointer-events:none;background:linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,0));transition:background .4s var(--ease);}
+.statusbar.solid{background:rgba(0,0,0,.86);backdrop-filter:blur(14px) saturate(1.2);}
+.sb-time{font-weight:600;font-size:16px;color:#fff;letter-spacing:.01em;}
+.sb-right{display:flex;align-items:center;gap:7px;}
+.sb-right svg{display:block;}
+.dynamic-island{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:62;width:122px;height:36px;background:#000;border-radius:22px;pointer-events:none;}
+.dynamic-island::after{content:"";position:absolute;right:10px;top:50%;transform:translateY(-50%);width:13px;height:13px;border-radius:50%;
+  background:radial-gradient(circle at 36% 34%, #27313f 0%, #0a0d12 58%, #000 100%);box-shadow:inset 0 0 2px rgba(120,160,255,.25);}
+
+/* ============================================================
+   HERO — fixed frame; the *surface* is the one high-confidence slot
+   ============================================================ */
+.hero{position:relative;width:var(--w);max-width:100%;height:406px;overflow:hidden;flex:none;background:#0c0c10;}
+.hero__photo{position:absolute;inset:0 0 7px 0;}
+.hero__photo .layer{position:absolute;inset:0;}
+.hp-base{background:
+  radial-gradient(70% 55% at 64% 30%, rgba(255,120,170,.42), transparent 62%),
+  radial-gradient(60% 50% at 26% 24%, rgba(124,58,237,.55), transparent 64%),
+  radial-gradient(90% 70% at 50% 96%, rgba(8,8,12,1), transparent 70%),
+  linear-gradient(165deg,#3a1d52 0%, #5b2a6b 30%, #2a1640 60%, #0b0a14 100%);}
+.hp-spot{background:
+  radial-gradient(28% 30% at 58% 26%, rgba(255,255,255,.5), rgba(255,255,255,0) 60%),
+  radial-gradient(50% 40% at 50% 16%, rgba(0,213,221,.18), transparent 62%);
+  mix-blend-mode:screen;opacity:.9;}
+.hp-bokeh{opacity:.55;mix-blend-mode:screen;background:
+  radial-gradient(circle at 18% 30%, rgba(255,210,230,.7) 0 2px, transparent 3px),
+  radial-gradient(circle at 80% 18%, rgba(150,230,255,.6) 0 3px, transparent 5px),
+  radial-gradient(circle at 70% 40%, rgba(255,180,210,.5) 0 2px, transparent 4px),
+  radial-gradient(circle at 32% 12%, rgba(255,255,255,.5) 0 1.5px, transparent 3px),
+  radial-gradient(circle at 90% 50%, rgba(180,160,255,.45) 0 4px, transparent 7px),
+  radial-gradient(circle at 12% 60%, rgba(0,213,221,.4) 0 2px, transparent 4px);
+  filter:blur(.4px);}
+.hp-figure{background:
+  radial-gradient(115% 80% at 50% 118%, rgba(6,5,11,.94), transparent 58%),
+  radial-gradient(80% 70% at 14% 6%, rgba(8,6,14,.55), transparent 58%),
+  radial-gradient(70% 60% at 92% 100%, rgba(8,6,14,.45), transparent 60%);}
+.grain{position:absolute;inset:0;pointer-events:none;opacity:.10;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+.hero__grad{position:absolute;left:0;bottom:0;width:100%;height:100%;background:linear-gradient(180deg, rgba(0,0,0,0) 38%, rgba(0,0,0,.5) 70%, #000 96%);}
+.hero__scrim{position:absolute;left:0;top:0;width:100%;height:341px;background:rgba(0,0,0,0.10);}
+.hero__topscrim{position:absolute;left:0;top:0;width:100%;height:152px;background:linear-gradient(180deg, rgba(0,0,0,.42), rgba(0,0,0,.08) 55%, transparent);}
+/* era-visual surface: exists only at high confidence (super fan). A muted,
+   slow "room breathing" wash — instrumentation, not a product-demo flourish. */
+.hp-live{opacity:0;transition:opacity 1.2s var(--ease);mix-blend-mode:screen;
+  background:
+    radial-gradient(46% 40% at 24% 30%, rgba(124,58,237,.5), transparent 66%),
+    radial-gradient(42% 38% at 78% 24%, rgba(244,114,182,.42), transparent 64%),
+    radial-gradient(50% 44% at 60% 70%, rgba(0,213,221,.26), transparent 68%);
+  background-size:160% 160%;}
+body.hero-live .hp-live{opacity:.8;animation:eradrift 22s ease-in-out infinite alternate;}
+body.hero-live .hp-bokeh{animation:eradrift 30s ease-in-out infinite alternate-reverse;}
+@keyframes eradrift{0%{background-position:0% 0%;}100%{background-position:100% 60%;}}
+.hero__livechip{position:absolute;right:14px;top:96px;z-index:21;display:none;align-items:center;gap:6px;
+  appearance:none;border:1px solid rgba(255,255,255,.22);cursor:pointer;padding:6px 11px;border-radius:16px;
+  background:rgba(0,0,0,.4);backdrop-filter:blur(8px);color:#fff;font-family:var(--font-display);font-weight:700;font-size:10.5px;letter-spacing:.05em;}
+.hero__livechip i{width:6px;height:6px;border-radius:50%;background:var(--pink);animation:livepulse 1.8s ease-in-out infinite;flex:none;}
+body.hero-live .hero__livechip{display:inline-flex;}
+.hero__nav{position:absolute;left:0;right:0;top:50px;z-index:20;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;}
+.iconbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:none;background:rgba(0,0,0,.28);backdrop-filter:blur(6px);color:#fff;cursor:pointer;transition:transform .2s var(--spring), background .2s;}
+.iconbtn:hover{background:rgba(0,0,0,.46);}
+.iconbtn:active{transform:scale(.9);}
+.hero__info{position:absolute;left:0;right:0;bottom:0;z-index:15;display:flex;flex-direction:column;align-items:flex-start;gap:11px;padding:0 16px 14px;}
+/* profiles cluster (Figma "Artist page hero ver. 3"): 71px artist avatar,
+   39px listener avatar tucked into its shoulder, and a pink thought-bubble
+   ("♥ Since …") rising from the listener — the relationship, made literal. */
+.proof{position:relative;width:193px;height:76px;opacity:1;transition:opacity .4s var(--ease);}
+.proof.hidden{opacity:0;visibility:hidden;}
+.av-artist{position:absolute;left:0;top:0;width:71px;height:71px;border-radius:50%;border:2px solid rgba(255,255,255,.9);background:
+  radial-gradient(60% 60% at 50% 35%, rgba(255,255,255,.35), transparent 60%),
+  linear-gradient(135deg,#ff7eb3,#7c3aed 70%);box-shadow:0 4px 14px rgba(0,0,0,.4);display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.35);z-index:2;overflow:hidden;}
+.av-you{position:absolute;left:49px;top:37px;width:39px;height:39px;border-radius:50%;border:2px solid #0c0c10;background:linear-gradient(135deg,#25D1DA,#1e3a8a);display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;z-index:3;overflow:hidden;}
+.proof__pill{position:absolute;left:83px;top:11px;z-index:2;display:inline-flex;align-items:center;gap:4px;height:27px;padding:0 10px 0 5px;border-radius:10px;background:#DE909C;font-size:12px;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.35);}
+.proof__pill svg{flex:none;}
+/* bubble tail — two dots stepping down to the listener avatar */
+.proof__pill::before{content:"";position:absolute;left:7.5px;top:22px;width:11px;height:11px;border-radius:50%;background:#DE909C;}
+.proof__pill::after{content:"";position:absolute;left:4px;top:33px;width:5px;height:5px;border-radius:50%;background:#DE909C;}
+.hero__name{font-weight:700;font-size:33px;line-height:1.2;color:#fff;margin:0;letter-spacing:-.01em;text-shadow:0 2px 18px rgba(0,0,0,.45);}
+.hero__followers{font-size:15px;color:var(--soft);}
+.hero__followers b{color:#fff;font-weight:700;}
+
+/* control panel (fixed) */
+.control{position:relative;z-index:15;width:var(--w);max-width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px 20px;background:#000;flex:none;margin-top:-7px;}
+.control__left{display:flex;align-items:center;gap:16px;}
+.btn-follow{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 18px;border-radius:24px;border:2px solid #4C4C4C;background:transparent;color:#fff;font-family:var(--font-display);font-size:14px;cursor:pointer;transition:all .25s var(--ease);}
+.btn-follow .heart{color:var(--accent-2);display:grid;place-items:center;transition:transform .3s var(--spring);}
+.btn-follow:hover{border-color:#6c6c6c;}
+.btn-follow.is-following{border-color:var(--accent-2);}
+.ghost-ico{background:none;border:none;color:#fff;cursor:pointer;padding:6px;display:grid;place-items:center;border-radius:10px;transition:transform .2s var(--spring),background .2s;}
+.ghost-ico:hover{background:rgba(255,255,255,.08);}
+.ghost-ico:active{transform:scale(.86);}
+.ghost-ico.on{color:var(--accent-2);background:rgba(37,209,218,.14);}
+.btn-play{flex:none;width:50px;height:50px;border-radius:50%;border:none;background:var(--accent-2);color:#06222A;display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 22px -4px rgba(37,209,218,.6);transition:transform .2s var(--spring),box-shadow .25s;}
+.btn-play:hover{transform:scale(1.06);}
+.btn-play:active{transform:scale(.92);}
+
+/* tabs (fixed IA — the backbone never moves) */
+.tabs{display:flex;align-items:center;gap:0;width:var(--w);max-width:100%;height:36px;padding:0 8px;flex:none;margin-top:-14px;}
+.tab{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:8px 10px;background:none;border:none;color:#fff;font-family:var(--font-display);font-size:12px;cursor:pointer;opacity:.74;transition:opacity .2s;white-space:nowrap;}
+.tab:hover{opacity:1;}
+.tab.active{font-weight:700;opacity:1;}
+.tab.active::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:1.5px;background:var(--accent);border-radius:2px;}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px;}
+
+/* ============================================================
+   ADAPTIVE SLOTS — shared plumbing
+   Every adaptive module lives in a .slot. When the state hasn't
+   earned it, the slot is dormant (invisible in product; the lens
+   reveals it as a sleeping outline — the null state made legible).
+   ============================================================ */
+.slot{display:block;}
+.slot.dormant{display:none;}
+.slot > *{animation:fade .45s var(--ease);}
+.wrap{width:var(--w);max-width:100%;padding:0 16px;}
+.sec-line{display:flex;align-items:center;gap:7px;}
+.sec-line .t{font-weight:700;font-size:20px;line-height:1.2;color:#fff;margin:0;}
+.sec-sub{font-size:12px;line-height:1.35;color:var(--dim);margin:3px 0 0;}
+/* hidden-gems breadth state: shown only once you've heard everything */
+.hg-heard{display:flex;align-items:flex-start;gap:8px;margin:11px 0 2px;padding:10px 12px;border-radius:12px;background:rgba(37,209,218,.1);border:1px solid rgba(37,209,218,.3);color:#bfeef1;font-size:12.5px;line-height:1.4;}
+.hg-heard__mark{color:var(--accent);font-weight:700;flex:none;}
+/* "updates as you listen" — a user-facing cue (not the moderator lens) so people
+   know an adaptive section refreshes and is worth revisiting (Jul-9 mentor note) */
+.live-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;background:rgba(37,209,218,.1);border:1px solid rgba(37,209,218,.28);color:#8fdfe4;font-family:var(--font-display);font-weight:700;font-size:9px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;vertical-align:middle;}
+.live-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);flex:none;}
+@media (prefers-reduced-motion:no-preference){.live-tag::before{animation:jrBlink 2.4s var(--ease) infinite;}}
+/* Popular scope — Everyone ⇄ Super fans (community data, two lenses) */
+.pop-scope{display:inline-flex;gap:3px;background:#0a0f14;border:1px solid var(--line);border-radius:16px;padding:3px;margin:-2px 0 12px;}
+.pop-scope__opt{appearance:none;border:none;background:none;cursor:pointer;padding:6px 13px;border-radius:12px;
+  font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--faint);transition:color .2s,background .2s;}
+.pop-scope__opt:hover{color:#cfd6de;}
+.pop-scope__opt.is-active{background:rgba(0,213,221,.16);color:var(--accent);}
+/* cold-start hint — user-facing "this page adapts" preview (a null state with a horizon) */
+.cold-hint{border:1.5px dashed rgba(37,209,218,.32);border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:10px;}
+.cold-hint__lead{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted);}
+.cold-hint__row{display:flex;flex-wrap:wrap;gap:7px;}
+.cold-hint__chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--faint);font-family:var(--font-display);font-weight:700;font-size:11.5px;}
+.cold-hint__chip svg{flex:none;opacity:.7;}
+.cold-hint__note{margin:0;font-size:11px;line-height:1.45;color:var(--faint);}
+/* daylist-style generated era descriptor — the "quirky name" the mentor asked for */
+.daylist{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:6px 12px;border-radius:20px;background:linear-gradient(90deg,rgba(37,209,218,.16),rgba(201,160,220,.14));border:1px solid rgba(37,209,218,.3);color:#e6f7f8;font-family:var(--font-display);font-weight:700;font-size:13px;line-height:1.2;}
+.daylist__mk{color:var(--accent);flex:none;font-size:12px;}
+/* now-playing resonance on You & Olivia — the interface itself responds to the
+   song playing, mood-tuned (cool vs warm), and the matching card lights up */
+.yo-reson{display:flex;align-items:center;gap:11px;margin:12px 16px 2px;padding:10px 13px;border-radius:14px;position:relative;overflow:hidden;
+  background:linear-gradient(90deg, var(--reson-a,rgba(37,209,218,.18)), var(--reson-b,rgba(120,140,220,.14)));
+  border:1px solid var(--reson-line,rgba(37,209,218,.34));animation:fade .45s var(--ease);}
+.yo-reson[hidden]{display:none;}
+.yo-reson[data-mood="cool"]{--reson-a:rgba(37,209,218,.18);--reson-b:rgba(120,140,220,.14);--reson-line:rgba(37,209,218,.34);--reson-bar:#25D1DA;}
+.yo-reson[data-mood="warm"]{--reson-a:rgba(241,167,200,.2);--reson-b:rgba(232,150,96,.14);--reson-line:rgba(241,167,200,.36);--reson-bar:#F1A7C8;}
+.yo-reson__eq{flex:none;display:flex;align-items:flex-end;gap:2px;height:16px;}
+.yo-reson__eq i{width:3px;height:6px;border-radius:2px;background:var(--reson-bar,var(--accent));}
+@media (prefers-reduced-motion:no-preference){
+  .yo-reson__eq i{animation:resEq .9s var(--ease) infinite;}
+  .yo-reson__eq i:nth-child(2){animation-delay:.15s;}
+  .yo-reson__eq i:nth-child(3){animation-delay:.3s;}
+  .yo-reson__eq i:nth-child(4){animation-delay:.45s;}
+}
+@keyframes resEq{0%,100%{height:5px}50%{height:15px}}
+.yo-reson__txt{flex:1;min-width:0;font-size:12.5px;line-height:1.35;color:#eaf7f8;}
+.yo-reson__txt b{color:#fff;font-weight:700;}
+.yo-reson__go{flex:none;appearance:none;border:none;background:rgba(0,0,0,.28);color:#fff;font-family:var(--font-display);font-weight:700;font-size:11px;padding:6px 11px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.yo-reson__go:hover{background:rgba(0,0,0,.42);}
+/* the matching card lights up while its song plays */
+.lyr.resonate{box-shadow:0 0 0 1.5px var(--accent),0 10px 30px -8px rgba(37,209,218,.6);}
+.yot.resonate{border-color:var(--accent);box-shadow:0 0 22px -6px rgba(37,209,218,.55);}
+.sec-sub b{color:var(--muted);font-weight:700;}
+/* the ✦ marker — the quiet, in-product tell that a placement adapted.
+   Progressive transparency: rationale on demand, never a caption. */
+.whym{appearance:none;border:none;cursor:pointer;flex:none;display:grid;place-items:center;width:24px;height:24px;margin:-4px 0;
+  border-radius:50%;background:none;color:rgba(37,209,218,.75);transition:background .2s,color .2s,transform .2s var(--spring);}
+.whym:hover{background:rgba(37,209,218,.12);color:var(--accent);}
+.whym:active{transform:scale(.86);}
+.whym svg{display:block;}
+/* page-level dig-deeper (transparency on demand, not a caption on everything) */
+.pagewhy{appearance:none;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:12px;border:1px dashed var(--line);border-radius:12px;background:none;font-family:var(--font-display);font-weight:700;font-size:12.5px;color:var(--faint);transition:color .2s,border-color .2s;}
+.pagewhy:hover{color:var(--muted);border-color:rgba(37,209,218,.35);}
+.pagewhy__star{color:var(--accent);}
+
+/* ---------- context strip (short-term signal — works with zero history) ---------- */
+.ctx{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;
+  background:linear-gradient(140deg,rgba(232,184,96,.10),rgba(232,184,96,.03));border:1px solid rgba(232,184,96,.26);}
+.ctx__eq{flex:none;display:flex;align-items:flex-end;gap:2px;height:14px;}
+.ctx__eq i{width:3px;border-radius:2px;background:var(--gold);animation:eqbar 1.1s ease-in-out infinite;}
+.ctx__eq i:nth-child(1){height:7px;}
+.ctx__eq i:nth-child(2){height:13px;animation-delay:.18s;}
+.ctx__eq i:nth-child(3){height:9px;animation-delay:.36s;}
+@keyframes eqbar{0%,100%{transform:scaleY(1);}50%{transform:scaleY(.45);}}
+.ctx__txt{flex:1;font-size:13px;line-height:1.4;color:var(--muted);margin:0;}
+.ctx__txt b{color:#F0CB80;font-weight:700;}
+.ctx__act{flex:none;appearance:none;cursor:pointer;border:1px solid rgba(232,184,96,.4);background:none;color:#F0CB80;
+  font-family:var(--font-display);font-weight:700;font-size:11.5px;padding:6px 11px;border-radius:14px;white-space:nowrap;transition:background .2s;}
+.ctx__act:hover{background:rgba(232,184,96,.12);}
+
+/* ---------- pinned presale (ephemeral → persistent) ---------- */
+.pin{position:relative;margin:0 16px;border-radius:12px;overflow:hidden;}
+.pin__bg{position:absolute;inset:0;background:
+  radial-gradient(58% 52% at 52% 28%, rgba(232,184,96,.30), transparent 62%),
+  linear-gradient(150deg,#6e4a86 0%,#3a2352 55%,#12081c 100%);}
+.pin::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05), rgba(0,0,0,.5) 90%);pointer-events:none;}
+.pin__inner{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:13px 14px;}
+.pin__date{flex:none;width:52px;height:52px;border-radius:10px;background:rgba(0,0,0,.42);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.pin__date .m{font-weight:700;font-size:10px;letter-spacing:.04em;color:#F0CB80;}
+.pin__date .d{font-weight:700;font-size:20px;line-height:1.1;color:#fff;}
+.pin__col{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.pin__tag{display:flex;align-items:center;gap:6px;font-weight:800;font-size:9.5px;letter-spacing:.08em;color:#F0CB80;}
+.pin__title{font-weight:700;font-size:14.5px;line-height:1.2;color:#fff;}
+.pin__meta{font-size:11.5px;color:rgba(255,255,255,.75);}
+.pin__meta b{color:#fff;font-weight:700;}
+.pin__go{flex:none;appearance:none;cursor:pointer;border:none;background:rgba(255,255,255,.92);color:#1a0f26;
+  font-family:var(--font-display);font-weight:700;font-size:12px;padding:8px 13px;border-radius:16px;transition:transform .2s var(--spring);}
+.pin__go:active{transform:scale(.94);}
+
+/* ---------- top songs: null list vs converged widget ---------- */
+.mu-song{display:flex;align-items:center;gap:12px;}
+.mu-song__art{width:63px;height:63px;flex:none;border-radius:4px;border:.75px solid rgba(255,255,255,.24);background-size:cover;background-position:center;}
+.mu-song__col{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+/* the play "hit" area is a real button (art+title), sibling to the like/more
+   buttons — so interactive controls aren't nested inside an interactive row */
+.mu-hit{flex:1;min-width:0;display:flex;align-items:center;gap:12px;appearance:none;border:none;background:none;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer;}
+.mu-song__line{display:flex;align-items:center;gap:7px;min-width:0;}
+.mu-song__title{font-weight:700;font-size:16px;line-height:1.15;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mu-song__meta{font-size:12px;line-height:1.2;color:#A6A6A6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mu-song__meta .you{color:var(--accent-2);font-weight:700;}
+.mu-song__meta .you::before{content:"·";color:#4b545e;margin:0 5px;font-weight:400;}
+.mu-e{flex:none;width:16px;height:16px;border-radius:2.6px;background:#A6A6A6;display:grid;place-items:center;font-weight:700;font-size:11px;line-height:1;color:#000;}
+.mu-heart,.mu-more{display:grid;place-items:center;flex:none;appearance:none;border:none;background:none;cursor:pointer;padding:5px;margin:-5px;}
+.songlist{display:flex;flex-direction:column;gap:14px;margin-top:12px;}
+/* converged widget (≥ regular): tabs + ranked gradient rows — a *format*
+   change from the null list, not just different content */
+/* sub-toggle as filled pills (reference) — active = Music Cyan bg + Entertainment Dark text (brand CTA rule) */
+.mu-tabs{display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap;}
+.mu-tab{appearance:none;border:1px solid var(--line);background:#0d1218;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:12.5px;line-height:1;color:var(--faint);padding:9px 15px;border-radius:18px;transition:color .2s,background .2s,border-color .2s;}
+.mu-tab:hover{color:#cfd6de;}
+.mu-tab.is-active{color:#06222A;background:var(--accent);border-color:var(--accent);}
+.mu-rank__col .mu-rank__plays{color:rgba(255,255,255,.9);}
+.mu-heart.on svg path{fill:var(--accent);}
+.mu-ranks{display:flex;flex-direction:column;gap:10px;animation:fade .4s var(--ease);}
+.mu-rank{display:flex;align-items:center;gap:12px;border-radius:8px;padding:8px 12px;}
+.mu-rank--1,.mu-rank--2{background:linear-gradient(90deg,#5b7681 0%,#333e44 100%);}
+.mu-rank--3{background:linear-gradient(90deg,#5f56a0 0%,#39355c 100%);}
+.mu-rank__n{flex:none;font-weight:700;font-size:28px;line-height:1;color:var(--ink);min-width:22px;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,.4);}
+.mu-rank__art{width:56px;height:56px;flex:none;border-radius:4px;border:.75px solid rgba(255,255,255,.24);background-size:cover;background-position:center;}
+.mu-rank__col{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.mu-rank__title{font-weight:700;font-size:15px;line-height:1.15;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mu-rank__plays{font-size:12px;line-height:1;color:#fff;}
+.mu-mix{margin-top:14px;display:block;width:100%;padding:11px 0;border-radius:30px;border:1px solid #fff;background:transparent;font-family:var(--font-display);font-weight:700;font-size:13px;line-height:1;color:var(--ink);cursor:pointer;}
+/* album art fills */
+.art-guts{background:radial-gradient(56% 56% at 50% 36%,rgba(255,255,255,.18),transparent 64%),linear-gradient(135deg,#7C3AED 10%,#3A1D6E 60%,#0A0814 100%);}
+.art-sour{background:radial-gradient(56% 56% at 50% 36%,rgba(255,180,210,.34),transparent 62%),linear-gradient(135deg,#C75C8E 8%,#5E2A48 58%,#100810 100%);}
+.art-dl{background:radial-gradient(56% 56% at 50% 36%,rgba(150,230,255,.30),transparent 62%),linear-gradient(135deg,#3F6E9C 8%,#1E3550 58%,#080C12 100%);}
+.art-spill{background:radial-gradient(56% 56% at 50% 36%,rgba(232,184,96,.26),transparent 62%),linear-gradient(135deg,#8A6BA0 8%,#43365E 58%,#0C0A14 100%);}
+
+/* ---------- new album (temporal · everyone) + since-your-last-visit (recency) ---------- */
+.newalbum{display:flex;align-items:center;gap:13px;width:100%;text-align:left;appearance:none;border:none;background:var(--card);cursor:pointer;font-family:var(--font-display);padding:12px;border-radius:12px;transition:background .2s;}
+.newalbum:hover{background:var(--card-2);}
+.newalbum__art{flex:none;width:52px;height:52px;border-radius:6px;background-size:cover;background-position:center;border:.75px solid rgba(255,255,255,.14);}
+.newalbum__col{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.newalbum__tag{font-weight:800;font-size:9.5px;letter-spacing:.07em;color:var(--accent);}
+.newalbum__title{font-weight:700;font-size:15px;color:#fff;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.newalbum__meta{font-size:12px;color:var(--dim);}
+.newalbum__more{flex:none;color:#fff;opacity:.6;font-size:22px;line-height:1;font-weight:400;}
+.seemore{margin-left:auto;appearance:none;border:none;background:none;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:14px;line-height:1;color:#757575;padding:7px 0;}
+.seemore:hover{color:var(--muted);}
+.scard{flex:0 0 auto;width:186px;display:flex;flex-direction:column;gap:8px;text-align:left;appearance:none;border:none;background:none;padding:0;cursor:pointer;font-family:var(--font-display);}
+.scard__art{position:relative;width:186px;height:108px;border-radius:10px;overflow:hidden;background-size:cover;background-position:center;border:.75px solid rgba(255,255,255,.14);}
+.scard__art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 44%,rgba(0,0,0,.5));}
+.scard__badge{position:absolute;left:8px;top:8px;z-index:1;padding:3px 8px;border-radius:12px;background:rgba(0,0,0,.52);backdrop-filter:blur(4px);font-weight:800;font-size:8.5px;letter-spacing:.06em;color:#fff;}
+.scard__title{font-weight:700;font-size:13px;color:#fff;line-height:1.25;}
+.scard__meta{font-size:11.5px;color:var(--dim);line-height:1.3;}
+
+/* ---------- your history (durable identity: seed → teaser → full) ---------- */
+.hi-seed{display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:12px;background:var(--card);border:none;}
+.hi-seed__av{flex:none;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#25D1DA,#1e3a8a);display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff;}
+.hi-seed__txt{flex:1;font-size:13px;line-height:1.45;color:var(--muted);margin:0;}
+.hi-seed__txt b{color:#fff;font-weight:700;}
+.hi-card{position:relative;width:100%;border-radius:12px;overflow:hidden;background:var(--panel-2);}
+.hi-card__art{position:absolute;inset:0;background:linear-gradient(150deg,#7a2f6b 0%,#331538 55%,#070207 100%);}
+.hi-card__grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.87) 100%);}
+.hi-card__body{position:relative;z-index:1;display:flex;flex-direction:column;gap:3px;padding:14px;}
+.hi-card--teaser .hi-card__body{padding:13px 14px;}
+.hi-eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-2);}
+.hi-title{font-weight:700;font-size:17px;line-height:1.2;color:#fff;margin:1px 0 0;}
+.hi-meta{font-size:12px;line-height:1.45;color:rgba(255,255,255,.78);}
+.hi-meta b{color:#fff;font-weight:700;}
+.hi-pill{position:absolute;top:11px;right:11px;z-index:2;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  background:rgba(255,255,255,.14);backdrop-filter:blur(5px);font-weight:700;font-size:11px;color:#fff;}
+.hi-stats{display:flex;gap:10px;margin-top:11px;}
+.hi-stat{flex:1;display:flex;flex-direction:column;gap:2px;}
+.hi-statn{font-size:26px;font-weight:700;color:#fff;line-height:1;}
+.hi-statl{font-size:11px;color:rgba(255,255,255,.66);line-height:1.3;}
+.hi-go{align-self:flex-start;margin-top:12px;appearance:none;cursor:pointer;border:1px solid rgba(255,255,255,.55);background:none;color:#fff;
+  font-family:var(--font-display);font-weight:700;font-size:12px;padding:8px 14px;border-radius:18px;transition:background .2s;}
+.hi-go:hover{background:rgba(255,255,255,.1);}
+
+/* ---------- albums / videos / about / live (the fixed catalog spine) ---------- */
+.mu-strip{display:flex;gap:14px;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:var(--w);max-width:100%;}
+.mu-strip::-webkit-scrollbar{display:none;}
+.mu-album{flex:0 0 auto;width:150px;display:flex;flex-direction:column;gap:8px;text-align:left;appearance:none;border:none;background:none;padding:0;cursor:pointer;font-family:var(--font-display);}
+.mu-album__art{width:150px;height:150px;border-radius:8px;border:.75px solid rgba(255,255,255,.24);background-size:cover;background-position:center;}
+.mu-album__title{font-weight:700;font-size:15px;line-height:1.2;color:var(--ink);}
+.mu-album__meta{font-size:13px;line-height:1.2;color:#A6A6A6;}
+.vrow{display:flex;gap:12px;margin-top:12px;}
+.video{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;cursor:pointer;}
+.video__art{position:relative;height:98px;border-radius:11px;overflow:hidden;display:grid;place-items:center;}
+.art-v1{background:radial-gradient(55% 55% at 62% 71%, rgba(255,255,255,.16) 0,rgba(255,255,255,0) 72%),linear-gradient(125deg,#0EA5E9 8%, #1E1B4B 80%);}
+.art-v2{background:radial-gradient(55% 55% at 62% 71%, rgba(255,255,255,.16) 0,rgba(255,255,255,0) 72%),linear-gradient(125deg,#DB2777 8%, #312E81 80%);}
+.video__pc{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.34);backdrop-filter:blur(2px);display:grid;place-items:center;color:#fff;transition:transform .25s var(--spring),background .2s;}
+.video:hover .video__pc{transform:scale(1.12);background:rgba(0,0,0,.5);}
+.video__dur{position:absolute;left:10px;bottom:8px;display:inline-flex;align-items:center;padding:3px 7px;background:rgba(0,0,0,.6);border-radius:6px;font-weight:700;font-size:10px;color:#fff;}
+.video__title{font-size:13px;font-weight:700;line-height:1.31;color:#fff;margin:0;}
+.video.playing .video__pc{background:var(--accent);color:#06222A;}
+.video:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:14px;}
+.ev{display:flex;flex-direction:column;gap:14px;padding:14px;background:var(--card);border:none;border-radius:var(--radius-card);margin-top:12px;}
+.erow{display:flex;align-items:center;gap:13px;}
+.edate{flex:none;width:56px;height:56px;border-radius:12px;background:var(--card-2);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.edate .m{font-weight:700;font-size:11px;letter-spacing:.01em;color:var(--accent);}
+.edate .d{font-weight:700;font-size:22px;line-height:1.09;color:#fff;}
+.edate--gold .m{color:#F0CB80;}
+.ecol{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;}
+.ecol .et{font-weight:700;font-size:15px;color:#fff;}
+.ecol .ev-venue{font-size:12px;color:var(--dim);}
+.ecol .ev-time{font-weight:700;font-size:11.5px;color:var(--faint);}
+.btn-pill{display:inline-flex;align-items:center;justify-content:center;padding:9px 16px;background:var(--accent);border:none;border-radius:20px;color:#06222A;font-family:var(--font-display);font-weight:700;font-size:13px;cursor:pointer;transition:transform .2s var(--spring),filter .2s;white-space:nowrap;}
+.btn-pill:hover{filter:brightness(1.05);}
+.btn-pill:active{transform:scale(.94);}
+.btn-pill--ghost{background:none;border:1px solid rgba(232,184,96,.5);color:#F0CB80;}
+.bio{font-size:14.5px;line-height:1.6;color:#cfd3d9;margin:10px 0 0;}
+.bio b{color:#fff;}
+.readmore{appearance:none;background:none;border:none;color:#fff;font-family:var(--font-display);font-weight:700;font-size:14px;cursor:pointer;padding:6px 0;margin:2px 0 -6px;align-self:flex-start;}
+.readmore:hover{text-decoration:underline;text-underline-offset:3px;}
+
+/* ============================================================
+   VIEWS — Music landing ⇄ You & Olivia journey (tab-switched).
+   Each view keeps the frame's 24px section rhythm.
+   ============================================================ */
+.view{display:flex;flex-direction:column;gap:24px;}
+.view[hidden]{display:none;}
+.jr-scroll{overflow-x:auto;overflow-y:hidden;padding:4px 16px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:var(--w);max-width:100%;margin-top:8px;}
+.jr-scroll::-webkit-scrollbar{display:none;}
+.jr-row{display:flex;gap:12px;align-items:flex-end;width:max-content;}
+.jr-era{position:relative;flex:none;width:120px;height:166px;border-radius:8px;overflow:hidden;appearance:none;border:none;background:#101418;padding:0;cursor:pointer;font-family:var(--font-display);display:flex;flex-direction:column;justify-content:flex-end;text-align:left;transition:box-shadow .3s var(--ease);}
+.jr-era__art{position:absolute;inset:0;background-size:cover;background-position:center;transition:filter .3s var(--ease);}
+.jr-era::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(102,102,102,0),rgba(0,0,0,.4));pointer-events:none;}
+.jr-era:not(.is-active) .jr-era__art{filter:brightness(.45) saturate(.85);}
+.jr-era.is-active{outline:1px solid rgba(255,255,255,.5);outline-offset:-1px;box-shadow:0 4px 12px rgba(156,204,226,.45);}
+.jr-era.is-now{outline:1px solid rgba(37,209,218,.55);outline-offset:-1px;}
+.jr-era__now{position:absolute;top:8px;left:8px;z-index:2;display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 7px;border-radius:20px;background:var(--accent);color:#06121a;font-weight:700;font-size:9px;letter-spacing:.12em;text-transform:uppercase;line-height:1;}
+.jr-era__now::before{content:"";width:5px;height:5px;border-radius:50%;background:#06121a;}
+@media (prefers-reduced-motion:no-preference){.jr-era__now::before{animation:jrBlink 2.4s var(--ease) infinite;}}
+@keyframes jrBlink{0%,100%{opacity:1}50%{opacity:.3}}
+.jr-era__meta{position:relative;z-index:1;display:flex;flex-direction:column;gap:4px;padding:8px 12px;background:rgba(30,30,30,.56);backdrop-filter:blur(6px);width:100%;}
+.jr-era__yr{font-size:12px;line-height:1.2;color:#A6A6A6;}
+.jr-era__name{font-weight:700;font-size:16px;line-height:1.25;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.jr-era__rank{font-size:12px;line-height:1.2;color:#fff;}
+.jr-line{position:relative;height:14px;margin-top:14px;}
+/* time flows right → left (oldest era at the right, now at the left): the bar
+   spans dot-to-dot only and brightens toward the newest edge so the journey
+   reads as filled-up-to-now, not a scrubber sitting at 0% */
+.jr-line__bar{position:absolute;left:60px;top:50%;height:1px;background:linear-gradient(90deg,rgba(37,209,218,.8),rgba(37,209,218,.35) 55%,rgba(255,255,255,.22));}
+/* the ongoing era is still being written — a dotted stub continues past "now"
+   and fades out toward the left edge (the unwritten future), while the newest
+   dot pulses "now" (mentor: "it's a loading screen") */
+.jr-line__future{position:absolute;left:0;width:60px;top:50%;height:0;border-top:1.6px dotted rgba(37,209,218,.6);transform:translateY(-50%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 85%);mask-image:linear-gradient(90deg,transparent,#000 85%);}
+.jr-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:24px;height:24px;appearance:none;border:none;background:none;cursor:pointer;padding:0;display:grid;place-items:center;}
+.jr-dot i{width:8px;height:8px;border-radius:50%;background:#7b8590;transition:all .25s var(--ease);}
+.jr-dot.is-active i{width:12px;height:12px;background:var(--accent);box-shadow:0 0 0 3px rgba(37,209,218,.22);}
+.jr-dot.is-now i{background:var(--accent);}
+.jr-dot.is-now::after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--accent);opacity:0;pointer-events:none;}
+@media (prefers-reduced-motion:no-preference){.jr-dot.is-now::after{animation:jrNow 2.4s var(--ease) infinite;}}
+@keyframes jrNow{0%{transform:scale(.6);opacity:.85}70%{transform:scale(2.3);opacity:0}100%{opacity:0}}
+/* era detail header */
+.era-head__season{font-weight:700;font-size:12px;line-height:1;color:var(--accent);text-transform:uppercase;display:block;}
+.era-head__t{font-weight:700;font-size:28px;line-height:1.2;color:#fff;margin:0;}
+.era-head__p{font-size:12px;line-height:1.2;color:#A6A6A6;margin:2px 0 0;max-width:240px;}
+.yo-erabody{display:flex;flex-direction:column;gap:24px;animation:fade .45s var(--ease);}
+/* time you spent together (photo stat card) */
+.yot{position:relative;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.2);padding:12px;display:flex;flex-direction:column;gap:12px;margin-top:12px;}
+.yot__bg{position:absolute;inset:0;background-size:cover;background-position:center;}
+.yot__bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 22%,#000 100%);}
+.yot__share{position:relative;z-index:1;align-self:flex-end;appearance:none;border:none;background:rgba(0,0,0,.32);border-radius:50%;color:#fff;cursor:pointer;padding:6px;margin:0;display:grid;place-items:center;transition:transform .2s var(--spring);}
+.yot__share:active{transform:scale(.86);}
+.yot__song{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:100%;padding:12px;border-radius:12px;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);}
+.yot__art{flex:none;width:63px;height:63px;border-radius:4px;background-size:cover;background-position:center;border:.75px solid rgba(255,255,255,.24);}
+.yot__lbl{display:block;font-weight:700;font-size:12px;line-height:1;color:var(--accent);text-transform:uppercase;}
+.yot__t{display:block;font-weight:700;font-size:16px;line-height:1.25;color:#fff;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.yot__plays{display:block;font-size:12px;line-height:1.2;color:#fff;margin-top:1px;}
+.yot__stats{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;width:100%;padding:0 8px 0 12px;}
+.yot__stat{display:flex;flex-direction:column;padding-top:12px;}
+.yot__statl{font-size:12px;line-height:1.2;color:#A6A6A6;}
+.yot__statn{font-weight:700;font-size:32px;line-height:1.15;color:#fff;}
+.ab-banner{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;
+  background:linear-gradient(140deg,rgba(37,209,218,.13),rgba(37,209,218,.03));border:1px solid rgba(37,209,218,.28);}
+.ab-banner__ico{flex:none;color:var(--accent);display:grid;place-items:center;}
+.ab-banner__txt{flex:1;font-size:12.5px;line-height:1.4;color:var(--muted);margin:0;}
+.ab-banner__txt b{color:#fff;font-weight:700;}
+.ab-story{position:relative;border-radius:14px;overflow:hidden;margin-top:12px;min-height:158px;display:flex;flex-direction:column;justify-content:flex-end;}
+.ab-story__art{position:absolute;inset:0;background-size:cover;background-position:center 28%;}
+.ab-story__grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12) 0%,rgba(0,0,0,.5) 52%,rgba(0,0,0,.9) 100%);}
+.ab-story__body{position:relative;z-index:1;padding:14px;}
+.ab-story__tag{display:inline-block;padding:4px 9px;border-radius:12px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);font-weight:800;font-size:9px;letter-spacing:.07em;color:#fff;margin-bottom:9px;}
+.ab-story__p{font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.92);margin:0;}
+.ab-story__more{margin-top:11px;appearance:none;border:none;background:none;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--accent);padding:0;}
+.ab-notes{display:flex;gap:12px;margin-top:12px;}
+.ab-note{flex:1;min-width:0;border-radius:12px;overflow:hidden;background:var(--panel-2);border:1px solid var(--line);display:flex;flex-direction:column;cursor:pointer;}
+.ab-note__art{height:94px;background-size:cover;background-position:center;position:relative;}
+.ab-note__body{padding:11px 12px 13px;display:flex;flex-direction:column;gap:5px;}
+.ab-note__lbl{font-weight:800;font-size:9px;letter-spacing:.06em;color:var(--accent);}
+.ab-note__title{font-weight:700;font-size:12.5px;line-height:1.28;color:#fff;}
+.ab-note--locked{border-style:dashed;}
+.ab-note--locked .ab-note__art{filter:grayscale(.75) brightness(.42);}
+.ab-note__lock{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.72);}
+.ab-note--locked .ab-note__lbl{color:var(--faint);}
+.ab-note__hint{font-weight:800;font-size:9px;letter-spacing:.05em;color:var(--faint);}
+.merch{display:flex;gap:12px;margin-top:12px;}
+.mcard{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;cursor:pointer;}
+.mcard__art{height:110px;border-radius:12px;overflow:hidden;display:grid;place-items:center;position:relative;transition:transform .3s var(--spring);}
+.mcard:hover .mcard__art{transform:translateY(-2px);}
+.art-m1{background:radial-gradient(55% 55% at 62% 71%, rgba(255,255,255,.16) 0,rgba(255,255,255,0) 72%),linear-gradient(125deg,#7C3AED 8%,#DB2777 80%);}
+.art-m2{background:radial-gradient(55% 55% at 62% 71%, rgba(255,255,255,.16) 0,rgba(255,255,255,0) 72%),linear-gradient(125deg,#0EA5E9 8%,#312E81 80%);}
+.mcard__title{font-weight:700;font-size:12.5px;color:#fff;margin:0;}
+.mcard__price{font-weight:700;font-size:12px;color:var(--accent);}
+.merch-mark{font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.85);font-size:18px;}
+/* ---------- "show less" honesty row (the correction path) ---------- */
+.slot.userhidden{display:block;}
+.slot.userhidden > *:not(.undo){display:none !important;}
+.undo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;border-radius:12px;border:1px dashed var(--line);margin:0 16px;animation:fade .3s var(--ease);}
+.undo p{font-size:12px;color:var(--faint);margin:0;}
+.undo button{appearance:none;border:none;background:none;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:12px;color:var(--accent);padding:6px 0;}
+
+/* ============================================================
+   SHEETS — "why this changed" + the presale moment
+   ============================================================ */
+.scrim{position:absolute;inset:0;z-index:88;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .3s var(--ease);border-radius:inherit;}
+.scrim.show{opacity:1;visibility:visible;}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:90;transform:translateY(102%);transition:transform .42s var(--spring);
+  background:#10151c;border-radius:22px 22px 0 0;border-top:1px solid rgba(255,255,255,.1);padding:10px 18px 30px;max-height:78%;overflow-y:auto;scrollbar-width:none;}
+.sheet::-webkit-scrollbar{display:none;}
+.sheet.show{transform:none;}
+.sheet__grab{width:38px;height:4px;border-radius:3px;background:rgba(255,255,255,.22);margin:2px auto 14px;}
+.sheet__eyebrow{font-weight:800;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:0 0 6px;}
+.sheet--presale .sheet__eyebrow{color:#F0CB80;}
+.sheet__title{font-weight:700;font-size:19px;line-height:1.25;color:#fff;margin:0 0 8px;}
+.sheet__p{font-size:13.5px;line-height:1.55;color:var(--muted);margin:0 0 14px;}
+.sheet__p b{color:#fff;font-weight:700;}
+.sheet__lbl{font-weight:800;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:14px 0 8px;}
+.sheet__sigs{display:flex;flex-wrap:wrap;gap:7px;}
+.sig-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:14px;font-weight:700;font-size:11.5px;}
+.sig-chip--state{background:rgba(0,213,221,.1);border:1px solid rgba(0,213,221,.32);color:#7EE7EC;}
+.sig-chip--live{background:rgba(232,184,96,.1);border:1px solid rgba(232,184,96,.32);color:#F0CB80;}
+.sig-chip--off{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--faint);}
+.sheet__conf{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.sheet__confbar{flex:1;display:flex;gap:4px;}
+.sheet__confbar i{flex:1;height:5px;border-radius:3px;background:#252d37;}
+.sheet__conf.c1 .sheet__confbar i:nth-child(1){background:var(--gold);}
+.sheet__conf.c2 .sheet__confbar i:nth-child(-n+2){background:#9adf65;}
+.sheet__conf.c3 .sheet__confbar i{background:var(--accent);}
+.sheet__conftxt{font-weight:800;font-size:10px;letter-spacing:.08em;color:var(--faint);}
+.sheet__note{font-size:11.5px;line-height:1.5;color:var(--faint);margin:8px 0 0;}
+.sheet__row{display:flex;gap:9px;margin-top:16px;}
+.sheet__btn{flex:1;appearance:none;cursor:pointer;border:1px solid var(--line);background:#161d25;color:#dfe6ee;
+  font-family:var(--font-display);font-weight:700;font-size:12.5px;padding:11px 8px;border-radius:14px;transition:border-color .2s,background .2s;}
+.sheet__btn:hover{border-color:rgba(0,213,221,.4);}
+.sheet__btn--primary{background:var(--accent);border-color:var(--accent);color:#06222A;}
+.sheet__btn--gold{background:#F0CB80;border-color:#F0CB80;color:#241503;}
+/* the user-facing level control — same 4 discrete states, user words */
+.lvl{display:flex;gap:4px;background:#0a0f14;border:1px solid var(--line);border-radius:20px;padding:3px;margin-top:8px;}
+.lvl__opt{appearance:none;border:none;background:none;cursor:pointer;flex:1;padding:8px 2px;border-radius:16px;
+  font-family:var(--font-display);font-weight:700;font-size:11.5px;color:var(--faint);transition:color .2s,background .2s;white-space:nowrap;}
+.lvl__opt.active{background:rgba(0,213,221,.16);color:var(--accent);}
+.lvl__opt--locked{opacity:.5;cursor:not-allowed;}
+.lvl__lk{display:inline-flex;vertical-align:middle;margin-left:2px;}
+.lvl__lk svg{width:9px;height:9px;}
+/* the exclusives vault — current + past unlocks, one kept destination */
+.vault{display:flex;flex-direction:column;gap:8px;}
+.vault-item{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:13px;background:#161d25;border:1px solid var(--line);}
+.vault-item__ic{flex:none;width:38px;height:38px;border-radius:9px;display:grid;place-items:center;background:rgba(37,209,218,.12);color:var(--accent);}
+.vault-item__col{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.vault-item__t{font-weight:700;font-size:13.5px;color:#fff;line-height:1.25;}
+.vault-item__m{font-size:11px;color:var(--faint);line-height:1.35;}
+.vault-item__go{flex:none;appearance:none;border:none;background:none;cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:11.5px;color:var(--accent);padding:6px 4px;white-space:nowrap;}
+.vault-item__go:hover{text-decoration:underline;}
+.vault-item__lock{flex:none;font-family:var(--font-display);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);}
+.vault-item--locked{opacity:.62;}
+.vault-item--locked .vault-item__ic{background:rgba(255,255,255,.05);color:var(--faint);}
+.navbar{position:absolute;left:0;right:0;bottom:0;z-index:54;display:flex;align-items:flex-start;justify-content:space-between;
+  padding:8px 22px 30px;background:#000;}
+.navbar__item{appearance:none;border:none;background:none;cursor:pointer;flex:none;width:56px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;padding:0;
+  color:#999;font-family:var(--font-display);font-weight:400;font-size:12px;line-height:1.2;}
+.navbar__item svg{width:23px;height:23px;flex:none;}
+.navbar__item img{width:23px;height:23px;flex:none;object-fit:contain;}
+/* the Alexa mark ships white; tint per focus like the app's tintColor */
+.navbar__item--logo img{filter:brightness(0) saturate(100%) invert(62%);} /* ≈ #999 */
+.navbar__item--logo.is-active img{filter:brightness(0) saturate(100%) invert(74%) sepia(43%) saturate(662%) hue-rotate(131deg) brightness(94%);} /* ≈ #25D1DA */
+.navbar__item.is-active{color:var(--accent);}
+.navbar__item:focus-visible{outline:2px solid #25D1DA;outline-offset:-2px;border-radius:10px;}
+
+/* ---------- toast ---------- */
+.toast{position:absolute;left:50%;bottom:112px;z-index:92;display:flex;align-items:center;gap:9px;max-width:330px;padding:11px 15px;border-radius:14px;
+  background:rgba(18,26,34,.96);backdrop-filter:blur(12px);border:1px solid rgba(0,213,221,.3);box-shadow:0 12px 30px -8px rgba(0,0,0,.6);
+  font-size:13px;line-height:1.35;color:#dfe6ee;opacity:0;visibility:hidden;
+  transition:opacity .3s var(--ease),transform .35s var(--spring);transform:translateX(-50%) translateY(16px);pointer-events:none;}
+.toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+.toast .tdot{flex:none;color:var(--accent);display:grid;place-items:center;}
+.toast b{color:#fff;font-weight:700;}
+body.now-playing .toast{bottom:163px;}
+/* ---------- generalized-profile additions ---------- */
+.hp-img{background-size:cover;background-position:center 18%;}
+.fal-card .mu-album__art{border-radius:50%;}
+.mu-ranks .mu-song{padding:0 12px;}
+</style>
+<style id="lens-layer">
+/* ============ ADAPTIVE LENS — moderator annotation layer ============
+   v2 adds confidence to every chip and reveals dormant slots, so the
+   null state is legible. Off by default; ✦ button or ?lens=1. */
+.lensbtn{position:absolute;right:10px;bottom:88px;z-index:56;display:flex;align-items:center;gap:6px;
+  padding:8px 12px;border:1px solid rgba(255,255,255,.18);border-radius:20px;cursor:pointer;
+  background:rgba(11,15,20,.86);backdrop-filter:blur(8px);color:#CFD6DE;
+  font-family:var(--font-display);font-weight:700;font-size:11px;letter-spacing:.04em;
+  transition:bottom .32s var(--ease);}
+.lensbtn svg{flex:none;}
+.lensbtn.on{background:rgba(0,213,221,.18);border-color:rgba(0,213,221,.55);color:#7EE7EC;}
+body.now-playing .lensbtn{bottom:155px;}
+body.lens [data-lens]{position:relative;outline-offset:-2px;border-radius:10px;}
+body.lens .sheet[data-lens],body.lens .navbar[data-lens]{position:absolute;} /* sheets + bottom-anchored nav keep their geometry — the blanket rule must not pull them into flow */
+body.lens [data-lens="adaptive"]{outline:2px dashed rgba(0,213,221,.75);}
+body.lens [data-lens="fixed"]{outline:2px dashed rgba(138,147,160,.6);}
+body.lens [data-lens="temporal"]{outline:2px dashed rgba(232,184,96,.8);}
+body.lens [data-lens="control"]{outline:2px dashed rgba(241,167,200,.8);}
+body.lens [data-lens]::before{position:absolute;top:-14px;left:6px;z-index:30;max-width:310px;
+  padding:3px 9px;border-radius:20px;font-family:var(--font-display);font-weight:800;font-size:9px;
+  letter-spacing:.07em;text-transform:uppercase;line-height:1.4;pointer-events:none;color:#06222A;
+  box-shadow:0 2px 8px rgba(0,0,0,.45);}
+body.lens [data-lens="adaptive"]::before{content:"ADAPTS · " attr(data-conf) " · " attr(data-note);background:#25D1DA;}
+body.lens [data-lens="adaptive"]:not([data-conf])::before{content:"ADAPTS · " attr(data-note);}
+body.lens [data-lens="fixed"]::before{content:"FIXED · " attr(data-note);background:#8A93A0;}
+body.lens [data-lens="temporal"]::before{content:"TEMPORAL · " attr(data-conf) " · " attr(data-note);background:#E8B860;}
+body.lens [data-lens="temporal"]:not([data-conf])::before{content:"TEMPORAL · " attr(data-note);}
+body.lens [data-lens="control"]::before{content:"YOU CONTROL · " attr(data-note);background:#F1A7C8;}
+body.lens .hero[data-lens]::before,body.lens .pin[data-lens]::before,body.lens .undo[data-lens]::before{top:6px;}
+body.lens .hero[data-lens]::before{top:88px;}
+body.lens .ctx[data-lens]::before{top:-10px;}
+/* dormant slots: invisible in product, outlined in lens — where the page
+   *would* adapt once the state earns it (the null state, made visible) */
+body.lens .slot.dormant{display:block;min-height:52px;margin:0 16px;border-radius:12px;position:relative;
+  outline:2px dashed rgba(0,213,221,.35);}
+body.lens .slot.dormant > *{display:none !important;}
+body.lens .slot.dormant::before{content:"ADAPTIVE SLOT · ASLEEP · " attr(data-slotnote);
+  position:absolute;top:-8px;left:6px;z-index:30;max-width:310px;padding:3px 9px;border-radius:20px;
+  font-family:var(--font-display);font-weight:800;font-size:9px;letter-spacing:.07em;text-transform:uppercase;line-height:1.4;
+  color:#0b3a3e;background:rgba(37,209,218,.45);box-shadow:0 2px 8px rgba(0,0,0,.45);pointer-events:none;}
+body.lens .slot.dormant::after{content:"nothing earned yet; the standard page holds";
+  position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);
+  font-size:11px;font-style:italic;color:rgba(126,231,236,.55);pointer-events:none;}
+/* lens legend — the definition, pinned while the lens is on */
+.lens-legend{display:none;position:absolute;left:10px;right:10px;top:58px;z-index:58;
+  padding:11px 13px;border-radius:14px;background:rgba(8,12,17,.94);backdrop-filter:blur(10px);
+  border:1px solid rgba(0,213,221,.3);box-shadow:0 14px 34px -10px rgba(0,0,0,.7);}
+body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
+.lens-legend p{font-size:11.5px;line-height:1.5;color:#c9d2dc;margin:0;}
+.lens-legend p b{color:#fff;}
+.lens-legend .keys{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:8px;}
+.lens-legend .k{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:8.5px;letter-spacing:.08em;color:var(--faint);}
+.lens-legend .k i{width:8px;height:8px;border-radius:3px;flex:none;}
+.lens-legend .k--a i{background:#25D1DA;} .lens-legend .k--f i{background:#8A93A0;}
+.lens-legend .k--t i{background:#E8B860;} .lens-legend .k--c i{background:#F1A7C8;}
+
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@keyframes livepulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
+}
+</style>
+</head>
+<body class="state-cold">
+
+<div class="page-cap">Adaptive&nbsp;UI <span class="dot">·</span> Artist&nbsp;profile <span class="dot">·</span> <b id="capName">generalized template · same grammar as the Olivia flagship</b></div>
+
+<!-- ============ SIMULATION RAIL (moderator console — not the product) ============
+     Reduced console: one listener scrubbed through the four durable states, plus
+     the master switch. The Olivia flagship keeps the full multi-listener rig. -->
+<aside class="sim" aria-label="Simulation controls">
+  <div class="sim__row">
+    <span class="sim__lbl state">Listener<br>over&nbsp;time</span>
+    <div class="sim__steps" role="radiogroup" aria-label="Relationship state: durable identity, a stepper not a spectrum" id="simSteps">
+      <button class="sim__step active" data-state="cold" role="radio" aria-checked="true">Cold start</button>
+      <button class="sim__step" data-state="casual" role="radio" aria-checked="false">Casual</button>
+      <button class="sim__step" data-state="regular" role="radio" aria-checked="false">Engaged</button>
+      <button class="sim__step" data-state="superfan" role="radio" aria-checked="false">Super fan</button>
+    </div>
+    <button class="sim__master on" id="simMaster" role="switch" aria-checked="true" aria-label="Adaptive UI master switch"><i></i><span id="simMasterLbl">Adaptive&nbsp;UI · On</span></button>
+  </div>
+  <div class="sim__read">
+    <span class="sim__readlbl">Reading</span>
+    <p class="sim__readtxt" id="simRead"></p>
+    <span class="sim__conf" id="simConf" aria-label="System confidence"><i></i><i></i><i></i><span class="sim__conflbl" id="simConfLbl">BASELINE</span></span>
+  </div>
+  <p class="sim__foot">Every artist gets this page. The layout grammar is the Olivia flagship's; the content is this artist's own catalog. The ✦ on any surface explains and corrects it.</p>
+</aside>
+
+<div class="iphone">
+  <span class="ip-btn ip-btn--action" aria-hidden="true"></span>
+  <span class="ip-btn ip-btn--vol1" aria-hidden="true"></span>
+  <span class="ip-btn ip-btn--vol2" aria-hidden="true"></span>
+  <span class="ip-btn ip-btn--power" aria-hidden="true"></span>
+  <div class="device">
+  <div class="dynamic-island"></div>
+  <div class="home-ind" aria-hidden="true"></div>
+
+  <div class="statusbar" id="statusbar">
+    <div class="sb-time" id="clock">9:41</div>
+    <div class="sb-right">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><rect x="0" y="8" width="3" height="4" rx="1" fill="#fff"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#fff"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#fff"/><rect x="15" y="0.5" width="3" height="11.5" rx="1" fill="#fff"/></svg>
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="none"><path d="M8.5 2.2c2.7 0 5.2 1 7 2.8l-1.4 1.5A7.7 7.7 0 0 0 8.5 4.3 7.7 7.7 0 0 0 2.9 6.5L1.5 5C3.3 3.2 5.8 2.2 8.5 2.2Z" fill="#fff"/><path d="M8.5 5.6c1.7 0 3.3.7 4.5 1.9l-1.5 1.5a4.3 4.3 0 0 0-6 0L4 7.5A6.4 6.4 0 0 1 8.5 5.6Z" fill="#fff"/><path d="M8.5 9c.7 0 1.4.3 1.9.8L8.5 11.6 6.6 9.8A2.7 2.7 0 0 1 8.5 9Z" fill="#fff"/></svg>
+      <svg width="28" height="13" viewBox="0 0 28 13" fill="none"><rect x="0.5" y="0.8" width="23" height="11.4" rx="3.2" stroke="#fff" stroke-opacity="0.4"/><rect x="2" y="2.3" width="20" height="8.4" rx="1.8" fill="#fff"/><path d="M25.5 4.3v4.4c.9-.4 1.4-1.2 1.4-2.2s-.5-1.8-1.4-2.2Z" fill="#fff" fill-opacity="0.5"/></svg>
+    </div>
+  </div>
+
+  <!-- lens legend (visible only with the lens on) -->
+  <div class="lens-legend">
+    <p><b>Adaptive UI</b> models one listener by combining <b>durable identity + short-term context</b> and restructures the interface, only as boldly as confidence allows, always over a standard baseline, always under user control. <span style="color:#8a93a0">This page is the generalized template: every artist renders from the same grammar as the Olivia flagship.</span></p>
+    <div class="keys">
+      <span class="k k--a"><i></i>ADAPTS (identity)</span>
+      <span class="k k--t"><i></i>TEMPORAL (context)</span>
+      <span class="k k--f"><i></i>FIXED</span>
+      <span class="k k--c"><i></i>YOU CONTROL</span>
+    </div>
+  </div>
+
+  <div class="screen" id="screen">
+    <div class="frame">
+
+      <!-- ============ HERO — fixed frame, high-confidence surface ============ -->
+      <header class="hero" id="hero" data-lens="fixed" data-note="frame fixed; only the surface can earn change">
+        <div class="hero__photo">
+          <div class="layer hp-base"></div>
+          <div class="layer hp-img" id="heroImg"></div>
+          <div class="layer hp-figure"></div>
+          <div class="layer hp-live"></div>
+          <div class="grain"></div>
+        </div>
+        <div class="hero__topscrim"></div>
+        <div class="hero__grad"></div>
+        <div class="hero__scrim"></div>
+        <div class="hero__nav">
+          <button class="iconbtn" id="back" aria-label="Back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="iconbtn" id="search" aria-label="Search"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#fff" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>
+        </div>
+        <div class="hero__info">
+          <div class="proof hidden" id="proof">
+            <div class="av-artist" id="avArtist">A</div>
+            <div class="av-you">YOU</div>
+            <span class="proof__pill">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.6-9.3-9C1.2 9.1 2.3 5.5 5.6 5.1 7.7 4.8 9.3 6 12 8.7 14.7 6 16.3 4.8 18.4 5.1c3.3.4 4.4 4 2.9 6.9C19 16.4 12 21 12 21Z" fill="#fff"/></svg>
+              <span id="proofTxt">Since 2024</span>
+            </span>
+          </div>
+          <h1 class="hero__name" id="heroName">Artist</h1>
+          <p class="hero__followers" id="heroFollowers"></p>
+        </div>
+      </header>
+
+      <!-- control panel (fixed) -->
+      <div class="control" data-lens="fixed" data-note="core actions, identical in every state">
+        <div class="control__left">
+          <button class="btn-follow" id="follow" aria-pressed="false">
+            <span class="heart" id="heartIco">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path id="heartPath" d="M12 21s-7-4.6-9.3-9C1.2 9.1 2.3 5.5 5.6 5.1 7.7 4.8 9.3 6 12 8.7 14.7 6 16.3 4.8 18.4 5.1c3.3.4 4.4 4 2.9 6.9C19 16.4 12 21 12 21Z" fill="none" stroke="#fff" stroke-width="2"/></svg>
+            </span>
+            <span id="followLbl">Follow</span>
+          </button>
+          <button class="ghost-ico" id="share" aria-label="Share"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <button class="btn-play" id="playAll" aria-label="Play"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg></button>
+      </div>
+
+      <!-- tabs (fixed IA — the backbone never moves) -->
+      <nav class="tabs" data-lens="fixed" data-note="IA backbone; tab set never changes" aria-label="Artist page sections">
+        <button class="tab active" data-view="music" aria-current="page">Music</button>
+        <button class="tab" data-view="events">Events</button>
+        <button class="tab" data-view="merch">Merch</button>
+        <button class="tab" data-view="about">About</button>
+        <button class="tab" data-view="you" id="youTab">You &amp; Artist</button>
+      </nav>
+
+      <!-- ================= MUSIC VIEW (the landing) ================= -->
+      <section class="view" id="view-music">
+
+        <!-- context strip (session signal — zero history needed) -->
+        <div class="slot dormant" id="slotCtx" data-slotnote="a session signal will surface here once you press play">
+          <div class="wrap">
+            <div class="ctx" data-lens="temporal" data-conf="session signal" data-note="reads the current session; forgets it after">
+              <span class="ctx__eq" aria-hidden="true"><i></i><i></i><i></i></span>
+              <p class="ctx__txt" id="ctxTxt"></p>
+              <button class="ctx__act" id="ctxAct">Keep going</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popular — null list ⇄ converged widget -->
+        <div class="wrap" id="popularWrap" data-lens="fixed" data-note="the global chart, same for everyone">
+          <div class="sec-line"><h2 class="t">Popular</h2>
+            <span class="live-tag" id="popLive" hidden>Updates as you listen</span>
+            <button class="whym" id="popWhy" aria-label="Why this section changed" hidden><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.1 6.4L20.5 10l-6.4 2.1L12 18.5 9.9 12.1 3.5 10l6.4-1.6L12 2z"/></svg></button>
+          </div>
+          <p class="sec-sub" id="popSub">Most-streamed, same order for everyone.</p>
+          <div class="pop-scope" id="popScope" data-lens="control" data-note="you pick whose chart" hidden>
+            <button class="pop-scope__opt is-active" data-scope="everyone">Everyone</button>
+            <button class="pop-scope__opt" data-scope="superfans">Super fans</button>
+          </div>
+          <div class="songlist" id="songList"></div>
+        </div>
+
+        <!-- your history (durable identity) -->
+        <div class="slot dormant" id="slotHistory" data-slotnote="your history with this artist appears after a few weeks of listening">
+          <div class="wrap">
+            <div class="sec-line"><h2 class="t" id="histTitle">Your history</h2></div>
+            <div class="hi-card" style="margin-top:12px;" data-lens="adaptive" data-conf="med" data-note="your listening record; grows, never resets">
+              <div class="hi-card__art" id="histArt"></div>
+              <div class="hi-card__grad"></div>
+              <span class="hi-pill" id="histPill"></span>
+              <div class="hi-card__body">
+                <span class="hi-eyebrow" id="histEyebrow">Your journey</span>
+                <h3 class="hi-title" id="histHead"></h3>
+                <p class="hi-meta" id="histMeta"></p>
+                <div class="hi-stats" id="histStats"></div>
+                <button class="hi-go" id="histGo">Open your journey</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- albums (fixed catalog spine) -->
+        <div id="albumsSec">
+          <div class="wrap"><div class="sec-line"><h2 class="t">Albums</h2><button class="seemore" id="albumsMore">See all</button></div></div>
+          <div class="mu-strip" id="albumStrip" data-lens="fixed" data-note="catalog order; identical for everyone"></div>
+        </div>
+
+        <!-- fans also like (fixed editorial — kinship, not your data) -->
+        <div id="falSec">
+          <div class="wrap"><div class="sec-line"><h2 class="t">Fans also like</h2></div></div>
+          <div class="mu-strip" id="falStrip" data-lens="fixed" data-note="editorial kinship, not your data"></div>
+        </div>
+
+        <div class="wrap" style="padding-bottom:118px;">
+          <button class="pagewhy" id="pageWhy"><span class="pagewhy__star">✦</span> Why this page looks this way</button>
+        </div>
+      </section>
+
+      <!-- ================= EVENTS VIEW ================= -->
+      <section class="view" id="view-events" hidden>
+        <div class="wrap" style="padding-bottom:118px;">
+          <div class="sec-line"><h2 class="t">Events</h2></div>
+          <div class="ev" id="evList" data-lens="fixed" data-note="the event facts; one home, every state"></div>
+          <div class="cold-hint" id="evEmpty" style="margin-top:12px;" hidden>
+            <p class="cold-hint__lead"><b id="evEmptyName">This artist</b> has no dates on the calendar right now. Follow, and presales land here the moment they're announced.</p>
+            <button class="btn-pill btn-pill--ghost" id="evNotify" style="align-self:flex-start;">Notify me</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MERCH VIEW ================= -->
+      <section class="view" id="view-merch" hidden>
+        <div class="wrap" style="padding-bottom:118px;">
+          <div class="sec-line"><h2 class="t">Merch</h2></div>
+          <div id="merchGrid" data-lens="fixed" data-note="storefront; catalog order"></div>
+          <div class="cold-hint" id="merchEmpty" style="margin-top:12px;" hidden>
+            <p class="cold-hint__lead">No official merch in the store yet. Drops appear here first for followers.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABOUT VIEW ================= -->
+      <section class="view" id="view-about" hidden>
+        <div class="wrap" style="padding-bottom:118px;">
+          <div class="sec-line"><h2 class="t">About</h2></div>
+          <div class="ab-story" data-lens="fixed" data-note="the artist's story; same for everyone">
+            <div class="ab-story__art" id="aboutArt"></div>
+            <div class="ab-story__grad"></div>
+            <div class="ab-story__body">
+              <span class="ab-story__tag" id="aboutTag">THE STORY</span>
+              <p class="ab-story__p" id="aboutBody"></p>
+            </div>
+          </div>
+          <p class="bio" id="aboutBio"></p>
+          <div class="cold-hint__row" id="aboutChips" style="margin-top:14px;"></div>
+        </div>
+      </section>
+
+      <!-- ================= YOU & ARTIST VIEW (the journey) ================= -->
+      <section class="view" id="view-you" hidden>
+        <div class="wrap">
+          <div class="sec-line"><h2 class="t" id="youTitle">You &amp; Artist</h2></div>
+        </div>
+        <!-- asleep until the state earns it -->
+        <div class="wrap" id="youCold" hidden>
+          <div class="cold-hint" data-lens="adaptive" data-conf="null state" data-note="the journey exists only once there is a journey">
+            <p class="cold-hint__lead">No history between you two yet. Listen for a few weeks and this tab becomes <b>your timeline</b> — eras, first plays, and the numbers behind them.</p>
+            <div class="cold-hint__row">
+              <span class="cold-hint__chip">Era timeline</span>
+              <span class="cold-hint__chip">First play</span>
+              <span class="cold-hint__chip">Minutes &amp; streaks</span>
+            </div>
+            <p class="cold-hint__note">Nothing is stored until it's earned; the standard page holds until then.</p>
+          </div>
+        </div>
+        <div id="youAwake" hidden>
+          <div class="jr-scroll" data-lens="adaptive" data-conf="high" data-note="your eras with this artist, oldest to newest">
+            <div class="jr-row" id="jrRow"></div>
+          </div>
+          <div class="wrap">
+            <div class="yot" id="yotCard" hidden data-lens="adaptive" data-conf="high" data-note="your most-played, from your own history">
+              <div class="yot__bg" id="yotBg"></div>
+              <div class="yot__song">
+                <div class="yot__art" id="yotArt"></div>
+                <div style="min-width:0;">
+                  <span class="yot__lbl">Your top track</span>
+                  <span class="yot__t" id="yotTitle"></span>
+                  <span class="yot__plays" id="yotPlays"></span>
+                </div>
+              </div>
+              <div class="yot__stats" id="yotStats"></div>
+            </div>
+            <p class="sec-sub" id="youFirst" style="margin-top:14px;"></p>
+          </div>
+        </div>
+        <div class="wrap" style="padding-bottom:118px;"></div>
+      </section>
+
+  </div><!-- /frame -->
+  </div><!-- /screen (closed by .frame wrapper divs) -->
+
+  <!-- ============ APP NAV BAR (fixed chrome — mirrors the client tab bar) ============ -->
+  <nav class="navbar" data-lens="fixed" data-note="global nav; never moves" aria-label="App navigation">
+    <button class="navbar__item is-active" data-nav="Home">
+      <img src="static/adaptive/nav/nav-home-active.png" alt="" aria-hidden="true">
+      <span>Home</span>
+    </button>
+    <button class="navbar__item" data-nav="Find">
+      <img src="static/adaptive/nav/nav-find-inactive.png" alt="" aria-hidden="true">
+      <span>Find</span>
+    </button>
+    <button class="navbar__item" data-nav="Library">
+      <img src="static/adaptive/nav/nav-library-inactive.png" alt="" aria-hidden="true">
+      <span>Library</span>
+    </button>
+    <button class="navbar__item navbar__item--logo" data-nav="Maestro">
+      <img src="static/adaptive/nav/alexa-logo.png" alt="" aria-hidden="true">
+      <span>Maestro</span>
+    </button>
+  </nav>
+
+  <!-- ============ ADAPTIVE LENS ============ -->
+  <button class="lensbtn" id="lensBtn" aria-pressed="false" aria-label="Adaptive lens" title="Annotate what adapts, what's fixed, what comes and goes, with confidence">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.1 6.4L20.5 10l-6.4 2.1L12 18.5 9.9 12.1 3.5 10l6.4-1.6L12 2z"/></svg>
+    <span id="lensLabel">What adapts?</span>
+  </button>
+
+  <!-- ============ TOAST ============ -->
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="tdot"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.1 6.4L20.5 10l-6.4 2.1L12 18.5 9.9 12.1 3.5 10l6.4-1.6L12 2z"/></svg></span>
+    <span id="toastTxt"></span>
+  </div>
+
+  <!-- ============ WHY SHEET ============ -->
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="whySheet" role="dialog" aria-modal="true" aria-labelledby="whyTitle" data-lens="control" data-note="the rationale + the dials, on demand">
+    <div class="sheet__grab" aria-hidden="true"></div>
+    <p class="sheet__eyebrow">Why this page looks this way</p>
+    <h3 class="sheet__title" id="whyTitle"></h3>
+    <p class="sheet__p" id="whyBody"></p>
+    <p class="sheet__lbl">What the page is reading</p>
+    <div class="sheet__sigs" id="whySigs"></div>
+    <div class="sheet__conf" id="whyConf"><div class="sheet__confbar"><i></i><i></i><i></i></div><span class="sheet__conftxt" id="whyConfTxt">BASELINE</span></div>
+    <p class="sheet__lbl">How far it may go</p>
+    <div class="lvl" id="lvl" data-lens="control" data-note="your dial, not the system's">
+      <button class="lvl__opt active" data-state="cold">Standard</button>
+      <button class="lvl__opt" data-state="casual">Small touches</button>
+      <button class="lvl__opt" data-state="regular">Reshaped</button>
+      <button class="lvl__opt lvl__opt--locked" data-state="superfan" id="lvlSuper">Super fan<span class="lvl__lk"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="2"/></svg></span></button>
+    </div>
+    <p class="sheet__note">Super fan is earned by listening, never self-selected — and once earned it never quietly downgrades.</p>
+    <div class="sheet__row">
+      <button class="sheet__btn" id="whyOff">Turn adaptation off</button>
+      <button class="sheet__btn sheet__btn--primary" id="whyDone">Done</button>
+    </div>
+  </div>
+
+  </div><!-- /device -->
+</div><!-- /iphone -->
+<script src="artist-registry.js"></script>
+<script>
+(function(){
+  "use strict";
+  var $=function(s,r){return (r||document).querySelector(s);};
+  var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+
+  /* embed mode: this page is the artist route inside the DERBC client (iframe).
+     Same contract as the Olivia flagship: v3-back / v3-nav / v3-artist. */
+  var EMBED=/[?&]embed=1/.test(location.search) && window.parent!==window;
+  if(EMBED) document.body.classList.add("embed");
+
+  /* ---------- the artist ---------- */
+  var qp=new URLSearchParams(location.search);
+  var REG=window.__ARTIST_REGISTRY||{};
+  var id=qp.get("artist")||"olivia-dean";
+  var A=REG[id]||{
+    id:id,
+    name:id.split("-").map(function(w){return w? w[0].toUpperCase()+w.slice(1):w;}).join(" "),
+    firstName:id.split("-")[0]||"Artist", genre:"", bio:"", verified:false,
+    followers:"", since:"Since 2026", badge:"", state:"cold", hero:null, heroColor:"#15181d",
+    popular:[], albums:[], eras:[], stats:null, merch:[], events:[], aboutStory:null, related:[], firstPlay:null
+  };
+
+  document.title="Amazon Music · Artist page · Adaptive UI · "+A.name;
+
+  /* ---------- live clock ---------- */
+  var clock=$("#clock");
+  function tick(){var d=new Date(),h=d.getHours()%12,m=d.getMinutes();if(h===0)h=12;clock.textContent=h+":"+(m<10?"0":"")+m;}
+  tick(); setInterval(tick,15000);
+  var screen=$("#screen"), sb=$("#statusbar");
+  screen.addEventListener("scroll",function(){ if(screen.scrollTop>360) sb.classList.add("solid"); else sb.classList.remove("solid"); },{passive:true});
+
+  /* ---------- toast ---------- */
+  var toast=$("#toast"), toastTxt=$("#toastTxt"), toastT;
+  function showToast(html){
+    toastTxt.innerHTML=html;
+    toast.classList.add("show");
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){ toast.classList.remove("show"); },3000);
+  }
+
+  /* ============================================================
+     THE MODEL — same grammar as the Olivia flagship: four durable
+     states, hard steps, generic copy templated with this artist.
+     ============================================================ */
+  var STATES=["cold","casual","regular","superfan"];
+  var M={
+    cold:{ label:"Cold start", conf:0, confLbl:"BASELINE", follow:false,
+      read:"<b>No history yet.</b> Nothing to adapt on. The standard page, same for everyone.",
+      sub:"Most-streamed, same order for everyone.",
+      why:"No listening history with "+A.name+" yet, so nothing is personalized. This is the standard page every listener sees." },
+    casual:{ label:"Casual", conf:1, confLbl:"LOW", follow:false,
+      read:"<b>A few plays over a few weeks.</b> Signal is thin: small touches only, nothing structural.",
+      sub:"Most-streamed — your plays get marked, and that's it.",
+      why:"A handful of plays is thin evidence, so the page only marks what you've played. Structure stays standard until the signal is real." },
+    regular:{ label:"Engaged", conf:2, confLbl:"MEDIUM", follow:true,
+      read:"<b>Weekly listener.</b> Knows the catalog; structure may now shift.",
+      sub:"Your top songs lead; the global chart is one tap away.",
+      why:"You listen most weeks, so your top "+A.name+" songs lead and your journey tab is awake. The catalog and nav never move." },
+    superfan:{ label:"Super fan", conf:3, confLbl:"HIGH", follow:true,
+      why:"You're "+(A.badge?A.badge.toLowerCase():"a top listener")+" — the page runs at full depth: era visual, full journey, everything earned. Still the same backbone.",
+      read:(A.badge?("<b>"+A.badge+".</b> "):"<b>Top listener.</b> ")+"Earned, never self-selected. Full depth, same backbone.",
+      sub:"What you and the fandom actually play." }
+  };
+
+  var state="cold", adaptiveOn=true, earnedSuper=false, scope="everyone";
+
+  /* ---------- hydrate the fixed shell ---------- */
+  $("#capName").textContent=A.name+" · generalized from the Olivia flagship grammar";
+  $("#heroName").textContent=A.name;
+  if(A.followers) $("#heroFollowers").innerHTML="<b>"+A.followers.split(" ")[0]+"</b> "+A.followers.split(" ").slice(1).join(" ");
+  if(A.hero){ $("#heroImg").style.backgroundImage="url('"+A.hero+"')"; }
+  else { $("#heroImg").style.background="linear-gradient(165deg,"+A.heroColor+" 0%, #0b0a14 100%)"; }
+  var av=$("#avArtist");
+  if(A.hero){ av.style.background="url('"+A.hero+"') center 20%/cover"; av.textContent=""; }
+  else av.textContent=(A.name[0]||"A").toUpperCase();
+  $("#proofTxt").textContent=A.since;
+  $("#youTab").textContent="You & "+A.firstName;
+  $("#youTitle").textContent="You & "+A.firstName;
+  $("#evEmptyName").textContent=A.name;
+
+  /* ---------- popular ---------- */
+  function songRow(sg,i,ranked){
+    var art=sg.art?("style=\"background-image:url('"+sg.art+"')\""):("style=\"background:"+sg.color+"\"");
+    if(ranked){
+      return '<div class="mu-rank mu-rank--'+(i+1)+'">'+
+        '<span class="mu-rank__n">'+(i+1)+'</span>'+
+        '<div class="mu-rank__art" '+art+'></div>'+
+        '<div class="mu-rank__col"><span class="mu-rank__title">'+sg.title+'</span>'+
+        '<span class="mu-rank__plays">'+sg.streams+'</span></div></div>';
+    }
+    return '<div class="mu-song"><button class="mu-hit" data-title="'+sg.title.replace(/"/g,"&quot;")+'">'+
+      '<div class="mu-song__art" '+art+'></div>'+
+      '<div class="mu-song__col"><div class="mu-song__line"><span class="mu-song__title">'+sg.title+'</span></div>'+
+      '<span class="mu-song__meta">'+sg.streams+(sg.youPlay?'<span class="you">You play this most</span>':"")+'</span></div>'+
+      '</button></div>';
+  }
+  function renderPopular(){
+    var list=$("#songList"), wrap=$("#popularWrap");
+    var rows=A.popular.slice(0);
+    if(scope==="superfans" && rows.length>1){ rows=rows.slice(1).concat(rows[0]); }
+    var eff=adaptiveOn?state:"cold";
+    var converged=(eff==="regular"||eff==="superfan");
+    rows=rows.map(function(r,i){ return Object.assign({},r,{youPlay: eff!=="cold" && i===0 && scope==="everyone"}); });
+    var html="";
+    rows.forEach(function(r,i){ html+=songRow(r,i, converged&&i<Math.min(3,rows.length)); });
+    list.innerHTML=html||'<p class="sec-sub">No tracks in the catalog yet.</p>';
+    list.className=converged?"mu-ranks":"songlist";
+    $("#popSub").textContent = scope==="superfans" ? "What super fans replay the most." : M[eff].sub;
+    $("#popLive").hidden = eff==="cold";
+    $("#popWhy").hidden = eff==="cold";
+    $("#popScope").hidden = !(eff==="superfan");
+    if(converged){ wrap.setAttribute("data-lens","adaptive"); wrap.setAttribute("data-conf",eff==="superfan"?"high":"med"); wrap.setAttribute("data-note","your top songs lead; format changed, catalog didn't"); }
+    else if(eff==="casual"){ wrap.setAttribute("data-lens","adaptive"); wrap.setAttribute("data-conf","low"); wrap.setAttribute("data-note","marked, not restructured"); }
+    else { wrap.setAttribute("data-lens","fixed"); wrap.removeAttribute("data-conf"); wrap.setAttribute("data-note","null state: the global chart, same for everyone"); }
+    $$(".mu-hit",list).forEach(function(b){ b.addEventListener("click",function(){ showToast("Now playing · <b>"+b.dataset.title+"</b>"); }); });
+  }
+
+  /* ---------- albums / fans also like ---------- */
+  function card(a){
+    var bg=a.art?("style=\"background-image:url('"+a.art+"')\""):("style=\"background:"+(a.color||"#15181d")+"\"");
+    return '<button class="mu-album"><div class="mu-album__art" '+bg+'></div>'+
+      '<span class="mu-album__title">'+a.title+'</span><span class="mu-album__meta">Album</span></button>';
+  }
+  $("#albumStrip").innerHTML=A.albums.map(card).join("");
+  if(!A.albums.length) $("#albumsSec").hidden=true;
+  $$("#albumStrip .mu-album").forEach(function(a){ a.addEventListener("click",function(){ showToast("Opening <b>"+a.querySelector(".mu-album__title").textContent+"</b>"); }); });
+
+  $("#falStrip").innerHTML=A.related.map(function(r){
+    var bg=r.art?("style=\"background-image:url('"+r.art+"');border-radius:50%;\""):"style=\"border-radius:50%;background:#1c232b\"";
+    return '<button class="mu-album fal-card" data-artist="'+r.id+'"><div class="mu-album__art" '+bg+'></div>'+
+      '<span class="mu-album__title" style="text-align:center;">'+r.name+'</span></button>';
+  }).join("");
+  if(!A.related.length) $("#falSec").hidden=true;
+  $$("#falStrip .fal-card").forEach(function(c){
+    c.addEventListener("click",function(){
+      var next=c.dataset.artist, entry=REG[next];
+      if(EMBED){ window.parent.postMessage({type:"v3-artist", artist:next},"*"); return; }
+      var q=new URLSearchParams(location.search);
+      q.set("artist",next); q.set("state",(entry&&entry.state)||"cold");
+      location.href=location.pathname+"?"+q.toString();
+    });
+  });
+
+  /* ---------- events / merch / about ---------- */
+  var ev=$("#evList");
+  if(A.events&&A.events.length){
+    ev.innerHTML=A.events.map(function(e,i){
+      return '<div class="erow"><div class="edate"><span class="m">'+e.month+'</span><span class="d">'+e.day+'</span></div>'+
+        '<div class="ecol"><span class="et">'+e.title+'</span><span class="ev-venue">'+e.venue+'</span><span class="ev-time">'+e.time+'</span></div>'+
+        '<button class="btn-pill btn-pill--ghost ev-remind" data-t="'+e.title.replace(/"/g,"&quot;")+'">Remind</button></div>';
+    }).join("");
+    $$(".ev-remind",ev).forEach(function(b){ b.addEventListener("click",function(){ showToast("Reminder set: <b>"+b.dataset.t+"</b>"); }); });
+  } else { ev.hidden=true; $("#evEmpty").hidden=false; }
+  $("#evNotify") && $("#evNotify").addEventListener("click",function(){ showToast("You'll be first to know when <b>"+A.name+"</b> announces dates"); });
+
+  var mg=$("#merchGrid");
+  if(A.merch&&A.merch.length){
+    var html=""; for(var i=0;i<A.merch.length;i+=2){
+      html+='<div class="merch">'+A.merch.slice(i,i+2).map(function(m){
+        var bg=m.art?("style=\"background:#0b0b0f url('"+m.art+"') center/contain no-repeat\""):"style=\"background:#141414\"";
+        return '<div class="mcard" role="button" tabindex="0" data-title="'+m.name.replace(/"/g,"&quot;")+'"><div class="mcard__art" '+bg+'></div>'+
+          '<p class="mcard__title">'+m.name+'</p><span class="mcard__price">'+m.price+' · '+m.type+'</span></div>';
+      }).join("")+'</div>';
+    }
+    mg.innerHTML=html;
+    $$(".mcard",mg).forEach(function(c){ c.addEventListener("click",function(){ showToast("Opening <b>"+c.dataset.title+"</b>"); }); });
+  } else { mg.hidden=true; $("#merchEmpty").hidden=false; }
+
+  if(A.hero) $("#aboutArt").style.backgroundImage="url('"+A.hero+"')";
+  else $("#aboutArt").style.background="linear-gradient(150deg,"+A.heroColor+" 0%, #070207 100%)";
+  $("#aboutTag").textContent=A.aboutEra?A.aboutEra.toUpperCase():"THE STORY";
+  $("#aboutBody").textContent=A.aboutStory||A.bio||("The "+A.name+" story is still being written.");
+  $("#aboutBio").innerHTML=A.aboutStory?A.bio:"";
+  $("#aboutChips").innerHTML=(A.genre?A.genre.split("/"):[]).map(function(g){
+    return '<span class="cold-hint__chip">'+g.trim()+'</span>';
+  }).join("")+(A.followers?('<span class="cold-hint__chip">'+A.followers+'</span>'):"");
+
+  /* ---------- journey (You & artist) ---------- */
+  function renderYou(){
+    var eff=adaptiveOn?state:"cold";
+    var awake=(eff==="regular"||eff==="superfan") && A.eras.length>0;
+    $("#youCold").hidden=awake;
+    $("#youAwake").hidden=!awake;
+    if(!awake) return;
+    $("#jrRow").innerHTML=A.eras.map(function(e,i){
+      var bg=e.art?("style=\"background-image:url('"+e.art+"')\""):"";
+      return '<button class="jr-era'+(i===0?" is-active is-now":"")+'">'+
+        '<div class="jr-era__art" '+bg+'></div>'+(i===0?'<span class="jr-era__now">Now</span>':"")+
+        '<div class="jr-era__meta"><span class="jr-era__yr">'+e.season+'</span>'+
+        '<span class="jr-era__name">'+e.title+'</span>'+
+        '<span class="jr-era__rank">'+(i===0&&eff==="superfan"?(A.badge||""):"")+'</span></div></button>';
+    }).join("");
+    $$("#jrRow .jr-era").forEach(function(b,i){
+      b.addEventListener("click",function(){
+        $$("#jrRow .jr-era").forEach(function(o){o.classList.toggle("is-active",o===b);});
+        showToast("<b>"+A.eras[i].title+"</b> · "+A.eras[i].season);
+      });
+    });
+    var showTop=eff==="superfan" && A.popular.length>0;
+    $("#yotCard").hidden=!showTop;
+    if(showTop){
+      var top=A.popular[0];
+      if(top.art){ $("#yotBg").style.backgroundImage="url('"+top.art+"')"; $("#yotArt").style.backgroundImage="url('"+top.art+"')"; }
+      else { $("#yotBg").style.background=top.color; $("#yotArt").style.background=top.color; }
+      $("#yotTitle").textContent=top.title;
+      $("#yotPlays").textContent=top.streams+" streams";
+      $("#yotStats").innerHTML=A.stats?(
+        '<div class="yot__stat"><span class="yot__statl">Minutes</span><span class="yot__statn">'+A.stats.minutesListened+'</span></div>'+
+        '<div class="yot__stat"><span class="yot__statl">Longest streak</span><span class="yot__statn">'+A.stats.longestStreakDays+'d</span></div>'+
+        '<div class="yot__stat"><span class="yot__statl">Among friends</span><span class="yot__statn">'+A.stats.amongFriendsRank+'</span></div>'):"";
+    }
+    $("#youFirst").innerHTML=A.firstPlay?("First play: <b>"+A.firstPlay.title+"</b> · "+A.firstPlay.date):"";
+  }
+
+  /* ---------- history slot (Music view) ---------- */
+  function renderHistory(){
+    var eff=adaptiveOn?state:"cold";
+    var slot=$("#slotHistory");
+    var awake=(eff==="regular"||eff==="superfan");
+    slot.classList.toggle("dormant",!awake);
+    if(!awake) return;
+    $("#histTitle").textContent="You & "+A.firstName;
+    if(A.hero) $("#histArt").style.background="url('"+A.hero+"') center 30%/cover";
+    $("#histPill").textContent=A.since;
+    $("#histHead").textContent=eff==="superfan"?(A.badge||"Your journey"):"Your journey so far";
+    $("#histMeta").innerHTML=A.firstPlay?("It started with <b>"+A.firstPlay.title+"</b> in "+A.firstPlay.date+".")
+      :"Your listening record with "+A.name+".";
+    $("#histStats").innerHTML=(eff==="superfan"&&A.stats)?(
+      '<div class="hi-stat"><span class="hi-statn">'+A.stats.minutesListened+'</span><span class="hi-statl">minutes</span></div>'+
+      '<div class="hi-stat"><span class="hi-statn">'+A.stats.longestStreakDays+'d</span><span class="hi-statl">longest streak</span></div>'+
+      '<div class="hi-stat"><span class="hi-statn">'+A.stats.amongFriendsRank+'</span><span class="hi-statl">among friends</span></div>'):"";
+    $("#histGo").onclick=function(){ activateTab($('.tab[data-view="you"]')); };
+  }
+
+  /* ---------- context strip ---------- */
+  function renderCtx(){
+    var eff=adaptiveOn?state:"cold";
+    var slot=$("#slotCtx");
+    var awake=eff!=="cold" && A.popular.length>0;
+    slot.classList.toggle("dormant",!awake);
+    if(awake){
+      $("#ctxTxt").innerHTML="Back in <b>"+(A.popular[0].album||A.name)+"</b> this session.";
+      $("#ctxAct").onclick=function(){ showToast("Now playing · <b>"+A.popular[0].title+"</b>"); };
+    }
+  }
+
+  /* ---------- state machine ---------- */
+  function apply(next,opts){
+    opts=opts||{};
+    state=next;
+    if(state==="superfan") earnedSuper=true;
+    STATES.forEach(function(s){ document.body.classList.toggle("state-"+s, s===state); });
+    var eff=adaptiveOn?state:"cold";
+    document.body.classList.toggle("hero-live", adaptiveOn && state==="superfan");
+    /* console */
+    $$("#simSteps .sim__step").forEach(function(b){ var on=b.dataset.state===state; b.classList.toggle("active",on); b.setAttribute("aria-checked",on?"true":"false"); });
+    $("#simRead").innerHTML=M[eff].read;
+    var conf=$("#simConf"); conf.className="sim__conf c"+M[eff].conf; $("#simConfLbl").textContent=M[eff].confLbl;
+    /* hero proof + follow */
+    $("#proof").classList.toggle("hidden", !(adaptiveOn&&M[state].follow));
+    var f=$("#follow");
+    var following=adaptiveOn&&M[state].follow;
+    f.classList.toggle("is-following",following);
+    f.setAttribute("aria-pressed",following?"true":"false");
+    $("#followLbl").textContent=following?"Following":"Follow";
+    $("#heartPath").setAttribute("fill",following?"#25D1DA":"none");
+    $("#heartPath").setAttribute("stroke",following?"#25D1DA":"#fff");
+    renderPopular(); renderHistory(); renderCtx(); renderYou();
+    /* lvl control mirrors state */
+    $$("#lvl .lvl__opt").forEach(function(b){ b.classList.toggle("active", b.dataset.state===state); });
+    $("#lvlSuper").classList.toggle("lvl__opt--locked",!earnedSuper);
+    if(!opts.quiet) showToast("<b>"+M[state].label+"</b>. "+(adaptiveOn?"The page re-read you.":"Adaptation is off; the standard page holds."));
+  }
+
+  $$("#simSteps .sim__step").forEach(function(b){
+    b.addEventListener("click",function(){ if(b.dataset.state!==state) apply(b.dataset.state); });
+  });
+
+  /* master switch */
+  var master=$("#simMaster");
+  function setMaster(on){
+    adaptiveOn=on;
+    master.classList.toggle("on",on);
+    master.setAttribute("aria-checked",on?"true":"false");
+    $("#simMasterLbl").innerHTML="Adaptive&nbsp;UI · "+(on?"On":"Off");
+    apply(state,{quiet:true});
+    showToast(on?"<b>Adaptive UI on</b>. The page reads you again.":"<b>Adaptive UI off</b>. The standard page, kept until you say otherwise.");
+  }
+  master.addEventListener("click",function(){ setMaster(!adaptiveOn); });
+
+  /* ---------- tabs ---------- */
+  var VIEWS={music:$("#view-music"),events:$("#view-events"),merch:$("#view-merch"),about:$("#view-about"),you:$("#view-you")};
+  function activateTab(t){
+    if(!t) return;
+    var v=t.dataset.view;
+    if(!v||!VIEWS[v]) return;
+    $$(".tab").forEach(function(o){ var on=o===t; o.classList.toggle("active",on); if(on) o.setAttribute("aria-current","page"); else o.removeAttribute("aria-current"); });
+    Object.keys(VIEWS).forEach(function(k){ VIEWS[k].hidden=(k!==v); VIEWS[k].setAttribute("aria-hidden",k!==v?"true":"false"); });
+    screen.scrollTop=0; sb.classList.remove("solid");
+  }
+  $$(".tab").forEach(function(t){ t.addEventListener("click",function(){ if(!t.classList.contains("active")) activateTab(t); }); });
+
+  /* ---------- scope toggle ---------- */
+  $$("#popScope .pop-scope__opt").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(b.dataset.scope===scope) return;
+      scope=b.dataset.scope;
+      $$("#popScope .pop-scope__opt").forEach(function(o){ o.classList.toggle("is-active",o===b); });
+      renderPopular();
+      showToast(scope==="superfans"?"Popular now reads the <b>super-fan</b> chart":"Back to <b>everyone's</b> chart");
+    });
+  });
+
+  /* ---------- nav / back (host contract identical to the flagship) ---------- */
+  function appBase(){
+    var h=location.hostname;
+    if(h.indexOf("xiaobrook")>-1) return "/adaptive-ui/";
+    if(h.indexOf("vercel.app")>-1) return "/";
+    return null;
+  }
+  $("#back").addEventListener("click",function(){
+    if(EMBED){ window.parent.postMessage({type:"v3-back"},"*"); return; }
+    if(history.length>1){ history.back(); return; }
+    var ab=appBase(); if(ab){ location.href=ab; return; }
+    showToast("Back to <b>Home</b>");
+  });
+  $("#search").addEventListener("click",function(){
+    if(EMBED){ window.parent.postMessage({type:"v3-nav",nav:"Find"},"*"); return; }
+    var ab=appBase(); if(ab){ location.href=ab+"search"; return; }
+    showToast("Opening <b>Find</b>");
+  });
+  $$(".navbar__item").forEach(function(b){
+    b.addEventListener("click",function(){
+      var nav=b.dataset.nav||"Home";
+      if(EMBED){ window.parent.postMessage({type:"v3-nav",nav:nav},"*"); return; }
+      var ab=appBase();
+      if(ab){ var routes={Home:"",Find:"search",Library:"library",Maestro:"maestro"}; location.href=ab+(routes[nav]||""); return; }
+      showToast("Opening <b>"+nav+"</b>");
+    });
+  });
+  $("#follow").addEventListener("click",function(){
+    var f=$("#follow"), on=!f.classList.contains("is-following");
+    f.classList.toggle("is-following",on);
+    f.setAttribute("aria-pressed",on?"true":"false");
+    $("#followLbl").textContent=on?"Following":"Follow";
+    $("#heartPath").setAttribute("fill",on?"#25D1DA":"none");
+    $("#heartPath").setAttribute("stroke",on?"#25D1DA":"#fff");
+    showToast(on?("Following <b>"+A.name+"</b>"):("Unfollowed <b>"+A.name+"</b>"));
+  });
+  $("#share").addEventListener("click",function(){ showToast("Share <b>"+A.name+"</b> — link copied"); });
+  $("#playAll").addEventListener("click",function(){ if(A.popular[0]) showToast("Now playing · <b>"+A.popular[0].title+"</b>"); });
+  $("#albumsMore").addEventListener("click",function(){ showToast("Full discography"); });
+
+  /* ---------- why sheet ---------- */
+  var scrim=$("#scrim"), sheet=$("#whySheet");
+  function openSheet(){
+    var eff=adaptiveOn?state:"cold";
+    $("#whyTitle").textContent=A.name+" · "+(adaptiveOn?M[state].label:"Adaptation off");
+    $("#whyBody").textContent=adaptiveOn?M[state].why:"You turned adaptation off, so this is the standard page every listener sees. Flip it back on any time — nothing you earned is lost.";
+    $("#whySigs").innerHTML=
+      '<span class="sig-chip sig-chip--state">Durable · '+M[state].label+'</span>'+
+      (A.since?('<span class="sig-chip sig-chip--state">'+A.since+'</span>'):"")+
+      (eff!=="cold"?'<span class="sig-chip sig-chip--live">In session</span>':'<span class="sig-chip sig-chip--off">No live signals</span>');
+    var c=$("#whyConf"); c.className="sheet__conf c"+M[eff].conf; $("#whyConfTxt").textContent=M[eff].confLbl;
+    sheet.classList.add("show"); scrim.classList.add("show");
+  }
+  function closeSheet(){ sheet.classList.remove("show"); scrim.classList.remove("show"); }
+  $("#pageWhy").addEventListener("click",openSheet);
+  $("#popWhy").addEventListener("click",openSheet);
+  $("#whyDone").addEventListener("click",closeSheet);
+  scrim.addEventListener("click",closeSheet);
+  $("#whyOff").addEventListener("click",function(){ closeSheet(); setMaster(!adaptiveOn); });
+  $$("#lvl .lvl__opt").forEach(function(b){
+    b.addEventListener("click",function(){
+      var s=b.dataset.state;
+      if(s==="superfan"&&!earnedSuper){ showToast("<b>Super fan is earned</b>, not chosen — keep listening."); return; }
+      if(!adaptiveOn) setMaster(true);
+      if(s!==state) apply(s);
+    });
+  });
+
+  /* ---------- adaptive lens ---------- */
+  var lensBtn=$("#lensBtn"), lensLabel=$("#lensLabel");
+  function setLens(v){
+    document.body.classList.toggle("lens",v);
+    lensBtn.setAttribute("aria-pressed",v?"true":"false");
+    lensBtn.classList.toggle("on",v);
+    lensLabel.textContent=v?"Lens on":"What adapts?";
+  }
+  lensBtn.addEventListener("click",function(){
+    var v=!document.body.classList.contains("lens");
+    setLens(v);
+    showToast(v?"<b>Adaptive lens</b>: cyan adapts (identity), amber comes &amp; goes (context), gray is fixed, pink is yours. Dashed hollows are slots still asleep.":"Lens off");
+  });
+
+  /* ---------- deep links ----------
+     ?artist=<id> · state=cold|casual|regular|superfan · lens=1 · embed=1 · tab=you|about|events|merch */
+  var qstate=qp.get("state");
+  if(!qstate||!M[qstate]) qstate=A.state||"cold";
+  if(qstate==="superfan") earnedSuper=true;
+  if(qp.get("lens")==="1") setLens(true);
+  apply(qstate,{quiet:true});
+  var qtab=qp.get("tab");
+  if(qtab&&VIEWS[qtab]) activateTab($('.tab[data-view="'+qtab+'"]'));
+})();
+</script>
+</body>
+</html>
