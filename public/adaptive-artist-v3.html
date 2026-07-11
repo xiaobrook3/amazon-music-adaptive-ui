@@ -238,6 +238,9 @@ body.embed .iphone::before,body.embed .iphone::after,body.embed .ip-btn,
 body.embed .home-ind,body.embed .dynamic-island{display:none;}
 body.embed .device{border-radius:0;}
 body.embed .device::after{display:none;}
+/* inside the client the host draws the home indicator, so the nav sits exactly
+   like the app's own tab bar: 8px top/bottom, 28px sides, content 8px off the edge */
+body.embed .navbar{padding:8px 28px 8px;}
 .screen{position:absolute;inset:0;background:var(--bg);overflow-y:auto;overflow-x:hidden;border-radius:inherit;
   scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scroll-padding-top:64px;scroll-padding-bottom:120px;}
 .screen::-webkit-scrollbar{display:none;}
@@ -1806,14 +1809,8 @@ body.lens .lens-legend{display:block;animation:fade .3s var(--ease);}
   var EMBED=/[?&]embed=1/.test(location.search) && window.parent!==window;
   if(EMBED){
     document.body.classList.add("embed");
-    /* faithful to the app's StandaloneTabBar: on an artist route no tab is
-       focused, so Home renders inactive inside the client */
-    var navHome=document.querySelector('.navbar__item.is-active');
-    if(navHome){
-      navHome.classList.remove("is-active"); navHome.removeAttribute("aria-current");
-      var hi=navHome.querySelector("img");
-      if(hi && hi.dataset.inactive) hi.src=hi.dataset.inactive;
-    }
+    /* Home stays highlighted inside the client — the artist page is reached
+       from Home, and the nav should read identically to the page before it */
   }
 
   /* ---------- live clock + status bar ---------- */
