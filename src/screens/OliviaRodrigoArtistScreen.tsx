@@ -113,6 +113,13 @@ const DEEP_TABS: Record<string, (typeof TABS)[number]> = {
 
 export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?: string } = {}) {
   const router = useRouter()
+
+  // Deep-linked or reloaded pages have no history entry — a bare router.back()
+  // silently no-ops and the back chevron reads as broken. Land on Home instead.
+  const goBack = () => {
+    if (router.canGoBack()) router.back()
+    else router.replace('/')
+  }
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
@@ -207,7 +214,7 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
             />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={goBack} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showOliviaMenu}>
@@ -309,7 +316,9 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
             <View style={s.block}>
               <View style={s.sectionHeaderRow}>
                 <Text style={s.sectionTitle}>Your Journey with Olivia</Text>
-                <Text style={s.sectionLink}>Back to Now</Text>
+                <TouchableOpacity onPress={() => setSelectedEraId(OLIVIA_ERAS[0].id)} hitSlop={8}>
+                  <Text style={s.sectionLink}>Back to Now</Text>
+                </TouchableOpacity>
               </View>
 
               <EdgeFadeRow fadeColor="#000000">
@@ -512,7 +521,6 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
             <View style={s.block}>
               <View style={s.sectionHeaderRow}>
                 <Text style={s.sectionTitle}>Official Store</Text>
-                <Text style={s.sectionLink}>SEE ALL</Text>
               </View>
               <ArtistMerchGrid
                 items={OLIVIA_ABOUT_MERCH.map(item => ({
