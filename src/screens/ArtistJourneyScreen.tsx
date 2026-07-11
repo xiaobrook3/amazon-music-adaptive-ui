@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { artists, songs } from '../data/mockData'
 import { albumArtAssets, resolveArtistAvatar } from '../data/assetMap'
-import { buildArtistPage, type ArtistLyric } from '../data/artistPages'
+import { buildArtistPage, listenerStateFor, type ArtistLyric } from '../data/artistPages'
 import { getArtistAbout } from '../data/artistAbout'
 import { usePlaybackState } from '../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../context/AdaptiveUIContext'
@@ -29,6 +29,12 @@ import { useProfiles } from '../context/ProfilesContext'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import { ArtistEventsCard, ArtistMerchGrid, type MerchItem } from '../components/artist/ArtistCommerce'
 import { C, typeHeadline } from '../theme'
+
+
+// RN-web sizes an ImageBackground's inner image from the asset's intrinsic
+// dimensions when the style has no explicit width/height (native stretches
+// it). Force full-bleed so web and Expo Go render identically.
+const COVER_IMG = { width: '100%', height: '100%' } as const
 
 const MUSIC_STREAMS = [89_234_567, 45_678_901, 23_456_789, 12_345_678, 9_876_543, 4_567_890]
 function fmtStreams(n: number) { return n.toLocaleString('en-US') }
@@ -77,7 +83,15 @@ function LyricStackCard({
   )
 }
 
-export default function ArtistJourneyScreen({ id }: { id: string }) {
+// Deep-link tab values (?tab=you|about|events|merch) — same contract the
+// HTML embeds honored, now handled natively.
+const DEEP_TABS: Record<string, string> = {
+  about: 'About',
+  events: 'Events',
+  merch: 'Merch',
+}
+
+export default function ArtistJourneyScreen({ id, initialTab }: { id: string; initialTab?: string }) {
   const router = useRouter()
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
@@ -87,6 +101,13 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
 
   const artist = useMemo(() => artists.find(a => a.id === id) ?? artists[0], [id])
   const page = useMemo(() => buildArtistPage(artist.id), [artist.id])
+
+  // Durable listener state — the four discrete steps the adaptive prototypes
+  // staged (cold/casual/regular/superfan), derived from the listener's bond
+  // with this artist. Gates how much of the page has been earned: the page
+  // starts standard and grows, it never guesses.
+  const state = useMemo(() => listenerStateFor(artist.id), [artist.id])
+  const converged = state === 'regular' || state === 'superfan'
   const artistSongs = useMemo(() => songs.filter(sg => sg.artistId === artist.id), [artist.id])
   const about = useMemo(() => getArtistAbout(artist.id), [artist.id])
   const merchItems = useMemo<MerchItem[]>(
@@ -106,9 +127,27 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
   )
   const journeyTab = `You & ${page.firstName}`
 
-  const [tab, setTab] = useState<string>('Music')
+  const [tab, setTab] = useState<string>(() =>
+    initialTab === 'you' ? journeyTab : DEEP_TABS[initialTab ?? ''] ?? 'Music',
+  )
   const [selectedIdx, setSelectedIdx] = useState(0)
-  const [following, setFollowing] = useState(true)
+  // Following mirrors the earned relationship; new listeners start unfollowed.
+  const [following, setFollowing] = useState(converged)
+  // Popular community scope — Everyone's chart vs what super fans replay.
+  const [popScope, setPopScope] = useState<'everyone' | 'superfans'>('everyone')
+
+  // Popular rows: dedupe by title; the super-fan scope reads the community's
+  // replay chart (a deterministic alternate ordering of the same catalog).
+  const popularRows = useMemo(() => {
+    const seen = new Set<string>()
+    const rows = artistSongs.filter(sg => {
+      if (seen.has(sg.title)) return false
+      seen.add(sg.title)
+      return true
+    }).slice(0, 6)
+    if (popScope === 'superfans' && rows.length > 1) return [...rows.slice(1), rows[0]]
+    return rows
+  }, [artistSongs, popScope])
 
   const avatar = resolveArtistAvatar(artist.id, artist.imageUri)
   const resolveArt = (key: string) => albumArtAssets[key] ?? avatar
@@ -167,13 +206,14 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
         {/* Hero */}
         <View style={s.heroWrap}>
           {heroSource ? (
-            <ImageBackground source={heroSource} style={s.heroBg} resizeMode="cover">
+            <ImageBackground source={heroSource} style={s.heroBg} imageStyle={COVER_IMG} resizeMode="cover">
               <HeroOverlay
                 insets={insets}
                 page={page}
                 avatar={avatar}
                 activeProfile={activeProfile}
                 following={following}
+                showProof={converged}
                 onBack={() => router.back()}
                 onToggleFollow={() => setFollowing(f => !f)}
                 onPlay={() => playByTitle()}
@@ -189,6 +229,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 avatar={avatar}
                 activeProfile={activeProfile}
                 following={following}
+                showProof={converged}
                 onBack={() => router.back()}
                 onToggleFollow={() => setFollowing(f => !f)}
                 onPlay={() => playByTitle()}
@@ -212,16 +253,41 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
         </View>
 
         {tab === journeyTab ? (
+          !(converged && hasJourney) ? (
+            <View style={s.content}>
+              {/* The journey exists only once there is a journey — until then
+                  the tab is honest about what will appear here */}
+              <View style={s.block}>
+                <View style={s.coldHint}>
+                  <Text style={s.coldHintLead}>
+                    No history between you two yet. Listen for a few weeks and this tab becomes{' '}
+                    <Text style={s.histBold}>your timeline</Text> with {page.firstName} — eras, first
+                    plays, and the numbers behind them.
+                  </Text>
+                  <View style={s.coldChipRow}>
+                    {['Era timeline', 'First play', 'Minutes & streaks'].map(cLabel => (
+                      <View key={cLabel} style={s.coldChip}>
+                        <Text style={s.coldChipText}>{cLabel}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={s.coldHintNote}>
+                    Nothing is stored until it&apos;s earned; the standard page holds until then.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : (
           <View style={s.content}>
-            {/* Exclusive */}
-            {page.exclusive && (
+            {/* Exclusive — a milestone unlock, so it only exists at full depth */}
+            {page.exclusive && state === 'superfan' && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Exclusive For You</Text>
                 <View style={s.exclusiveCard}>
                   <ImageBackground
                     source={resolveArt(page.exclusive.artKey)}
                     style={s.exclusiveImg}
-                    imageStyle={s.exclusiveImgRadius}
+                    imageStyle={[COVER_IMG, s.exclusiveImgRadius]}
                     resizeMode="cover"
                   >
                     <LinearGradient
@@ -271,7 +337,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                           <ImageBackground
                             source={resolveArt(era.eraImageKey)}
                             style={StyleSheet.absoluteFill}
-                            imageStyle={{ borderRadius: 8 }}
+                            imageStyle={[COVER_IMG, { borderRadius: 8 }]}
                             resizeMode="cover"
                           >
                             <LinearGradient
@@ -313,7 +379,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 <ImageBackground
                   source={resolveArt(selectedEra.eraImageKey)}
                   style={s.statsCard}
-                  imageStyle={{ borderRadius: 12 }}
+                  imageStyle={[COVER_IMG, { borderRadius: 12 }]}
                   resizeMode="cover"
                 >
                   <View style={s.statsOverlay} />
@@ -439,7 +505,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 <ImageBackground
                   source={resolveArt(page.firstPlay.artKey)}
                   style={s.firstPlayCard}
-                  imageStyle={{ borderRadius: 12 }}
+                  imageStyle={[COVER_IMG, { borderRadius: 12 }]}
                   resizeMode="cover"
                 >
                   <LinearGradient
@@ -499,6 +565,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
               </View>
             )}
           </View>
+          )
         ) : tab === 'About' ? (
           about ? (
             <ArtistAboutTab
@@ -533,24 +600,96 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
           )
         ) : tab === 'Music' ? (
           <View style={s.content}>
-            {/* Popular */}
+            {/* Session context — a short-term signal; appears once there's any history */}
+            {state !== 'cold' && artistSongs.length > 0 && (
+              <View style={s.block}>
+                <View style={s.ctxCard}>
+                  <Ionicons name="pulse" size={16} color="#F0CB80" />
+                  <Text style={s.ctxText} numberOfLines={2}>
+                    Back in <Text style={s.ctxBold}>{artistSongs[0].album}</Text> this session.
+                  </Text>
+                  <TouchableOpacity style={s.ctxBtn} activeOpacity={0.8} onPress={() => playByTitle()}>
+                    <Text style={s.ctxBtnText}>Keep going</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Popular — the standard chart for new listeners; once the
+                relationship is real, your top songs lead (a format change,
+                not a different catalog) */}
             <View style={s.block}>
-              <Text style={s.sectionTitle}>Popular</Text>
+              <View style={s.sectionHeaderRow}>
+                <Text style={s.sectionTitle}>Popular</Text>
+                {state === 'superfan' && (
+                  <View style={s.scopeRow}>
+                    {(['everyone', 'superfans'] as const).map(sc => (
+                      <TouchableOpacity
+                        key={sc}
+                        style={[s.scopePill, popScope === sc && s.scopePillActive]}
+                        activeOpacity={0.8}
+                        onPress={() => setPopScope(sc)}
+                      >
+                        <Text style={[s.scopeText, popScope === sc && s.scopeTextActive]}>
+                          {sc === 'everyone' ? 'Everyone' : 'Super fans'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+              <Text style={s.popSub}>
+                {popScope === 'superfans'
+                  ? 'What super fans replay the most.'
+                  : state === 'cold'
+                    ? 'Most-streamed, same order for everyone.'
+                    : state === 'casual'
+                      ? 'Most-streamed. Your plays get marked, and that\u2019s it.'
+                      : 'Your top songs lead. The full catalog is one tap away.'}
+              </Text>
               {artistSongs.length > 0 ? (
                 <>
-                  {artistSongs.slice(0, 6).map((sg, idx) => (
-                    <TouchableOpacity key={sg.id} style={s.popRow} activeOpacity={0.8} onPress={() => playByTitle(sg.title)}>
-                      <Text style={s.popIdx}>{idx + 1}</Text>
-                      <Image source={resolveArt(sg.albumArtPath ?? '')} style={s.popArt} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.popTitle} numberOfLines={1}>{sg.title}</Text>
-                        <Text style={s.popMeta} numberOfLines={1}>{artist.name} • {fmtStreams(MUSIC_STREAMS[idx] ?? 100_000)}</Text>
-                      </View>
-                      <TouchableOpacity hitSlop={8} onPress={() => openAdaptiveMenu({ kind: 'song', song: sg })}>
-                        <Ionicons name="ellipsis-horizontal" size={18} color="#888" />
+                  {popularRows.map((sg, idx) => {
+                    const ranked = converged && idx < 3
+                    const row = (
+                      <>
+                        {ranked ? (
+                          <Text style={s.rankIdx}>{idx + 1}</Text>
+                        ) : (
+                          <Text style={s.popIdx}>{idx + 1}</Text>
+                        )}
+                        <Image source={resolveArt(sg.albumArtPath ?? '')} style={s.popArt} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.popTitle} numberOfLines={1}>{sg.title}</Text>
+                          <Text style={ranked ? s.rankMeta : s.popMeta} numberOfLines={1}>
+                            {fmtStreams(MUSIC_STREAMS[idx] ?? 100_000)}
+                            {state !== 'cold' && idx === 0 && popScope === 'everyone' ? (
+                              <Text style={s.youPlay}>  ·  You play this most</Text>
+                            ) : null}
+                          </Text>
+                        </View>
+                        <TouchableOpacity hitSlop={8} onPress={() => openAdaptiveMenu({ kind: 'song', song: sg })}>
+                          <Ionicons name="ellipsis-horizontal" size={18} color={ranked ? '#dfe6ee' : '#888'} />
+                        </TouchableOpacity>
+                      </>
+                    )
+                    return ranked ? (
+                      <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => playByTitle(sg.title)}>
+                        <LinearGradient
+                          colors={idx < 2 ? ['#5b7681', '#333e44'] : ['#5f56a0', '#39355c']}
+                          start={{ x: 0, y: 0.5 }}
+                          end={{ x: 1, y: 0.5 }}
+                          style={s.rankRow}
+                        >
+                          {row}
+                        </LinearGradient>
                       </TouchableOpacity>
-                    </TouchableOpacity>
-                  ))}
+                    ) : (
+                      <TouchableOpacity key={sg.id} style={s.popRow} activeOpacity={0.8} onPress={() => playByTitle(sg.title)}>
+                        {row}
+                      </TouchableOpacity>
+                    )
+                  })}
                   <TouchableOpacity
                     style={s.discLink}
                     activeOpacity={0.7}
@@ -564,6 +703,44 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 <Text style={s.emptyTabText}>No tracks yet.</Text>
               )}
             </View>
+
+            {/* Your history — the durable record; appears once it exists */}
+            {converged && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>You & {page.firstName}</Text>
+                <TouchableOpacity activeOpacity={0.88} onPress={() => setTab(journeyTab)}>
+                  <ImageBackground
+                    source={avatar ?? undefined}
+                    style={s.histCard}
+                    imageStyle={[COVER_IMG, { borderRadius: 12 }]}
+                    resizeMode="cover"
+                  >
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.88)']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.histPill}>
+                      <Text style={s.histPillText}>{page.sinceLabel}</Text>
+                    </View>
+                    <View style={s.histBody}>
+                      <Text style={s.histEyebrow}>
+                        {state === 'superfan' ? page.listenerBadge.toUpperCase() : 'YOUR JOURNEY'}
+                      </Text>
+                      <Text style={s.histTitle}>Your journey so far</Text>
+                      {page.firstPlay && (
+                        <Text style={s.histMeta}>
+                          It started with <Text style={s.histBold}>{page.firstPlay.title}</Text> in {page.firstPlay.date}.
+                        </Text>
+                      )}
+                      <View style={s.histGo}>
+                        <Text style={s.histGoText}>Open your journey</Text>
+                        <Ionicons name="chevron-forward" size={13} color="#fff" />
+                      </View>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Top Albums */}
             {page.eras.length > 0 && (
@@ -650,6 +827,7 @@ function HeroOverlay({
   avatar,
   activeProfile,
   following,
+  showProof,
   onBack,
   onToggleFollow,
   onPlay,
@@ -661,6 +839,7 @@ function HeroOverlay({
   avatar: any
   activeProfile: { initial: string; color: string }
   following: boolean
+  showProof: boolean
   onBack: () => void
   onToggleFollow: () => void
   onPlay: () => void
@@ -688,18 +867,22 @@ function HeroOverlay({
         </TouchableOpacity>
       </View>
 
-      <View style={s.profileCluster}>
-        {avatar && <Image source={avatar} style={s.artistAvatar} resizeMode="cover" />}
-        <View style={s.userBubbleWrap}>
-          <View style={s.sinceBubble}>
-            <Ionicons name="heart" size={14} color="#fff" />
-            <Text style={s.sinceText}>{page.sinceLabel}</Text>
-          </View>
-          <View style={[s.userAvatar, { backgroundColor: activeProfile.color }]}>
-            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{activeProfile.initial}</Text>
+      {/* The relationship proof cluster is earned — new listeners see the
+          standard hero until there's a "since" worth showing */}
+      {showProof && (
+        <View style={s.profileCluster}>
+          {avatar && <Image source={avatar} style={s.artistAvatar} resizeMode="cover" />}
+          <View style={s.userBubbleWrap}>
+            <View style={s.sinceBubble}>
+              <Ionicons name="heart" size={14} color="#fff" />
+              <Text style={s.sinceText}>{page.sinceLabel}</Text>
+            </View>
+            <View style={[s.userAvatar, { backgroundColor: activeProfile.color }]}>
+              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{activeProfile.initial}</Text>
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       <View style={s.heroMeta}>
         <Text style={s.heroName} numberOfLines={2}>{page.name}</Text>
@@ -995,6 +1178,100 @@ const s = StyleSheet.create({
   popArt: { width: 48, height: 48, borderRadius: 4 },
   popTitle: { fontSize: 15, color: '#fff', fontWeight: '600' },
   popMeta: { fontSize: 12, color: '#8a8a8a', marginTop: 2 },
+  popSub: { fontSize: 12, color: '#8a8a8a', marginTop: -4, marginBottom: 10, lineHeight: 17 },
+  youPlay: { color: C.cyan, fontWeight: '700', fontSize: 12 },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  rankIdx: {
+    width: 24,
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  rankMeta: { fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  scopeRow: {
+    flexDirection: 'row',
+    gap: 3,
+    backgroundColor: '#0a0f14',
+    borderWidth: 1,
+    borderColor: '#242C35',
+    borderRadius: 16,
+    padding: 3,
+  },
+  scopePill: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12 },
+  scopePillActive: { backgroundColor: 'rgba(0,213,221,0.16)' },
+  scopeText: { fontSize: 11, fontWeight: '700', color: '#8A93A0' },
+  scopeTextActive: { color: C.cyan },
+  ctxCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 13,
+    borderRadius: 12,
+    backgroundColor: 'rgba(232,184,96,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,184,96,0.26)',
+  },
+  ctxText: { flex: 1, fontSize: 13, lineHeight: 18, color: '#C2C9D1' },
+  ctxBold: { color: '#F0CB80', fontWeight: '700' },
+  ctxBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(232,184,96,0.4)',
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  ctxBtnText: { fontSize: 11.5, fontWeight: '700', color: '#F0CB80' },
+  histCard: { minHeight: 168, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end' },
+  histPill: {
+    position: 'absolute',
+    top: 11,
+    right: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  histPillText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  histBody: { padding: 14, gap: 3 },
+  histEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: C.cyan },
+  histTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  histMeta: { fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.78)' },
+  histBold: { color: '#fff', fontWeight: '700' },
+  histGo: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 9 },
+  histGoText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  coldHint: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(37,209,218,0.32)',
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+  },
+  coldHintLead: { fontSize: 13, lineHeight: 19, color: '#C2C9D1' },
+  coldChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  coldChip: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: '#242C35',
+  },
+  coldChipText: { fontSize: 11.5, fontWeight: '700', color: '#8A93A0' },
+  coldHintNote: { fontSize: 11, lineHeight: 16, color: '#8A93A0' },
   popDur: { fontSize: 12, color: '#8a8a8a' },
   emptyTab: { alignItems: 'center', paddingTop: 48, paddingBottom: 80 },
   emptyTabText: { color: '#555', fontSize: 14, textAlign: 'center' },
