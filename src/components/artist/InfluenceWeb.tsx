@@ -32,7 +32,10 @@ import {
 
 const HUB = { x: 168, y: 172, s: 90 }
 const CANVAS_W = 336
-const CANVAS_H = 378
+// 378 was the HTML canvas, but its labels overflowed onto the section below;
+// natively the canvas owns the extra 54px so the bottom bubble's name and
+// keyword chip never sit under the detail card.
+const CANVAS_H = 432
 
 const CYAN = '#4FE7EE'
 const PINK = '#F472B6'

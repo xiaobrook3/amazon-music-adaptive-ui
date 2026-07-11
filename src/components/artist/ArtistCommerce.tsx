@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import { Ionicons } from '@expo/vector-icons'
@@ -141,12 +141,29 @@ export function ArtistMerchGrid({
 
 /* v3.1 IA: the fandom gathers around the live moments, so fan-group posts and
  * the community card live on the EVENTS tab — not About. */
-export function FanPostCard({ post, resolveArt }: { post: AboutFanPost; resolveArt: (key: string) => any }) {
+export function FanPostsCarousel({ posts, resolveArt }: { posts: AboutFanPost[]; resolveArt: (key: string) => any }) {
+  // Instagram-threads feel: snap cards, one thumb-flick per post.
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={298}
+      decelerationRate="fast"
+      contentContainerStyle={s.postRail}
+    >
+      {posts.map(p => (
+        <FanPostCard key={`${p.group}-${p.handle}`} post={p} resolveArt={resolveArt} width={286} />
+      ))}
+    </ScrollView>
+  )
+}
+
+export function FanPostCard({ post, resolveArt, width }: { post: AboutFanPost; resolveArt: (key: string) => any; width?: number }) {
   const { showConfirmation } = useAdaptiveUI()
   const [joined, setJoined] = useState(false)
   const [liked, setLiked] = useState(false)
   return (
-    <View style={s.postCard}>
+    <View style={[s.postCard, width != null && { width }]}>
       <TouchableOpacity
         style={[s.groupPill, joined && s.groupPillJoined]}
         activeOpacity={0.8}
@@ -263,6 +280,7 @@ const s = StyleSheet.create({
   merchSubtitle: { fontFamily: FONT_FAMILY.regular, fontSize: 11, color: '#8b939c' },
   merchPrice: { fontFamily: FONT_FAMILY.medium, fontSize: 12, color: C.cyan },
 
+  postRail: { gap: 12, paddingVertical: 4 },
   postCard: {
     backgroundColor: '#141414',
     borderRadius: 16,

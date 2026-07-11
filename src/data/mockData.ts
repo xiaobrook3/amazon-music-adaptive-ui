@@ -1324,7 +1324,7 @@ export const artists: Artist[] = [
     isSmallerArtist: true,
     bio: 'British soul-pop artist whose warm voice and emotionally honest songwriting earned her critical acclaim.',
     monthlyListeners: 5500000,
-    imageUri: 'olivia-dean-messy',
+    imageUri: 'olivia-dean-art-of-loving',
     isVerified: true,
   },
   {

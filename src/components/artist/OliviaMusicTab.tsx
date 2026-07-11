@@ -1,5 +1,13 @@
 import { useState, useMemo } from 'react'
 import { View, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+  type SharedValue,
+} from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -51,7 +59,77 @@ const ALBUM_YEARS: Record<string, string> = {
   SOUR: '2021',
 }
 // Figma: the update cards sit at slight, alternating angles.
-const UPDATE_TILTS = ['0deg', '4.5deg', '-7deg', '3.28deg']
+const UPDATE_TILTS = [0, 4.5, -7, 3.28]
+const UPDATE_STEP = 205 - 32 // card width minus the overlap
+
+type SinceUpdate = { t: string; sub: string; k: string; onPress: () => void }
+
+/* The tilted cards now swing with the scroll: each card's rotation eases
+ * from its resting tilt as it travels through the viewport, settling back
+ * when the rail comes to rest — fluid, not decorative. */
+function SinceUpdateCard({
+  u, i, isLast, scrollX, resolveArt,
+}: {
+  u: SinceUpdate; i: number; isLast: boolean; scrollX: SharedValue<number>; resolveArt: (k: string) => any
+}) {
+  const motion = useAnimatedStyle(() => {
+    const center = i * UPDATE_STEP
+    const delta = interpolate(scrollX.value, [center - 320, center, center + 320], [7, 0, -7], Extrapolation.CLAMP)
+    return {
+      transform: [
+        { rotate: `${UPDATE_TILTS[i % UPDATE_TILTS.length] + delta}deg` },
+        { translateY: Math.abs(delta) * 1.3 },
+      ],
+    }
+  })
+  return (
+    <View style={{ marginRight: isLast ? 0 : -32, zIndex: i + 1 }}>
+      <Animated.View style={motion}>
+        <TouchableOpacity style={s.updateCard} activeOpacity={0.88} onPress={u.onPress}>
+          <Image source={resolveArt(u.k)} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <LinearGradient colors={['rgba(0,0,0,0)', '#020202']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
+          <View style={[s.artBorderOverlay, { borderRadius: 16 }]} pointerEvents="none" />
+          <Ionicons name="ellipsis-horizontal" size={16} color="#fff" style={s.updateMore} />
+          <View style={s.updateFooter}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.updateTitle} numberOfLines={1}>{u.t}</Text>
+              <Text style={s.updateSub} numberOfLines={1}>{u.sub}</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color="#fff" />
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  )
+}
+
+function SinceUpdateRail({ updates, resolveArt }: { updates: SinceUpdate[]; resolveArt: (k: string) => any }) {
+  const scrollX = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler(e => { scrollX.value = e.contentOffset.x })
+  return (
+    <EdgeFadeRow>
+      <Animated.ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.updateRail}
+        nestedScrollEnabled
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        {updates.map((u, i) => (
+          <SinceUpdateCard
+            key={u.t}
+            u={u}
+            i={i}
+            isLast={i === updates.length - 1}
+            scrollX={scrollX}
+            resolveArt={resolveArt}
+          />
+        ))}
+      </Animated.ScrollView>
+    </EdgeFadeRow>
+  )
+}
 
 
 function fmtStreams(n: number): string {
@@ -450,34 +528,7 @@ export default function OliviaMusicTab() {
       {/* 2. Since Your Last Visit — cards sit at slight angles, per the design */}
       <View style={s.section}>
         <SectionHead title="Since Your Last Visit" sub="Catching you up on Olivia Rodrigo" />
-        <EdgeFadeRow>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.updateRail} nestedScrollEnabled>
-            {updates.map((u, i) => (
-              <View
-                key={u.t}
-                style={{ marginRight: i < updates.length - 1 ? -32 : 0, zIndex: i + 1 }}
-              >
-                <TouchableOpacity
-                  style={[s.updateCard, { transform: [{ rotate: UPDATE_TILTS[i % UPDATE_TILTS.length] }] }]}
-                  activeOpacity={0.88}
-                  onPress={u.onPress}
-                >
-                  <Image source={resolveArt(u.k)} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                  <LinearGradient colors={['rgba(0,0,0,0)', '#020202']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
-                  <View style={[s.artBorderOverlay, { borderRadius: 16 }]} pointerEvents="none" />
-                  <Ionicons name="ellipsis-horizontal" size={16} color="#fff" style={s.updateMore} />
-                  <View style={s.updateFooter}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.updateTitle} numberOfLines={1}>{u.t}</Text>
-                      <Text style={s.updateSub} numberOfLines={1}>{u.sub}</Text>
-                    </View>
-                    <Ionicons name="arrow-forward" size={18} color="#fff" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        </EdgeFadeRow>
+        <SinceUpdateRail updates={updates} resolveArt={resolveArt} />
       </View>
 
       {/* 4. Your Favorites */}
@@ -802,34 +853,7 @@ export default function OliviaMusicTab() {
       {/* 2. Since Your Last Visit */}
       <View style={s.section}>
         <SectionHead title="Since Your Last Visit" sub="Catching you up on Olivia Rodrigo" />
-        <EdgeFadeRow>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.updateRail} nestedScrollEnabled>
-            {updates.map((u, i) => (
-              <View
-                key={u.t}
-                style={{ marginRight: i < updates.length - 1 ? -32 : 0, zIndex: i + 1 }}
-              >
-                <TouchableOpacity
-                  style={[s.updateCard, { transform: [{ rotate: UPDATE_TILTS[i % UPDATE_TILTS.length] }] }]}
-                  activeOpacity={0.88}
-                  onPress={u.onPress}
-                >
-                  <Image source={resolveArt(u.k)} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                  <LinearGradient colors={['rgba(0,0,0,0)', '#020202']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
-                  <View style={[s.artBorderOverlay, { borderRadius: 16 }]} pointerEvents="none" />
-                  <Ionicons name="ellipsis-horizontal" size={16} color="#fff" style={s.updateMore} />
-                  <View style={s.updateFooter}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.updateTitle} numberOfLines={1}>{u.t}</Text>
-                      <Text style={s.updateSub} numberOfLines={1}>{u.sub}</Text>
-                    </View>
-                    <Ionicons name="arrow-forward" size={18} color="#fff" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        </EdgeFadeRow>
+        <SinceUpdateRail updates={updates} resolveArt={resolveArt} />
       </View>
 
       {/* 3. All Releases */}

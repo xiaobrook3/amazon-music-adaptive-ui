@@ -1,3 +1,4 @@
+import type { AboutFanPost } from './artistAbout'
 export const OLIVIA_ABOUT_ASK_CHIPS = [
   'What inspired "vampire"?',
   'The making of GUTS',
@@ -100,5 +101,47 @@ export const OLIVIA_PAST_EVENTS: PastArtistEvent[] = [
     venue: 'Kia Forum · Los Angeles',
     subtitle: 'Fan-filmed highlights · Oct 22, 2024',
     kind: 'replay',
+  },
+]
+
+/* Fan-group posts — the v3.1 Events view's carousel (the fandom gathers
+ * around the live moments). Copy ported from the HTML page. */
+
+export const OLIVIA_FAN_POSTS: AboutFanPost[] = [
+  {
+    group: 'Sad Girl Hour',
+    handle: '@i<3orod',
+    time: '2 days ago',
+    body: 'Whenever I just need to unwind and let things out, this album is the one. six years and it still hits the exact same.',
+    artKey: 'olivia-about-fan-post',
+    likes: '1.2k',
+    comments: '84',
+  },
+  {
+    group: 'r/oliviarodrigo',
+    handle: 'vampirestan',
+    time: '2h ago',
+    body: "just realized the bridge in “happier” hits completely different once you've actually been the second choice 😭 she KNEW",
+    artKey: 'olivia-rodrigo-sour',
+    likes: '1.2k',
+    comments: '84',
+  },
+  {
+    group: 'GUTS Stans',
+    handle: 'gutsgremlin',
+    time: '5h ago',
+    body: "“ballad of a homeschooled girl” is the single most accurate song about social anxiety ever recorded. that's the post. that's it.",
+    artKey: 'olivia-rodrigo-guts',
+    likes: '3.4k',
+    comments: '210',
+  },
+  {
+    group: 'Olivia Daily',
+    handle: 'spicypisces',
+    time: '1d ago',
+    body: '“good 4 u” / “misery business” parallels: a thread 🧵 with timestamps. the Paramore DNA runs deeper than the obvious chorus, i promise',
+    artKey: 'olivia-rodrigo-guts',
+    likes: '5.6k',
+    comments: '489',
   },
 ]

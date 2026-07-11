@@ -27,7 +27,7 @@ import { useAdaptiveUI } from '../context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
 import { useProfiles } from '../context/ProfilesContext'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
-import { ArtistEventsCard, ArtistMerchGrid, FanPostCard, type MerchItem } from '../components/artist/ArtistCommerce'
+import { ArtistEventsCard, ArtistMerchGrid, FanPostsCarousel, type MerchItem } from '../components/artist/ArtistCommerce'
 import { C, typeHeadline } from '../theme'
 
 
@@ -67,7 +67,7 @@ function LyricStackCard({
   return (
     <View style={containerStyle}>
       <LinearGradient
-        colors={front ? LYRIC_FRONT_GRADIENT : item.gradient}
+        colors={front ? (item.gradient ?? LYRIC_FRONT_GRADIENT) : item.gradient}
         style={StyleSheet.absoluteFill}
       />
       <View style={s.lyricStackHeader}>
@@ -471,30 +471,23 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>Your Favorite Lyrics</Text>
                 </View>
-                <View style={s.lyricStack}>
-                  {page.lyrics[1] && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  snapToInterval={242}
+                  decelerationRate="fast"
+                  contentContainerStyle={s.lyricRail}
+                >
+                  {page.lyrics.map(item => (
                     <LyricStackCard
-                      item={page.lyrics[1]}
-                      variant="back"
-                      containerStyle={[s.lyricBackCard, s.lyricBackLeft]}
+                      key={item.song}
+                      item={item}
+                      variant="front"
+                      containerStyle={s.lyricRailCard}
                       resolveArt={resolveArt}
                     />
-                  )}
-                  {page.lyrics[2] && (
-                    <LyricStackCard
-                      item={page.lyrics[2]}
-                      variant="back"
-                      containerStyle={[s.lyricBackCard, s.lyricBackRight]}
-                      resolveArt={resolveArt}
-                    />
-                  )}
-                  <LyricStackCard
-                    item={page.lyrics[0]}
-                    variant="front"
-                    containerStyle={s.lyricFrontCard}
-                    resolveArt={resolveArt}
-                  />
-                </View>
+                  ))}
+                </ScrollView>
               </View>
             )}
 
@@ -775,7 +768,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
             {about?.fanPost && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Popular posts from fan groups</Text>
-                <FanPostCard post={about.fanPost} resolveArt={resolveArt} />
+                <FanPostsCarousel posts={[about.fanPost]} resolveArt={resolveArt} />
               </View>
             )}
           </View>
@@ -1100,6 +1093,18 @@ const s = StyleSheet.create({
   exclusiveTag: { fontSize: 10, fontWeight: '800', letterSpacing: 1, color: 'rgba(0,0,0,0.55)' },
   exclusiveMilestone: { fontSize: 12, color: '#000', lineHeight: 14 },
   exclusiveBody: { ...typeHeadline(16), color: '#000', lineHeight: 20 },
+  lyricRail: { gap: 12, paddingVertical: 6 },
+  lyricRailCard: {
+    width: 230,
+    height: 272,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#000',
+    overflow: 'hidden',
+    padding: 18,
+    justifyContent: 'space-between',
+  },
   lyricStack: { height: 300, width: '100%', alignItems: 'center' },
   lyricBackCard: {
     position: 'absolute',

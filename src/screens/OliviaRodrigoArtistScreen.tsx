@@ -29,14 +29,14 @@ import {
   OLIVIA_JOURNEY_STATS,
   type OliviaEraId,
 } from '../data/oliviaRodrigoPage'
-import { OLIVIA_ABOUT_MERCH, OLIVIA_ABOUT_EVENTS, OLIVIA_PAST_EVENTS } from '../data/oliviaRodrigoAbout'
+import { OLIVIA_ABOUT_MERCH, OLIVIA_ABOUT_EVENTS, OLIVIA_PAST_EVENTS, OLIVIA_FAN_POSTS } from '../data/oliviaRodrigoAbout'
 import { usePlaybackState } from '../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
 import { C, typeHeadline } from '../theme'
 import OliviaAboutTab from '../components/artist/OliviaAboutTab'
 import OliviaMusicTab from '../components/artist/OliviaMusicTab'
-import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard, FanPostCard, FanCommunityCard } from '../components/artist/ArtistCommerce'
+import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard, FanPostsCarousel, FanCommunityCard } from '../components/artist/ArtistCommerce'
 import { EdgeFadeRow } from '../components/EdgeFadeRow'
 
 
@@ -86,7 +86,7 @@ function LyricStackCard({
   return (
     <View style={containerStyle}>
       <LinearGradient
-        colors={front ? LYRIC_FRONT_GRADIENT : (item.gradient as [string, string])}
+        colors={front ? ((item.gradient as [string, string]) ?? LYRIC_FRONT_GRADIENT) : (item.gradient as [string, string])}
         style={StyleSheet.absoluteFill}
       />
       <View style={s.lyricStackHeader}>
@@ -447,29 +447,22 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
                 <Text style={s.sectionTitle}>Your Favorite Lyrics</Text>
                 <Text style={s.sectionLink}>SEE MORE</Text>
               </View>
-              <View style={s.lyricStack}>
-                {OLIVIA_FAVORITE_LYRICS[3] && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={242}
+                decelerationRate="fast"
+                contentContainerStyle={s.lyricRail}
+              >
+                {OLIVIA_FAVORITE_LYRICS.map(item => (
                   <LyricStackCard
-                    item={OLIVIA_FAVORITE_LYRICS[3]}
-                    variant="back"
-                    containerStyle={[s.lyricBackCard, s.lyricBackLeft]}
-                  />
-                )}
-                {OLIVIA_FAVORITE_LYRICS[2] && (
-                  <LyricStackCard
-                    item={OLIVIA_FAVORITE_LYRICS[2]}
-                    variant="back"
-                    containerStyle={[s.lyricBackCard, s.lyricBackRight]}
-                  />
-                )}
-                {OLIVIA_FAVORITE_LYRICS[0] && (
-                  <LyricStackCard
-                    item={OLIVIA_FAVORITE_LYRICS[0]}
+                    key={item.song}
+                    item={item}
                     variant="front"
-                    containerStyle={s.lyricFrontCard}
+                    containerStyle={s.lyricRailCard}
                   />
-                )}
-              </View>
+                ))}
+              </ScrollView>
             </View>
 
             {/* Playlists */}
@@ -545,16 +538,8 @@ export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?:
             {/* v3.1 IA: the fandom gathers around the live moments */}
             <View style={s.block}>
               <Text style={s.sectionTitle}>Popular posts from fan groups</Text>
-              <FanPostCard
-                post={{
-                  group: 'Sad Girl Hour',
-                  handle: '@i<3orod',
-                  time: '2 days ago',
-                  body: 'Whenever I just need to unwind and let things out, this album is the one. six years and it still hits the exact same.',
-                  artKey: 'olivia-about-fan-post',
-                  likes: '1.2k',
-                  comments: '84',
-                }}
+              <FanPostsCarousel
+                posts={OLIVIA_FAN_POSTS}
                 resolveArt={key => oliviaAboutAssets[key] ?? resolveArt(key)}
               />
               <FanCommunityCard
@@ -831,6 +816,18 @@ const s = StyleSheet.create({
   exclusiveText: { flex: 1, gap: 12, paddingRight: 16 },
   exclusiveMilestone: { fontSize: 12, color: '#000', lineHeight: 14 },
   exclusiveBody: { ...typeHeadline(16), color: '#000', lineHeight: 20 },
+  lyricRail: { gap: 12, paddingVertical: 6 },
+  lyricRailCard: {
+    width: 230,
+    height: 272,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#000',
+    overflow: 'hidden',
+    padding: 18,
+    justifyContent: 'space-between',
+  },
   lyricStack: { height: 300, width: '100%', alignItems: 'center' },
   lyricBackCard: {
     position: 'absolute',

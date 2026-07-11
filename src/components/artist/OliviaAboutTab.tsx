@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Dimensions,
+
 } from 'react-native'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
@@ -26,8 +26,9 @@ import { C, FONT_FAMILY, typeHeadline } from '../../theme'
 import InfluenceWeb from './InfluenceWeb'
 import { OLIVIA_INFLUENCE_WEB } from '../../data/influenceWeb'
 
-const SCREEN_W = Dimensions.get('window').width
-const CARD_W = (SCREEN_W - 44) / 2
+// Fixed to the 402px phone column — sizing from Dimensions.get('window')
+// reads the whole browser window on web and blows the cards up.
+const CARD_W = 173
 
 function resolveAboutArt(key: string) {
   return oliviaAboutAssets[key] ?? albumArtAssets[key] ?? oliviaPageAssets.profile
