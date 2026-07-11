@@ -2,6 +2,8 @@ import React, { useEffect, useMemo } from 'react'
 import { Platform, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import OliviaRodrigoArtistScreen from '../../screens/OliviaRodrigoArtistScreen'
+import { exportBase } from '../../utils/exportBase'
+import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 
 /**
  * Olivia Rodrigo artist route — refined adaptive artist profile.
@@ -28,15 +30,20 @@ const DEEP_TABS = ['you', 'about', 'events', 'merch']
 
 export default function OliviaAdaptiveArtist({ tab }: { tab?: string }) {
   const router = useRouter()
+  const { lensOn } = useAdaptiveUI()
 
   // Resolve the embed URL relative to wherever the export is hosted
-  // (works at "/" and under a sub-path like "/adaptive-ui/").
+  // (works at "/" and under a sub-path like "/adaptive-ui/"). exportBase()
+  // reads the entry bundle's URL, not location.pathname — the pathname can
+  // still be the previous route (e.g. /search) mid-transition, which 404'd
+  // the embed when the profile was opened from Find.
   const src = useMemo(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return ''
-    const base = window.location.pathname.replace(/artist\/[^/]*\/?$/, '')
+    const base = exportBase()
     const deepTab = tab && DEEP_TABS.includes(tab) ? `&tab=${tab}` : ''
-    return `${base}adaptive-artist-v3.html?embed=1&state=superfan${deepTab}`
-  }, [tab])
+    const lens = lensOn ? '&lens=1' : ''
+    return `${base}adaptive-artist-v3.html?embed=1&state=superfan${deepTab}${lens}`
+  }, [tab, lensOn])
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return
