@@ -39,6 +39,12 @@ import OliviaMusicTab from '../components/artist/OliviaMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid, PastArtistEventsCard } from '../components/artist/ArtistCommerce'
 import { EdgeFadeRow } from '../components/EdgeFadeRow'
 
+
+// RN-web sizes an ImageBackground's inner image from the asset's intrinsic
+// dimensions when the style has no explicit width/height (native stretches
+// it). Force full-bleed so web and Expo Go render identically.
+const COVER_IMG = { width: '100%', height: '100%' } as const
+
 const TABS = ['Music', 'Events', 'Merch', 'About', 'You & Olivia'] as const
 const ERA_CARD_W = 120
 const ERA_CARD_H = 122
@@ -96,14 +102,30 @@ function LyricStackCard({
   )
 }
 
-export default function OliviaRodrigoArtistScreen() {
+// Deep-link tab values (?tab=you|about|events|merch), same contract the home
+// screen's Olivia cards use.
+const DEEP_TABS: Record<string, (typeof TABS)[number]> = {
+  you: 'You & Olivia',
+  about: 'About',
+  events: 'Events',
+  merch: 'Merch',
+}
+
+export default function OliviaRodrigoArtistScreen({ initialTab }: { initialTab?: string } = {}) {
   const router = useRouter()
+
+  // Deep-linked or reloaded pages have no history entry — a bare router.back()
+  // silently no-ops and the back chevron reads as broken. Land on Home instead.
+  const goBack = () => {
+    if (router.canGoBack()) router.back()
+    else router.replace('/')
+  }
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
   const { activeProfile } = useProfiles()
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Music')
+  const [tab, setTab] = useState<(typeof TABS)[number]>(() => DEEP_TABS[initialTab ?? ''] ?? 'Music')
   const [selectedEraId, setSelectedEraId] = useState<OliviaEraId>('sour')
   const [following, setFollowing] = useState(true)
 
@@ -177,7 +199,7 @@ export default function OliviaRodrigoArtistScreen() {
       >
         {/* Hero */}
         <View style={s.heroWrap}>
-          <ImageBackground source={oliviaPageAssets.hero} style={s.heroBg} resizeMode="cover">
+          <ImageBackground source={oliviaPageAssets.hero} style={s.heroBg} imageStyle={COVER_IMG} resizeMode="cover">
             {/* Fade the hero photo down through its ambient slate-blue and into the
                 page black, so the follow/play controls below sit on a gradient
                 rather than a flat black band. */}
@@ -192,7 +214,7 @@ export default function OliviaRodrigoArtistScreen() {
             />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={goBack} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showOliviaMenu}>
@@ -266,7 +288,7 @@ export default function OliviaRodrigoArtistScreen() {
                 <ImageBackground
                   source={resolveArt('olivia-rodrigo-exclusive')}
                   style={s.exclusiveImg}
-                  imageStyle={s.exclusiveImgRadius}
+                  imageStyle={[COVER_IMG, s.exclusiveImgRadius]}
                   resizeMode="cover"
                 >
                   <LinearGradient
@@ -294,7 +316,9 @@ export default function OliviaRodrigoArtistScreen() {
             <View style={s.block}>
               <View style={s.sectionHeaderRow}>
                 <Text style={s.sectionTitle}>Your Journey with Olivia</Text>
-                <Text style={s.sectionLink}>Back to Now</Text>
+                <TouchableOpacity onPress={() => setSelectedEraId(OLIVIA_ERAS[0].id)} hitSlop={8}>
+                  <Text style={s.sectionLink}>Back to Now</Text>
+                </TouchableOpacity>
               </View>
 
               <EdgeFadeRow fadeColor="#000000">
@@ -315,7 +339,7 @@ export default function OliviaRodrigoArtistScreen() {
                         <ImageBackground
                           source={resolveArt(era.eraImageKey)}
                           style={StyleSheet.absoluteFill}
-                          imageStyle={{ borderRadius: 8 }}
+                          imageStyle={[COVER_IMG, { borderRadius: 8 }]}
                           resizeMode="cover"
                         >
                           <LinearGradient
@@ -353,7 +377,7 @@ export default function OliviaRodrigoArtistScreen() {
               <ImageBackground
                 source={resolveArt(selectedEra.eraImageKey)}
                 style={s.statsCard}
-                imageStyle={{ borderRadius: 12 }}
+                imageStyle={[COVER_IMG, { borderRadius: 12 }]}
                 resizeMode="cover"
               >
                 <View style={s.statsOverlay} />
@@ -470,7 +494,7 @@ export default function OliviaRodrigoArtistScreen() {
               <ImageBackground
                 source={oliviaPageAssets.eraSour}
                 style={s.firstPlayCard}
-                imageStyle={{ borderRadius: 12 }}
+                imageStyle={[COVER_IMG, { borderRadius: 12 }]}
                 resizeMode="cover"
               >
                 <LinearGradient
@@ -497,7 +521,6 @@ export default function OliviaRodrigoArtistScreen() {
             <View style={s.block}>
               <View style={s.sectionHeaderRow}>
                 <Text style={s.sectionTitle}>Official Store</Text>
-                <Text style={s.sectionLink}>SEE ALL</Text>
               </View>
               <ArtistMerchGrid
                 items={OLIVIA_ABOUT_MERCH.map(item => ({

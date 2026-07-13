@@ -44,6 +44,12 @@ import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import TaylorMusicTab from '../components/artist/TaylorMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid } from '../components/artist/ArtistCommerce'
 
+
+// RN-web sizes an ImageBackground's inner image from the asset's intrinsic
+// dimensions when the style has no explicit width/height (native stretches
+// it). Force full-bleed so web and Expo Go render identically.
+const COVER_IMG = { width: '100%', height: '100%' } as const
+
 const SCREEN_W = Dimensions.get('window').width
 const TABS = ['Music', 'Events', 'Merch', 'About', 'You & Taylor'] as const
 const ERA_CARD_W = 120
@@ -90,15 +96,31 @@ function LyricStackCard({
   )
 }
 
-export default function TaylorSwiftArtistScreen() {
+// Deep-link tab values (?tab=you|about|events|merch), same contract as the
+// Olivia and journey screens.
+const DEEP_TABS: Record<string, (typeof TABS)[number]> = {
+  you: 'You & Taylor',
+  about: 'About',
+  events: 'Events',
+  merch: 'Merch',
+}
+
+export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: string } = {}) {
   const router = useRouter()
+
+  // Deep-linked or reloaded pages have no history entry — a bare router.back()
+  // silently no-ops and the back chevron reads as broken. Land on Home instead.
+  const goBack = () => {
+    if (router.canGoBack()) router.back()
+    else router.replace('/')
+  }
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
   const { activeProfile } = useProfiles()
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
 
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Music')
+  const [tab, setTab] = useState<(typeof TABS)[number]>(() => DEEP_TABS[initialTab ?? ''] ?? 'Music')
   const [selectedEraId, setSelectedEraId] = useState<TaylorEraId>('lover')
   const [following, setFollowing] = useState(true)
   const [lyricIndex, setLyricIndex] = useState(0)
@@ -176,6 +198,7 @@ export default function TaylorSwiftArtistScreen() {
           <ImageBackground
             source={albumArtAssets['ts-showgirl']}
             style={s.heroBg}
+            imageStyle={COVER_IMG}
             resizeMode="cover"
           >
             <LinearGradient
@@ -189,7 +212,7 @@ export default function TaylorSwiftArtistScreen() {
             />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={goBack} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showMenu}>
@@ -337,7 +360,7 @@ export default function TaylorSwiftArtistScreen() {
                 <ImageBackground
                   source={resolveArt(TAYLOR_EXCLUSIVE_TRACK.artKey)}
                   style={s.exclusiveImg}
-                  imageStyle={s.exclusiveImgRadius}
+                  imageStyle={[COVER_IMG, s.exclusiveImgRadius]}
                   resizeMode="cover"
                 >
                   <LinearGradient
