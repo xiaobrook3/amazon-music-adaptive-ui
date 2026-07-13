@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -99,6 +99,78 @@ const TOGGLE_SEG_W = (SCREEN_W - 32 - TOGGLE_PAD * 2) / 2
 const SONGS_PER_PAGE = 3
 const SONG_PAGE_PEEK = Math.round(SCREEN_W * 0.3)
 const SONG_PAGE_WIDTH = SCREEN_W - SONG_PAGE_PEEK
+
+// Module-level so the artist-page coach mark shows once per app session,
+// not once per Home re-mount.
+let artistPageHintSeen = false
+
+// Featured-favorite pager (Figma 114:6101) — one page per favorite artist.
+// Olivia's page deep-links into her adaptive profile tabs; the others open
+// their artist pages.
+const FEATURED_PAGES: {
+  id: string
+  name: string
+  tier: string
+  since: string
+  tierTab?: 'you' | 'events'
+  newsTab?: 'you' | 'events'
+  newsTitle: string
+  newsCta: string
+}[] = [
+  {
+    id: 'olivia-rodrigo', name: 'Olivia Rodrigo', tier: 'Top 1% listener', since: 'Since Mar 2020',
+    tierTab: 'you', newsTab: 'events', newsTitle: 'Guts world tour announced', newsCta: 'Find tickets',
+  },
+  {
+    id: 'bts', name: 'BTS', tier: 'In rotation', since: 'Since Jun 2021',
+    newsTitle: 'Anthology album announced', newsCta: 'Explore',
+  },
+  {
+    id: 'sza', name: 'SZA', tier: 'New crush', since: 'Since May 2026',
+    newsTitle: 'SOS Deluxe — LANA out now', newsCta: 'Play it',
+  },
+]
+
+// "New in this session" — artists this session surfaced (Figma 1055:13474).
+const NEW_IN_SESSION_IDS = ['noah-kahan', 'sombr', 'lorde', 'tate-mcrae', 'olivia-dean']
+
+// "You and your favorites" — monthly listening-trend cards (Figma 114:6189).
+// Each dots row is 19 slots: 0 = quiet, 1-9 = listening intensity, T = today (cyan).
+const FAVORITE_TRENDS = [
+  {
+    artistId: 'olivia-rodrigo',
+    name: 'Olivia Rodrigo',
+    tier: 'Superfan',
+    insight: 'Your morning starter. 3 days running.',
+    dots: [
+      '6700000000000000000',
+      '9600078979937977777',
+      '3799000000037979777',
+    ],
+  },
+  {
+    artistId: 'bts',
+    name: 'BTS',
+    tier: 'In rotation',
+    insight: 'You came back this week.',
+    dots: [
+      '0000000000000000056',
+      '4534667786767777777',
+      '5677000004500007890',
+    ],
+  },
+  {
+    artistId: 'sza',
+    name: 'SZA',
+    tier: 'New crush',
+    insight: 'Three songs, on repeat.',
+    dots: [
+      '0000000000000000000',
+      '0000000789987789977',
+      '0000000899987909780',
+    ],
+  },
+].map(f => ({ ...f, dots: [f.dots[0], f.dots[1], f.dots[2].slice(0, 18) + 'T'] }))
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
@@ -241,6 +313,26 @@ export default function AdaptivePersonaHome() {
     router.push('/now-playing')
   }
 
+  // Current-session module (Olivia): collapsible, with a paged featured-favorite
+  // carousel whose dots track the visible page.
+  const [sessionCollapsed, setSessionCollapsed] = useState(false)
+  const [ffPage, setFfPage] = useState(0)
+  const [pagerW, setPagerW] = useState(0)
+  const pagerRef = useRef<ScrollView>(null)
+  const newInSession = useMemo(() => getHiddenGemArtists(NEW_IN_SESSION_IDS), [])
+
+  // One-time coach mark on the artist-page entry card; stays dismissed for the
+  // rest of the session once tapped away or once the page has been visited.
+  const [showArtistHint, setShowArtistHint] = useState(!artistPageHintSeen)
+  const dismissArtistHint = () => {
+    artistPageHintSeen = true
+    setShowArtistHint(false)
+  }
+  const openOliviaPage = (tab?: 'you' | 'events' | 'about' | 'merch') => {
+    dismissArtistHint()
+    router.push((tab ? `/artist/olivia-rodrigo?tab=${tab}` : '/artist/olivia-rodrigo') as any)
+  }
+
   const jumpBackIn = useMemo(
     () => filterContinueListening(continueListeningItems, activeTheme, songs).slice(0, 4),
     [activeTheme],
@@ -260,6 +352,12 @@ export default function AdaptivePersonaHome() {
     [albumsForYou],
   )
   const featuredArtists = useMemo(() => getFeaturedArtists(activeTheme, homeFeaturedArtistIds, 16), [activeTheme])
+  // "More like Olivia Rodrigo" suggests artists LIKE her — never Olivia herself;
+  // her page gets its own entry card in the fandom world block instead.
+  const moreLikeArtists = useMemo(
+    () => (isOlivia ? featuredArtists.filter(a => a.id !== activeTheme?.heroArtistId) : featuredArtists),
+    [featuredArtists, isOlivia, activeTheme],
+  )
   const onRepeat = useMemo(() => filterSongsForTheme(BASE_FREQUENT_PLAYS, activeTheme), [activeTheme])
   const rising = useMemo(() => filterSongsForTheme(BASE_RISING, activeTheme), [activeTheme])
   const hiddenGems = useMemo(() => getHiddenGemArtists(hiddenGemsArtistIds), [])
@@ -577,7 +675,11 @@ export default function AdaptivePersonaHome() {
           <View style={[s.fandomInner, { borderColor: tintFromHue(accent, 0.42) }]}>
           {/* Top-right corner bloom — fades toward bottom-left */}
           <LinearGradient
-            colors={[tintFromHue(hue, 0.55), tintFromHue(hue, 0.20), 'transparent']}
+            colors={[
+              tintFromHue(isOlivia ? '#DE909C' : hue, 0.55),
+              tintFromHue(isOlivia ? '#DE909C' : hue, 0.2),
+              'transparent',
+            ]}
             start={{ x: 1, y: 0 }}
             end={{ x: 0, y: 0.6 }}
             locations={[0, 0.35, 1]}
@@ -589,94 +691,210 @@ export default function AdaptivePersonaHome() {
             style={s.fandomGlowTop}
             pointerEvents="none"
           />
-          <View style={s.fandomHead}>
-            <Ionicons name="heart" size={14} color={accent} />
-            <Text style={s.fandomTitle}>Your {fandomLabel} world</Text>
-          </View>
-          {(isOlivia || isKpop) && (
+          {/* Olivia: the whole block is the "Current session" module (Figma 114:6104) —
+              header with live-wave + collapse, featured-favorite pager, session discoveries */}
+          {isOlivia ? (
+            <View style={s.csHead}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={s.csTitle}>Current session</Text>
+                  <View style={s.csWave} accessibilityLabel="Playing now">
+                    {[8, 14, 10, 16, 7].map((h, i) => (
+                      <View key={i} style={[s.csBar, { height: h }]} />
+                    ))}
+                  </View>
+                </View>
+                <Text style={s.csSub}>Playing from: My Soundtrack</Text>
+              </View>
+              <TouchableOpacity
+                style={s.csCollapse}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                onPress={() => setSessionCollapsed(v => !v)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !sessionCollapsed }}
+                accessibilityLabel={sessionCollapsed ? 'Expand current session' : 'Collapse current session'}
+              >
+                <Ionicons name={sessionCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={s.fandomHead}>
+              <Ionicons name="heart" size={14} color={accent} />
+              <Text style={s.fandomTitle}>Your {fandomLabel} world</Text>
+            </View>
+          )}
+          {isKpop && (
             <View style={s.fanTier}>
               <Ionicons name="star" size={11} color={C.cyan} />
               <Text style={[s.fanTierText, { color: C.cyan }]}>Top 1% of {fandomLabel} fans on Amazon Music</Text>
             </View>
           )}
+          {isOlivia && !sessionCollapsed && <Text style={s.csSection}>Your featured favorite</Text>}
 
-          {isOlivia ? (
-            <View style={s.bentoRow}>
-              {/* LEFT — medium feature card (≈2/3 width, square aspect ratio) */}
-              <TouchableOpacity style={s.bentoMedCard} activeOpacity={0.88} onPress={() => openSong(onRepeat[0]?.id ?? songs[0].id)}>
-                {(() => {
-                  const art = activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null
-                  return art ? (
-                    <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                  ) : (
-                    <View style={[StyleSheet.absoluteFill, { backgroundColor: tintFromHue(hue, 0.9) }]} />
-                  )
-                })()}
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.78)']}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={s.featureText}>
-                  <Text style={s.featureEyebrow}>{activeTheme?.heroEyebrow ?? 'FOR YOU'}</Text>
-                  <Text style={s.featureTitle} numberOfLines={2}>{activeTheme?.heroTitle ?? fandomLabel}</Text>
-                </View>
-                <View style={s.featurePlay}><PlayBadge size={40} /></View>
-              </TouchableOpacity>
-
-              {/* RIGHT — 3 compact tiles stacked (≈1/3 width each) */}
-              <View style={s.bentoColRight}>
-                {/* Card 1: YOUR #1 TRACK — full-bleed album art + gradient */}
+          {/* One-time coach mark: the featured photo below is the front door to
+              the adaptive artist profile */}
+          {isOlivia && !sessionCollapsed && showArtistHint && (
+            <>
+              <View style={s.artistHint}>
+                <Ionicons name="sparkles" size={12} color={C.cyan} />
+                <Text style={s.artistHintText}>New — Olivia&apos;s page adapts to you. Tap her photo to open it.</Text>
                 <TouchableOpacity
-                  style={s.bentoSmallArtBg}
-                  activeOpacity={0.75}
-                  onPress={() => openSong(OLIVIA_TOP_TRACK.songId)}
+                  onPress={dismissArtistHint}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel="Dismiss hint"
                 >
-                  <Image
-                    source={resolveBannerArt(OLIVIA_TOP_TRACK.artKey) ?? artistAssets['olivia-rodrigo']}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="cover"
-                  />
-                  <LinearGradient
-                    colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.75)']}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={s.bentoSmallArtContent}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.bentoSmallEyebrow}>★ #1</Text>
-                      <Text style={s.bentoSmallLabel} numberOfLines={1}>{OLIVIA_TOP_TRACK.title}</Text>
-                    </View>
-                    <Ionicons name="play-circle" size={16} color="rgba(255,255,255,0.85)" />
-                  </View>
-                </TouchableOpacity>
-
-                {/* Card 2: EXCLUSIVE — lock icon + label + chevron */}
-                <TouchableOpacity
-                  style={s.bentoSmallCard}
-                  activeOpacity={0.75}
-                  onPress={() => openSong('s-or4')}
-                >
-                  <Ionicons name="lock-open-outline" size={15} color={C.cyan} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.bentoSmallEyebrow}>EXCLUSIVE</Text>
-                    <Text style={s.bentoSmallLabel} numberOfLines={1}>{OLIVIA_EXCLUSIVE_TRACK.title}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={13} color="rgba(255,255,255,0.35)" />
-                </TouchableOpacity>
-
-                {/* Card 3: TOUR NEWS — teal accent bar + headline + chevron */}
-                <TouchableOpacity
-                  style={s.bentoSmallNewsCard}
-                  activeOpacity={0.75}
-                  onPress={() => router.push('/announcement?id=ann-olivia-1' as any)}
-                >
-                  <View style={s.bentoSmallAccentBar} />
-                  <View style={s.bentoSmallNewsBody}>
-                    <Text style={s.bentoSmallNewsText} numberOfLines={2}>{OLIVIA_NEWS.headline}</Text>
-                    <Ionicons name="chevron-forward" size={11} color={C.cyan} style={s.bentoSmallNewsChevron} />
-                  </View>
+                  <Ionicons name="close" size={14} color={C.textMuted} />
                 </TouchableOpacity>
               </View>
-            </View>
+              <View style={s.artistHintCaret} />
+            </>
+          )}
+
+          {isOlivia ? (
+            !sessionCollapsed && (
+              <>
+                {/* Featured-favorite pager (Figma 114:6101 "newest update") — one page
+                    per favorite, dots below; every surface routes into an artist page */}
+                <View onLayout={e => setPagerW(e.nativeEvent.layout.width)}>
+                  {pagerW > 0 && (
+                    <ScrollView
+                      ref={pagerRef}
+                      horizontal
+                      pagingEnabled
+                      snapToInterval={pagerW}
+                      decelerationRate="fast"
+                      showsHorizontalScrollIndicator={false}
+                      onScroll={e => setFfPage(Math.round(e.nativeEvent.contentOffset.x / pagerW))}
+                      scrollEventThrottle={32}
+                      nestedScrollEnabled
+                    >
+                      {FEATURED_PAGES.map(pg => {
+                        const isOliviaPage = pg.id === 'olivia-rodrigo'
+                        const go = (tab?: 'you' | 'events') => {
+                          if (isOliviaPage) return openOliviaPage(tab)
+                          dismissArtistHint()
+                          router.push(`/artist/${pg.id}` as any)
+                        }
+                        const art = isOliviaPage
+                          ? (activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null)
+                          : resolveArtistAvatar(pg.id)
+                        return (
+                          <View key={pg.id} style={{ width: pagerW }}>
+                            <View style={s.ffRow}>
+                              <TouchableOpacity
+                                style={s.ffCard}
+                                activeOpacity={0.88}
+                                onPress={() => go()}
+                                accessibilityLabel={`Open ${pg.name}'s artist page`}
+                              >
+                                {art ? (
+                                  <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                                ) : (
+                                  <View style={[StyleSheet.absoluteFill, { backgroundColor: tintFromHue(hue, 0.9) }]} />
+                                )}
+                                <LinearGradient
+                                  colors={['rgba(102,102,102,0)', 'rgba(0,0,0,0.6)']}
+                                  locations={[0.59, 1]}
+                                  style={StyleSheet.absoluteFill}
+                                />
+                                {/* following bubble — heart pill with a thought-bubble tail */}
+                                <View style={s.ffBubbleWrap} pointerEvents="none">
+                                  <View style={s.ffBubble}>
+                                    <Ionicons name="heart" size={13} color="#fff" />
+                                    <Text style={s.ffBubbleText}>{pg.since}</Text>
+                                  </View>
+                                  <View style={s.ffBubbleDot1} />
+                                  <View style={s.ffBubbleDot2} />
+                                </View>
+                                <TouchableOpacity
+                                  onPress={() => go(pg.tierTab)}
+                                  activeOpacity={0.7}
+                                  hitSlop={{ top: 6, bottom: 2, left: 4, right: 12 }}
+                                  accessibilityLabel={`${pg.tier} — ${pg.name}`}
+                                >
+                                  <Text style={s.ffTier}>{pg.tier}</Text>
+                                </TouchableOpacity>
+                                <Text style={s.ffName} numberOfLines={1}>{pg.name}</Text>
+                              </TouchableOpacity>
+
+                              <View style={s.ffCol}>
+                                <TouchableOpacity
+                                  style={[s.ffUnlock, Platform.OS === 'web' ? ({ backdropFilter: 'blur(4.4px)' } as any) : null]}
+                                  activeOpacity={0.8}
+                                  onPress={() => go()}
+                                  accessibilityLabel={`What you unlocked — ${pg.name}`}
+                                >
+                                  <View style={{ flex: 1, justifyContent: 'center' }}>
+                                    <Text style={s.ffUnlockEyebrow}>WHAT YOU UNLOCKED</Text>
+                                    <Text style={s.ffUnlockTitle}>Exclusive for you</Text>
+                                  </View>
+                                  <Ionicons name="chevron-forward" size={16} color="#fff" style={{ alignSelf: 'flex-end' }} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={s.ffTour}
+                                  activeOpacity={0.8}
+                                  onPress={() => go(pg.newsTab)}
+                                  accessibilityLabel={`${pg.newsTitle} — ${pg.newsCta}`}
+                                >
+                                  <Text style={s.ffTourTitle}>{pg.newsTitle}</Text>
+                                  <View style={s.ffTourPill}>
+                                    <Text style={s.ffTourPillText}>{pg.newsCta}</Text>
+                                  </View>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          </View>
+                        )
+                      })}
+                    </ScrollView>
+                  )}
+                </View>
+                <View style={s.ffDots}>
+                  {FEATURED_PAGES.map((pg, i) => (
+                    <TouchableOpacity
+                      key={pg.id}
+                      hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
+                      onPress={() => {
+                        pagerRef.current?.scrollTo({ x: i * pagerW, animated: true })
+                        setFfPage(i)
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Featured favorite ${i + 1} of ${FEATURED_PAGES.length}: ${pg.name}`}
+                      accessibilityState={{ selected: i === ffPage }}
+                    >
+                      <View style={[s.ffDot, i === ffPage && s.ffDotActive]} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* New in this session — artists this session surfaced (Figma 1055:13474) */}
+                <Text style={[s.csSection, { marginTop: 20 }]}>New in this session</Text>
+                <EdgeFadeRow fadeColor={C.surface}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} nestedScrollEnabled>
+                    {newInSession.map(a => {
+                      const art = resolveArtistAvatar(a.id, a.imageUri)
+                      return (
+                        <TouchableOpacity
+                          key={a.id}
+                          style={s.nisCard}
+                          activeOpacity={0.85}
+                          onPress={() => router.push(`/artist/${a.id}` as any)}
+                          accessibilityLabel={`New in this session — ${a.name}`}
+                        >
+                          {art && <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+                          <LinearGradient
+                            colors={['rgba(102,102,102,0)', 'rgba(0,0,0,0.72)']}
+                            locations={[0.59, 1]}
+                            style={StyleSheet.absoluteFill}
+                          />
+                          <Text style={s.nisName} numberOfLines={1}>{a.name}</Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </ScrollView>
+                </EdgeFadeRow>
+              </>
+            )
           ) : (
             <TouchableOpacity style={s.featureCard} activeOpacity={0.88} onPress={() => openSong(onRepeat[0]?.id ?? songs[0].id)}>
               {(() => {
@@ -716,7 +934,9 @@ export default function AdaptivePersonaHome() {
             </TouchableOpacity>
           )}
 
-          {/* On-repeat tracks for this fandom */}
+          {/* On-repeat tracks for this fandom (Olivia's module ends with New in this
+              session instead — her top songs live in the rails below) */}
+          {!isOlivia && (
           <EdgeFadeRow fadeColor={C.surface}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.merchRail} nestedScrollEnabled>
               {onRepeat.slice(0, 12).map(song => {
@@ -737,6 +957,7 @@ export default function AdaptivePersonaHome() {
               })}
             </ScrollView>
           </EdgeFadeRow>
+          )}
           </View>
         </View>
 
@@ -813,47 +1034,8 @@ export default function AdaptivePersonaHome() {
           </ScrollView>
         )}
 
-        {/* Jump back in — Olivia superfan only; between the fandom world block and the songsForYou rail */}
-        {!podcastFirst && isOlivia && jumpBackIn.length > 0 && (
-          <View style={s.block}>
-            <SectionHeader title="Jump back in" />
-            <View style={s.quickGrid}>
-              {jumpBackIn.map(item => {
-                const art = item.artKey ? resolveBannerArt(item.artKey) : null
-                const kind = continueListeningKind(item.id)
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={s.quickCard}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      item.podcastId
-                        ? router.push(`/podcast-show/${item.podcastId}` as any)
-                        : item.songId && openSong(item.songId)
-                    }
-                  >
-                    <View style={s.quickArtWrap}>
-                      {art ? (
-                        <Image source={art} style={s.quickArt} resizeMode="cover" />
-                      ) : (
-                        <View style={[s.quickArt, { backgroundColor: C.surface }]} />
-                      )}
-                      <View style={s.artBorderOverlay} pointerEvents="none" />
-                    </View>
-                    <View style={s.quickText}>
-                      <Text style={s.quickTitle} numberOfLines={1}>{item.title}</Text>
-                      <View style={s.quickKindRow}>
-                        <Ionicons name={kind.icon as any} size={10} color={C.textMuted} />
-                        <Text style={s.quickKind}>{kind.label}</Text>
-                      </View>
-                    </View>
-                    <PlayBadge size={26} />
-                  </TouchableOpacity>
-                )
-              })}
-            </View>
-          </View>
-        )}
+        {/* (Olivia's "Jump back in" was folded into the Current session module as
+            "New in this session", matching the team Figma arrangement.) */}
 
         {/* 4 — Made for you right now (situational picks) */}
         {coverRail(getSectionLabel('songsForYou', `Made for your ${slot}`), songsForYou)}
@@ -863,7 +1045,7 @@ export default function AdaptivePersonaHome() {
           <SectionHeader title={followingFocus ? 'New from your artists' : `More like ${fandomLabel}`} />
           <EdgeFadeRow>
             <HRail
-              data={featuredArtists}
+              data={followingFocus ? featuredArtists : moreLikeArtists}
               keyExtractor={artist => artist.id}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.rail}
@@ -1037,6 +1219,77 @@ export default function AdaptivePersonaHome() {
                       <View style={s.coverPlayPos}><PlayBadge size={28} /></View>
                     </View>
                     <Text style={s.coverTitle} numberOfLines={1}>{mix.name}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </EdgeFadeRow>
+        </View>
+
+        {/* 9 — You and your favorites: monthly listening-trend cards (Figma 114:6189).
+            Each dot is one listening slot this month; the cyan dot is today. */}
+        <View style={s.block}>
+          <View style={s.favHead}>
+            <Text style={s.sectionTitle}>You and your favorites</Text>
+            <Text style={s.favSeeMore}>SEE MORE</Text>
+          </View>
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {FAVORITE_TRENDS.map(fav => {
+                const art = resolveArtistAvatar(fav.artistId)
+                return (
+                  <TouchableOpacity
+                    key={fav.artistId}
+                    style={s.favCard}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      fav.artistId === 'olivia-rodrigo'
+                        ? openOliviaPage('you')
+                        : router.push(`/artist/${fav.artistId}` as any)
+                    }
+                    accessibilityLabel={`${fav.tier} — ${fav.name}. ${fav.insight}`}
+                  >
+                    {art && <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.5)']}
+                      locations={[0.19, 0.52, 0.81]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.favTopRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        {art && <Image source={art} style={s.favAvatar} resizeMode="cover" />}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.favTier}>{fav.tier}</Text>
+                          <Text style={s.favName} numberOfLines={1}>{fav.name}</Text>
+                        </View>
+                      </View>
+                      <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
+                    </View>
+                    <View>
+                      <Text style={s.favMonth}>THIS MONTH</Text>
+                      <Text style={s.favInsight}>{fav.insight}</Text>
+                      <View style={s.favDots}>
+                        {fav.dots.map((row, ri) => (
+                          <View key={ri} style={s.favDotRow}>
+                            {row.split('').map((ch, ci) => (
+                              <View
+                                key={ci}
+                                style={[
+                                  s.favDot,
+                                  ch === 'T'
+                                    ? { backgroundColor: C.cyan }
+                                    : ch === '0'
+                                      // quiet days stay visible as dark dots — the
+                                      // month reads as a complete grid, not gaps
+                                      ? { backgroundColor: 'rgba(255,255,255,0.16)' }
+                                      : { backgroundColor: `rgba(255,255,255,${(0.32 + (Number(ch) / 9) * 0.58).toFixed(2)})` },
+                                ]}
+                              />
+                            ))}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
                   </TouchableOpacity>
                 )
               })}
@@ -1271,6 +1524,136 @@ const s = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#fff',
     marginTop: 1,
+  },
+
+  // Current-session module header (Figma 114:6104)
+  csHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
+  csTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  csWave: { flexDirection: 'row', alignItems: 'center', gap: 2.5, height: 16 },
+  csBar: { width: 2.5, borderRadius: 1.25, backgroundColor: '#fff' },
+  csSub: { fontSize: 15, color: '#A6A6A6', marginTop: 4 },
+  csCollapse: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  csSection: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 14 },
+  ffDots: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
+  ffDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.28)' },
+  ffDotActive: { backgroundColor: C.cyan },
+  nisCard: { width: 114, height: 114, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end', padding: 10 },
+  nisName: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // "Your featured favorite" module (Figma 114:6101) — photo card + right column
+  ffRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  ffCard: {
+    flex: 1,
+    height: 244,
+    borderRadius: 12,
+    overflow: 'hidden',
+    padding: 12,
+    justifyContent: 'flex-end',
+  },
+  ffBubbleWrap: { position: 'absolute', right: 6, top: 7, width: 110, height: 40 },
+  ffBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 27,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    backgroundColor: '#DE909C',
+    alignSelf: 'flex-start',
+  },
+  ffBubbleText: { fontSize: 12, color: '#fff' },
+  ffBubbleDot1: { position: 'absolute', left: 8, top: 22, width: 11, height: 11, borderRadius: 5.5, backgroundColor: '#DE909C' },
+  ffBubbleDot2: { position: 'absolute', left: 4, top: 33, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#DE909C' },
+  ffTier: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  // Figma spec is 33px, but the flex-shrunk card gives the name ~187px of run —
+  // 29px is the largest size that never ellipsizes "Olivia Rodrigo".
+  ffName: { fontSize: 29, fontWeight: '700', color: '#fff', lineHeight: 32, marginTop: 2 },
+  ffCol: { width: 120, gap: 12 },
+  ffUnlock: {
+    height: 139,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    padding: 12,
+  },
+  ffUnlockEyebrow: { fontSize: 12, fontWeight: '700', color: C.cyan, letterSpacing: 0.3 },
+  ffUnlockTitle: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 4 },
+  ffTour: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    gap: 12,
+  },
+  ffTourTitle: { fontSize: 14, fontWeight: '700', color: '#fff', lineHeight: 16 },
+  ffTourPill: {
+    borderWidth: 1,
+    borderColor: '#fff',
+    borderRadius: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  ffTourPillText: { fontSize: 14, color: '#fff', lineHeight: 14 },
+
+  // "You and your favorites" trend cards
+  favHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 2 },
+  favSeeMore: { fontSize: 14, fontWeight: '700', color: '#757575' },
+  favCard: {
+    width: 212,
+    height: 212,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    overflow: 'hidden',
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  favTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+  favAvatar: { width: 36, height: 36, borderRadius: 18 },
+  favTier: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  favName: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 3 },
+  favMonth: { fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.3 },
+  favInsight: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 5 },
+  favDots: { marginTop: 8, gap: 2 },
+  favDotRow: { flexDirection: 'row', gap: 2 },
+  favDot: { width: 8, height: 8, borderRadius: 4 },
+
+  artistHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(37,209,218,0.12)',
+    borderColor: 'rgba(37,209,218,0.45)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  artistHintText: { flex: 1, fontSize: 12, lineHeight: 16, color: '#CFF6F8' },
+  artistHintCaret: {
+    width: 0,
+    height: 0,
+    marginLeft: 22,
+    marginBottom: 6,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'rgba(37,209,218,0.45)',
   },
 
   rowCard: {

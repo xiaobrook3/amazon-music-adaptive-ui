@@ -12,6 +12,7 @@ import {
   type DiscographyType,
 } from '../../src/data/oliviaRodrigoPage'
 import { C, typeHeadline } from '../../src/theme'
+import NotFound from '../+not-found'
 
 type FilterTab = 'all' | 'albums' | 'singles' | 'eps'
 
@@ -121,7 +122,12 @@ export default function ArtistDiscographyScreen() {
     [byYear],
   )
 
-  const artistName = id === 'olivia-rodrigo' ? 'Olivia Rodrigo' : id ?? 'Artist'
+  // The catalog data here is Olivia's; don't render it under another
+  // artist's name if someone hand-edits the URL.
+  if (id !== 'olivia-rodrigo') {
+    return <NotFound />
+  }
+  const artistName = 'Olivia Rodrigo'
 
   const FILTER_TABS: { key: FilterTab; label: string }[] = [
     { key: 'all',     label: 'All' },
@@ -136,7 +142,11 @@ export default function ArtistDiscographyScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={s.backBtn}>
+        <TouchableOpacity
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          hitSlop={12}
+          style={s.backBtn}
+        >
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>

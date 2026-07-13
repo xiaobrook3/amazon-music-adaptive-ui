@@ -458,6 +458,18 @@ export function lyricForSong(artistId: string, songTitle: string): ArtistLyric |
   return lyrics.find(l => l.song.toLowerCase() === songTitle.toLowerCase()) ?? null
 }
 
+/** The durable listener state an artist profile opens in — mirrors
+ * mockData's bond tiers (cold / casual / regular / superfan). */
+export type ListenerState = 'cold' | 'casual' | 'regular' | 'superfan'
+export function listenerStateFor(artistId: string): ListenerState {
+  const a = artists.find(x => x.id === artistId)
+  if (!a) return 'cold'
+  if (a.milestoneTierId === 'devoted' || a.milestoneTierId === 'legendary' || a.topPercent <= 2) return 'superfan'
+  if (a.milestoneTierId === 'fan') return 'regular'
+  if (a.userBondWeeks >= 4) return 'casual'
+  return 'cold'
+}
+
 export function buildArtistPage(artistId: string): ArtistPageData {
   const artist = artists.find(a => a.id === artistId) ?? artists[0]
   const artistSongs = songs.filter(s => s.artistId === artist.id)
