@@ -45,7 +45,7 @@ export const OLIVIA_ERAS: OliviaEra[] = [
     season: 'Spring 2022',
     title: 'Petty Era',
     badge: 'Top 5% listener',
-    description: 'Petty anthems on repeat — you knew every bridge by heart.',
+    description: 'Petty anthems on repeat, you knew every bridge by heart.',
     eraImageKey: 'olivia-era-petty',
     topTrack: { title: 'good 4 u', plays: 31, artKey: 'olivia-rodrigo-sour' },
     playedThen: [
@@ -76,32 +76,98 @@ export const OLIVIA_JOURNEY_STATS = {
   amongFriendsRank: '#1',
 }
 
+// Engaged listeners are still getting to know the artist — the relationship
+// is real but young, so these numbers read modest next to a superfan's.
+export const OLIVIA_JOURNEY_STATS_ENGAGED = {
+  minutesListened: 320,
+  longestStreakDays: 9,
+  amongFriendsRank: '#48',
+}
+
+// NOTE: order matters — OliviaRodrigoArtistScreen and app/artist-lyrics/[id].tsx
+// render this FULL list unfiltered for every non-Hannah-Journey persona that
+// reaches Olivia's superfan tier (e.g. the original 'hannah' profile via her
+// like-based ratchet). Keep this array's order and membership identical to the
+// pre-Hannah-Journey baseline — `id` fields are additive/inert for those
+// consumers. Hannah-Journey-only lyric cards live in
+// OLIVIA_FAVORITE_LYRICS_HANNAH_JOURNEY_EXTRA below instead of here.
 export const OLIVIA_FAVORITE_LYRICS = [
   {
+    id: 'deja-vu',
     song: 'Deja Vu',
     artKey: 'olivia-rodrigo-sour',
     lyric: "Played you the song she's singing now when she's with you",
     gradient: ['rgba(133,127,197,0.12)', 'rgba(133,127,197,0.6)'],
   },
   {
+    id: 'making-the-bed',
     song: 'making the bed',
     artKey: 'olivia-rodrigo-making-the-bed',
     lyric: "But it's me who's been making the bed",
     gradient: ['rgba(133,127,197,0.12)', 'rgba(74,68,119,0.6)'],
   },
   {
+    id: 'cant-catch-me-now',
     song: "Can't Catch Me Now",
     artKey: 'olivia-rodrigo-cant-catch-me',
     lyric: "But I'm in the trees, I'm in the breeze\nMy footsteps on the ground",
     gradient: ['rgba(104,37,18,0.12)', 'rgba(104,37,18,0.6)'],
   },
   {
+    id: 'drivers-license',
     song: 'Drivers License',
     artKey: 'olivia-rodrigo-sour',
     lyric: 'Cause you said forever, now I drive alone past your street',
     gradient: ['rgba(133,127,197,0.12)', 'rgba(133,127,197,0.6)'],
   },
+  {
+    id: 'good-4-u',
+    song: 'good 4 u',
+    artKey: 'olivia-rodrigo-sour',
+    lyric: "Good for you, you're doing great out there without me, baby",
+    gradient: ['rgba(74,158,90,0.12)', 'rgba(74,158,90,0.6)'],
+  },
+  {
+    id: 'vampire',
+    song: 'vampire',
+    artKey: 'olivia-rodrigo-guts',
+    lyric: "Went for me and not her cause I was an easy target",
+    gradient: ['rgba(104,37,18,0.12)', 'rgba(180,50,30,0.6)'],
+  },
 ]
+
+// Hannah-Journey-only front-card lyrics (superfan era carousel: Girl So In
+// Love + Petty). Deliberately kept OUT of OLIVIA_FAVORITE_LYRICS so the
+// shared list above stays byte-identical to the pre-Hannah-Journey baseline
+// for every other persona.
+export const OLIVIA_FAVORITE_LYRICS_HANNAH_JOURNEY_EXTRA = {
+  // Superfan "Girl So In Love Era" focused lyric card (Figma node 2439:14123).
+  maggotsForBrain: {
+    id: 'maggots-for-brain',
+    song: 'maggots for brain',
+    artKey: 'olivia-rodrigo-girl-in-love',
+    lyric: "I'm a zombie in my body,\nI'm a train off of the track",
+    gradient: ['rgba(117,159,187,0.12)', 'rgba(117,159,187,0.6)'],
+  },
+  // Superfan "Petty Era" focused lyric card — same song as the 'vampire' entry
+  // above but a different line, per Figma node 2605:36951.
+  vampireBigMistakes: {
+    id: 'vampire-big-mistakes',
+    song: 'vampire',
+    artKey: 'olivia-rodrigo-guts',
+    lyric: "I've made some real big mistakes\nBut you make the worst one look fine",
+    gradient: ['rgba(117,159,187,0.12)', 'rgba(117,159,187,0.6)'],
+  },
+  // Superfan "Newbie Livie" era focused lyric card — same song as the other
+  // 'vampire' entries above but a different line, per Figma node 3080:41834.
+  vampireSorryForThem: {
+    id: 'vampire-sorry-for-them',
+    song: 'vampire',
+    artKey: 'olivia-rodrigo-guts',
+    lyric: "I kinda feel sorry for them\n'Cause they'll never know you the way that I do, yeah",
+    gradient: ['rgba(117,159,187,0.12)', 'rgba(117,159,187,0.6)'],
+  },
+}
 
 export const OLIVIA_ERA_PLAYLISTS = [
   { title: 'A girl in love', artKey: 'olivia-rodrigo-girl-in-love' },
@@ -150,7 +216,7 @@ export const OLIVIA_DISCOGRAPHY: DiscographyRelease[] = [
 
   {
     id: 'hsmtmts-2020',
-    title: 'High School Musical: The Musical: The Series — Soundtrack',
+    title: 'High School Musical: The Musical: The Series, Soundtrack',
     year: 2020,
     type: 'ep',
     artKey: 'olivia-rodrigo-sour',
@@ -336,5 +402,24 @@ export const OLIVIA_DISCOGRAPHY: DiscographyRelease[] = [
     year: 2024,
     type: 'single',
     artKey: 'olivia-rodrigo-exclusive',
+  },
+
+  // ── 2026 ─────────────────────────────────────────────────────────────────
+
+  {
+    id: 'pretty-sad-2026',
+    title: 'You Seem Pretty Sad',
+    year: 2026,
+    type: 'album',
+    artKey: 'olivia-rodrigo-pretty-sad',
+    tracks: [
+      { title: 'you seem pretty sad for a girl so in love', duration: '3:18' },
+      { title: 'Pretty Sad', duration: '3:22' },
+      { title: 'worst case scenario', duration: '3:05' },
+      { title: 'backseat crying', duration: '2:48' },
+      { title: 'everyone but me', duration: '3:31' },
+      { title: '23 and a mess', duration: '3:12' },
+      { title: 'slow motion heartbreak', duration: '4:01' },
+    ],
   },
 ]

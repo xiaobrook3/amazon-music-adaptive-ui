@@ -79,6 +79,13 @@ export const FONT_FAMILY = {
   heavy:    'EmberModernDisplay-Bold',
 } as const
 
+/** Amazon Ember body faces — Figma AM/* text styles for Hannah Journey fidelity. */
+export const FONT_FAMILY_EMBER = {
+  regular: 'AmazonEmber-Regular',
+  medium:  'AmazonEmber-Medium',
+  bold:    'AmazonEmber-Bold',
+} as const
+
 /** Ember Modern Display Bold — sentence case, 90% leading, 0 tracking */
 export function typeHeadline(fontSize: number) {
   return {

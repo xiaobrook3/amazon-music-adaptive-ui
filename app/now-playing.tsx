@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  ImageBackground,
   Platform,
   Modal,
   Pressable,
@@ -25,18 +24,20 @@ import { Text } from '../src/components/AppText'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
 import { usePlaybackState, usePlaybackProgress } from '../src/hooks/usePlaybackState'
 import { useLikedSongs } from '../src/context/LikedSongsContext'
 import { useSavedSessions } from '../src/context/SavedSessionsContext'
 import { useAdaptiveUI } from '../src/context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../src/components/AdaptiveContextMenu'
+import { useHannahJourney } from '../src/context/HannahJourneyContext'
+import HannahJourneyNowPlaying from '../src/components/hannah-journey/HannahJourneyNowPlaying'
 import { songs, artists, type AudioBadge, type Song } from '../src/data/mockData'
 import { albumArtAssets, playerIconAssets } from '../src/data/assetMap'
 import { lyricForSong } from '../src/data/artistPages'
-import { C, R, PLAYER_GRADIENT, typeHeadline, typeSubhead } from '../src/theme'
+import { C, R, typeHeadline, typeSubhead } from '../src/theme'
 import GlassCircleButton, { GlassPlayButton } from '../src/components/GlassCircleButton'
-import { hexWithAlpha, parseDurationSeconds, formatClock } from '../src/utils/color'
+import BlurredArtBackground from '../src/components/BlurredArtBackground'
+import { parseDurationSeconds, formatClock } from '../src/utils/color'
 
 const { width, height } = Dimensions.get('window')
 const ART_SIZE = Math.round(Math.min(width - 72, height * 0.4))
@@ -108,43 +109,6 @@ function ScrubberSection({
   )
 }
 
-function DynamicBackground({
-  art,
-  fallbackColor,
-}: {
-  art: (typeof albumArtAssets)[string] | null
-  fallbackColor: string
-}) {
-  const gradientColors = art
-    ? [
-        hexWithAlpha(fallbackColor, 0.52),
-        hexWithAlpha(fallbackColor, 0.32),
-        hexWithAlpha(fallbackColor, 0.14),
-        'rgba(10,10,10,0.55)',
-      ]
-    : [...PLAYER_GRADIENT]
-
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      {art ? (
-        <ImageBackground
-          source={art}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-          blurRadius={Platform.OS === 'ios' ? 56 : 32}
-        >
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.12)' }]} />
-        </ImageBackground>
-      ) : null}
-      <LinearGradient
-        colors={gradientColors as [string, string, ...string[]]}
-        locations={art ? [0, 0.28, 0.58, 1] : undefined}
-        style={StyleSheet.absoluteFill}
-      />
-    </View>
-  )
-}
-
 type PlayerSheet = 'lyrics' | 'xray' | 'queue' | null
 
 export default function NowPlayingScreen() {
@@ -158,6 +122,7 @@ export default function NowPlayingScreen() {
   const { saveCurrentSession } = useSavedSessions()
   const { showConfirmation } = useAdaptiveUI()
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
+  const { isHannahJourney } = useHannahJourney()
   const [sessionSaved, setSessionSaved] = useState(false)
   const [sheet, setSheet] = useState<PlayerSheet>(null)
   const prevSongIdxRef = useRef(currentSongIdx)
@@ -203,13 +168,6 @@ export default function NowPlayingScreen() {
     transform: [{ translateY: dismissY.value }],
   }))
 
-  // Dismiss must always land somewhere: opened via a deep link (or a reload on
-  // web) this screen has no back stack, and router.back() would no-op.
-  const dismiss = () => {
-    if (router.canGoBack()) router.back()
-    else router.replace('/' as any)
-  }
-
   const dismissPan = Gesture.Pan()
     .activeOffsetY(DISMISS_ACTIVE_OFFSET_Y)
     .failOffsetX([-DISMISS_FAIL_OFFSET_X, DISMISS_FAIL_OFFSET_X])
@@ -218,7 +176,7 @@ export default function NowPlayingScreen() {
     })
     .onEnd(e => {
       if (e.translationY > DISMISS_THRESHOLD || e.velocityY > DISMISS_VELOCITY) {
-        runOnJS(dismiss)()
+        runOnJS(router.back)()
       } else {
         dismissY.value = withSpring(0, { damping: 22, stiffness: 320 })
       }
@@ -270,14 +228,22 @@ export default function NowPlayingScreen() {
   const upNext = Array.from({ length: 8 }, (_, i) => songs[(currentSongIdx + 1 + i) % songs.length])
   const lyric = lyricForSong(song.artistId, song.title)
 
+  // Hannah Journey gets a Figma-matched visual layer (node 2576-45065,
+  // "playback page") built on the same real playback state above; every other
+  // persona falls through to the default screen below unchanged. All hooks
+  // for this component have already run, so branching here is safe.
+  if (isHannahJourney) {
+    return <HannahJourneyNowPlaying />
+  }
+
   return (
     <GestureDetector gesture={dismissPan}>
       <Animated.View style={[s.screen, dismissAnimStyle]}>
-        <DynamicBackground art={art} fallbackColor={song.albumArtColor} />
+        <BlurredArtBackground art={art} fallbackColor={song.albumArtColor} />
 
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View style={s.topBar}>
-          <TouchableOpacity onPress={dismiss} style={s.navBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={() => router.back()} style={s.navBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="chevron-down" size={26} color={C.textPrimary} />
           </TouchableOpacity>
           <View style={{ alignItems: 'center' }}>
@@ -406,7 +372,7 @@ export default function NowPlayingScreen() {
                   {lyric ? (
                     <View style={s.lyricBlock}>
                       <Text style={s.lyricText}>{lyric.lyric}</Text>
-                      <Text style={s.lyricCredit}>From "{lyric.song}" — full lyrics as the track plays</Text>
+                      <Text style={s.lyricCredit}>From "{lyric.song}", full lyrics as the track plays</Text>
                     </View>
                   ) : (
                     <View style={s.lyricBlock}>

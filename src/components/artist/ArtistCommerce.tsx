@@ -45,7 +45,7 @@ export function ArtistEventsCard({ events }: { events: ArtistEvent[] }) {
           <TouchableOpacity
             style={s.ticketsBtn}
             activeOpacity={0.85}
-            onPress={() => showConfirmation(`Opening Ticketmaster — ${ev.title}, ${ev.month} ${ev.day}`)}
+            onPress={() => showConfirmation(`Opening Ticketmaster, ${ev.title}, ${ev.month} ${ev.day}`)}
           >
             <Text style={s.ticketsBtnText}>Tickets</Text>
           </TouchableOpacity>
@@ -92,7 +92,7 @@ export function PastArtistEventsCard({ events }: { events: PastArtistEvent[] }) 
               <TouchableOpacity
                 style={s.replayBtn}
                 activeOpacity={0.85}
-                onPress={() => showConfirmation(`Playing ${ev.kind === 'live-rec' ? 'live recording' : 'replay'} — ${ev.title}`)}
+                onPress={() => showConfirmation(`Playing ${ev.kind === 'live-rec' ? 'live recording' : 'replay'}, ${ev.title}`)}
               >
                 <Ionicons
                   name={ev.kind === 'live-rec' ? 'radio-outline' : 'play-circle-outline'}
@@ -128,7 +128,7 @@ export function ArtistMerchGrid({
             <TouchableOpacity
               style={s.merchBuyBtn}
               activeOpacity={0.85}
-              onPress={() => showConfirmation(`Added to bag — ${item.title} · ${item.price}`)}
+              onPress={() => showConfirmation(`Added to bag, ${item.title} · ${item.price}`)}
             >
               <Ionicons name="bag-handle-outline" size={13} color="#06222a" />
               <Text style={s.merchBuyText}>Buy</Text>

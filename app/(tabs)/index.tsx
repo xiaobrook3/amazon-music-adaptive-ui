@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   ScrollView,
   View,
@@ -12,14 +12,16 @@ import { Text } from '../../src/components/AppText'
 import { AppImage as Image } from '../../src/components/AppImage'
 import { HRail } from '../../src/components/HRail'
 import { EdgeFadeRow } from '../../src/components/EdgeFadeRow'
+import { ShowsYouWatchRail, ListeningHeatmap } from '../../src/components/home/HomeSessionWidgets'
+import { showYouWatchPlaylistIds } from '../../src/data/showsYouWatch'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { runOnJS, useSharedValue, type SharedValue } from 'react-native-reanimated'
 import { usePlaybackState } from '../../src/hooks/usePlaybackState'
-import { songs, user, playlists, podcasts, songsForYouIds, continueListeningItems, heroPool, myMixPlaylistIds, popularInCitySongIds, homeFeaturedArtistIds, hiddenGemsArtistIds, frequentPlaySongIds, type Song } from '../../src/data/mockData'
-import { albumArtAssets, artistAssets, oliviaAboutAssets, resolveArtistAvatar } from '../../src/data/assetMap'
+import { songs, artists, user, playlists, podcasts, songsForYouIds, continueListeningItems, heroPool, myMixPlaylistIds, popularInCitySongIds, homeFeaturedArtistIds, hannahFeaturedArtistIds, hiddenGemsArtistIds, frequentPlaySongIds, newForYouSongIds, recentlyPlayedIds, type Song } from '../../src/data/mockData'
+import { albumArtAssets, artistAssets, oliviaAboutAssets, oliviaPageAssets, resolveArtistAvatar } from '../../src/data/assetMap'
 import {
   filterSongsForTheme,
   filterContinueListening,
@@ -41,37 +43,46 @@ import { KPOP_BORAHAE_PLAYLIST } from '../../src/data/kpopContent'
 import { LOVE_ISLAND_VILLA_PLAYLIST, LOVE_ISLAND_CAST_PLAYLIST } from '../../src/data/loveIslandContent'
 import AdaptiveThemePills from '../../src/components/AdaptiveThemePills'
 import AdaptivePersonaHome from '../../src/components/home/AdaptivePersonaHome'
-import RabiatAdaptiveHome from '../../src/components/home/RabiatAdaptiveHome'
 import CasualHome from '../../src/components/home/CasualHome'
 import { useProfiles } from '../../src/context/ProfilesContext'
+import { useHannahJourney } from '../../src/context/HannahJourneyContext'
+import HannahJourneyLanding from '../../src/components/hannah-journey/HannahJourneyLanding'
+import CustomProfileLanding from '../../src/components/home/CustomProfileLanding'
 import AdaptiveDragOverlay, { type DragPayload } from '../../src/components/AdaptiveDragOverlay'
 import { useAdaptiveMenu } from '../../src/components/AdaptiveContextMenu'
 
-const SHOWS_YOU_WATCH = [
-  {
-    id: 'show-love-island',
-    title: 'For the Villa',
-    subtitle: 'Official playlist · For Islanders',
-    bannerKey: 'love-island-banner',
-    playlistId: 'pl-love-island',
-    accentColor: '#D4A843',
-  },
-  {
-    id: 'show-summer-turned-pretty',
-    title: 'The Summer I Turned Pretty',
-    subtitle: 'Soundtrack',
-    bannerKey: 'summer-i-turned-pretty',
-    playlistId: 'pl-summer-turned-pretty',
-    accentColor: '#4A8BC4',
-  },
-  {
-    id: 'show-heated-rivalry',
-    title: 'Heated Rivalry',
-    subtitle: 'Music from the show',
-    bannerKey: 'heated-rivalry',
-    playlistId: 'pl-heated-rivalry',
-    accentColor: '#C4924A',
-  },
+// "Endless scroll" filler content — deliberately generic (not theme-filtered),
+// so the feed keeps producing new rails from the wider catalog the further you
+// scroll, the same way a real streaming home never really "runs out."
+const RADIO_STATIONS = [
+  { id: 'radio-bad-bunny', name: 'Bad Bunny Radio',    artKey: 'bad-bunny-verano',      songId: 's-bb1' },
+  { id: 'radio-sza',       name: 'SZA Radio',           artKey: 'sza-sos',               songId: 's-sza1' },
+  { id: 'radio-weeknd',    name: 'The Weeknd Radio',    artKey: 'the-weeknd',            songId: 's-weeknd1' },
+  { id: 'radio-dua',       name: 'Dua Lipa Radio',      artKey: 'dua-lipa',              songId: 's-dua1' },
+  { id: 'radio-rihanna',   name: 'Rihanna Radio',       artKey: 'rihanna-anti',          songId: 's-rihanna1' },
+  { id: 'radio-doja',      name: 'Doja Cat Radio',      artKey: 'doja-cat',              songId: 's-doja1' },
+  { id: 'radio-beyonce',   name: 'Beyoncé Radio',       artKey: 'beyonce-lemonade',      songId: 's-beyonce5' },
+  { id: 'radio-ariana',    name: 'Ariana Grande Radio', artKey: 'ariana-sweetener',      songId: 's-ariana1' },
+]
+
+// A handful of artists with enough catalog depth to headline their own
+// "Deep dive" rail — one is picked at random per visit.
+const DEEP_DIVE_ARTIST_POOL = ['lorde', 'mitski', 'beyonce', 'ariana-grande', 'sabrina-carpenter', 'rihanna', 'sza', 'dua-lipa', 'the-weeknd', 'doja-cat']
+
+const SUMMER_SESSION_PLAYLIST_IDS = ['pl-summer-turned-pretty', 'pl-love-island', 'pl-love-island-cast', 'pl5']
+
+// Hannah keeps the baseline layout, but two of her adaptive-home sections
+// carry over as-is: "You and your favorites" (artist insight cards) and a
+// pair of fixed Deep Dive rails (Rihanna + Taylor Swift) instead of the
+// baseline's single random pick.
+// Deliberate per-artist tags — same new/engaged/superfan vocabulary as the
+// artist-page tier system (src/hooks/useArtistTier.ts) — instead of a
+// generic cycling label.
+const HANNAH_FAVORITE_ARTISTS: { artistId: string; tag: string; caption: string }[] = [
+  { artistId: 'tswift',            tag: 'Superfan',    caption: 'Your #1 artist, every era.' },
+  { artistId: 'olivia-rodrigo',    tag: 'New Listener', caption: 'Just getting started.' },
+  { artistId: 'sabrina-carpenter', tag: 'Engaged',      caption: 'In steady rotation.' },
+  { artistId: 'tate-mcrae',        tag: 'New Listener', caption: 'Fresh into the mix.' },
 ]
 
 const HERO_POOL = heroPool
@@ -145,60 +156,60 @@ function gradientIntensityForTheme(theme: AdaptiveTheme | null): number {
 const BANNER_IMAGE_HUES: Record<string, string> = {
   // Taylor Swift
   'ts-showgirl':             '#2A4C14',  // Eras Tour green sparkly jumpsuit
-  'ts-1989':                 '#3A6080',  // 1989 — steel blue sky
-  'ts-reputation':           '#141414',  // reputation — near-black
+  'ts-1989':                 '#3A6080',  // 1989, steel blue sky
+  'ts-reputation':           '#141414',  // reputation, near-black
   'ts-tortured-poets':       '#706858',  // parchment / grey-beige
   'ts-showgirl-life':        '#2A4C14',
   // BTS / K-pop
-  'bts-proof-door':          '#3A1870',  // BTS Proof — rich indigo
+  'bts-proof-door':          '#3A1870',  // BTS Proof, rich indigo
   'bts-map-of-soul-7':       '#402810',  // warm earthy brown
   'bts-dynamite':            '#1A50A0',  // bright saturated blue
   // Jazz
-  'billie-holiday-satin':    '#1A2448',  // Lady in Satin — midnight blue
+  'billie-holiday-satin':    '#1A2448',  // Lady in Satin, midnight blue
   // Bruno Mars
-  'bruno-mars-24k-magic':    '#7A4A08',  // 24K Magic — warm rich gold
+  'bruno-mars-24k-magic':    '#7A4A08',  // 24K Magic, warm rich gold
   // Justin Bieber
-  'justin-bieber-believe':   '#1A2870',  // Believe — deep royal blue
+  'justin-bieber-believe':   '#1A2870',  // Believe, deep royal blue
   // Olivia Rodrigo — keeps the signature purple the user preferred
   'olivia-rodrigo-hero':     '#7B2D8E',
   'olivia-rodrigo-sour':     '#5A2480',  // SOUR
-  'olivia-rodrigo-guts':     '#142818',  // GUTS — dark forest green
-  'beatles-abbey-road':      '#2C3010',  // Abbey Road — olive/warm green
-  'beatles-sgt-peppers':     '#7A1414',  // Sgt Pepper — deep red
-  'lorde-melodrama':         '#162C20',  // Melodrama — teal/dark green
-  'mitski-be-the-cowboy':    '#501420',  // Be the Cowboy — deep crimson
-  'sia':                     '#1E1C3C',  // Sia — slate blue-purple
+  'olivia-rodrigo-guts':     '#142818',  // GUTS, dark forest green
+  'beatles-abbey-road':      '#2C3010',  // Abbey Road, olive/warm green
+  'beatles-sgt-peppers':     '#7A1414',  // Sgt Pepper, deep red
+  'lorde-melodrama':         '#162C20',  // Melodrama, teal/dark green
+  'mitski-be-the-cowboy':    '#501420',  // Be the Cowboy, deep crimson
+  'sia':                     '#1E1C3C',  // Sia, slate blue-purple
   'drake-iceman':            '#0A1018',  // very dark navy
   'bana-zahiti':             '#542C14',  // warm amber-brown
-  'charli-xcx-album':        '#4C1470',  // Brat — vivid violet
+  'charli-xcx-album':        '#4C1470',  // Brat, vivid violet
   'kpop-demon-hunters-ost':  '#2C0C48',  // dark purple
-  'nicki-pinkprint':         '#900E3C',  // The Pinkprint — deep magenta
-  'beyonce-lemonade':        '#8C5A08',  // Lemonade — warm golden
-  'beyonce-self-titled':     '#3C2808',  // Beyoncé — warm brown-gold
-  'pink-floyd-dark-side':    '#120820',  // Dark Side — dark purple/black
-  'rihanna-anti':            '#180808',  // ANTI — near-black red
-  'sza-sos':                 '#0C1A28',  // SOS — dark navy
-  'sabrina-short-n-sweet':   '#781E38',  // Short n Sweet — deep pink
-  'rm-indigo':               '#142040',  // Indigo — indigo blue
-  'tyler-igor':              '#302050',  // IGOR — purple-blue
-  'fleetwood-rumours':       '#5C3010',  // Rumours — warm amber
-  'ariana-sweetener':        '#A8205C',  // Sweetener — pink
-  'bad-bunny-verano':        '#183060',  // Un Verano — deep blue
-  'cardi-invasion':          '#380C2C',  // Invasion of Privacy — dark purple-red
-  'carole-king-tapestry':    '#4A2C10',  // Tapestry — warm brown
-  'lizzo-cuz-i-love-you':   '#8C2840',  // Cuz I Love You — vivid pink-red
-  'missy-under-construction':'#0C1030',  // Under Construction — dark blue
-  'outkast-stankonia':       '#5C0808',  // Stankonia — deep red
-  'drake-if-youre-reading':  '#0A0A1A',  // If You're Reading This — deep navy
-  'japanese-breakfast-jubilee':'#163428', // Jubilee — teal green
+  'nicki-pinkprint':         '#900E3C',  // The Pinkprint, deep magenta
+  'beyonce-lemonade':        '#8C5A08',  // Lemonade, warm golden
+  'beyonce-self-titled':     '#3C2808',  // Beyoncé, warm brown-gold
+  'pink-floyd-dark-side':    '#120820',  // Dark Side, dark purple/black
+  'rihanna-anti':            '#180808',  // ANTI, near-black red
+  'sza-sos':                 '#0C1A28',  // SOS, dark navy
+  'sabrina-short-n-sweet':   '#781E38',  // Short n Sweet, deep pink
+  'rm-indigo':               '#142040',  // Indigo, indigo blue
+  'tyler-igor':              '#302050',  // IGOR, purple-blue
+  'fleetwood-rumours':       '#5C3010',  // Rumours, warm amber
+  'ariana-sweetener':        '#A8205C',  // Sweetener, pink
+  'bad-bunny-verano':        '#183060',  // Un Verano, deep blue
+  'cardi-invasion':          '#380C2C',  // Invasion of Privacy, dark purple-red
+  'carole-king-tapestry':    '#4A2C10',  // Tapestry, warm brown
+  'lizzo-cuz-i-love-you':   '#8C2840',  // Cuz I Love You, vivid pink-red
+  'missy-under-construction':'#0C1030',  // Under Construction, dark blue
+  'outkast-stankonia':       '#5C0808',  // Stankonia, deep red
+  'drake-if-youre-reading':  '#0A0A1A',  // If You're Reading This, deep navy
+  'japanese-breakfast-jubilee':'#163428', // Jubilee, teal green
   // Missing keys used by themes — added so every theme has an accurate bloom color
-  'metallica-master':          '#7A4A0A',  // Master of Puppets — warm sandy amber
-  'late-night-city':           '#101028',  // city at night — deep midnight blue
-  'heartbreak-mood':           '#2A1530',  // moody heartbreak — deep purple
-  'dance-upbeat':              '#1A0840',  // dance energy — vibrant dark purple-blue
-  'morning-energy':            '#9A4808',  // sunrise — warm amber-orange
-  'ariana-grande':             '#7A1A38',  // 7 rings / thank u next — deep rose
-  'bad-bunny':                 '#143060',  // Un Verano Sin Ti — ocean blue
+  'metallica-master':          '#7A4A0A',  // Master of Puppets, warm sandy amber
+  'late-night-city':           '#101028',  // city at night, deep midnight blue
+  'heartbreak-mood':           '#2A1530',  // moody heartbreak, deep purple
+  'dance-upbeat':              '#1A0840',  // dance energy, vibrant dark purple-blue
+  'morning-energy':            '#9A4808',  // sunrise, warm amber-orange
+  'ariana-grande':             '#7A1A38',  // 7 rings / thank u next, deep rose
+  'bad-bunny':                 '#143060',  // Un Verano Sin Ti, ocean blue
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -311,25 +322,42 @@ export default function HomeScreen() {
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
   const { activeProfile } = useProfiles()
 
-  const firstName = user.name.split(' ')[0]
+  // Hannah (v5) sits on the baseline layout AND baseline (unfiltered) content —
+  // no theme-branded hero, no Taylor-only filtering on the generic rails. Only
+  // her explicitly-kept extras (You and your favorites, the two Deep Dive
+  // rails) stay fandom-flavored; everything else reads exactly like Derbc
+  // Studios' catalog-wide baseline.
+  // Hannah Journey gets dedicated Figma landings (switched by stage).
+  // Original Hannah (v5) still uses this baseline layout.
+  const { isHannahJourney } = useHannahJourney()
+  const isHannah = activeProfile.id === 'hannah'
+  const themeForFiltering = adaptiveEnabled && !isHannah ? activeTheme : null
+  // getSectionLabel reads the global activeTheme, which stays set to Taylor
+  // Swift for Hannah (it still drives her artist page etc.) — so section
+  // titles on her home need their own override straight to the plain baseline
+  // fallback, same idea as themeForFiltering above.
+  const sectionLabel = (key: Parameters<typeof getSectionLabel>[0], fallback: string) =>
+    isHannah ? fallback : getSectionLabel(key, fallback)
+
+  const firstName = activeProfile.name.split(' ')[0]
   const handlePillChange = useCallback((idx: number) => {
     if (idx === 0) router.push('/music')
     else if (idx === 1) router.push('/podcast')
-    else if (idx === 2) showConfirmation('Audiobooks open in the Audible app')
+    else if (idx === 2) router.push(`/audible-category/${encodeURIComponent('Bestsellers')}` as any)
   }, [router, showConfirmation])
 
   const defaultHero = useMemo(() => pickRandomHero(), [])
   const heroDisplay = useMemo(() => {
-    if (adaptiveEnabled && activeTheme) {
+    if (themeForFiltering) {
       // Use the image's actual dominant color for gradients, not the theme brand color.
       // Fall back to the theme brand color only when no image hue is available.
-      const imageHue = BANNER_IMAGE_HUES[activeTheme.heroBannerKey ?? ''] ?? activeTheme.heroHue
+      const imageHue = BANNER_IMAGE_HUES[themeForFiltering.heroBannerKey ?? ''] ?? themeForFiltering.heroHue
       return {
-        eyebrow: activeTheme.heroEyebrow,
-        title: activeTheme.heroTitle,
-        subtitle: activeTheme.heroSubtitle,
-        artistId: activeTheme.heroArtistId,
-        bannerKey: activeTheme.heroBannerKey,
+        eyebrow: themeForFiltering.heroEyebrow,
+        title: themeForFiltering.heroTitle,
+        subtitle: themeForFiltering.heroSubtitle,
+        artistId: themeForFiltering.heroArtistId,
+        bannerKey: themeForFiltering.heroBannerKey,
         hue: imageHue,
       }
     }
@@ -341,47 +369,101 @@ export default function HomeScreen() {
       bannerKey: defaultHero.bannerKey,
       hue: defaultHero.hue,
     }
-  }, [adaptiveEnabled, activeTheme, defaultHero])
+  }, [themeForFiltering, defaultHero])
 
   const heroArt = (heroDisplay.bannerKey ? resolveBannerArt(heroDisplay.bannerKey) : null)
     ?? artistAssets[heroDisplay.artistId]
     ?? artistAssets.bts
 
   const songsForYou = useMemo(
-    () => (adaptiveEnabled ? filterSongsForTheme(BASE_SONGS_FOR_YOU, activeTheme) : BASE_SONGS_FOR_YOU),
-    [adaptiveEnabled, activeTheme],
+    () => (themeForFiltering ? filterSongsForTheme(BASE_SONGS_FOR_YOU, themeForFiltering) : BASE_SONGS_FOR_YOU),
+    [themeForFiltering],
   )
   const songPages = useMemo(() => chunk(songsForYou, SONGS_PER_PAGE), [songsForYou])
 
   const continueListening = useMemo(
-    () => (adaptiveEnabled ? filterContinueListening(BASE_CONTINUE_LISTENING, activeTheme, songs) : BASE_CONTINUE_LISTENING),
-    [adaptiveEnabled, activeTheme],
+    () => (themeForFiltering ? filterContinueListening(BASE_CONTINUE_LISTENING, themeForFiltering, songs) : BASE_CONTINUE_LISTENING),
+    [themeForFiltering],
   )
 
   const albumsForYou = useMemo(() => {
-    const pool = adaptiveEnabled ? filterSongsForTheme(songs, activeTheme) : songs
+    const pool = themeForFiltering ? filterSongsForTheme(songs, themeForFiltering) : songs
     return uniqueAlbumsFromSongs(pool, 8)
-  }, [adaptiveEnabled, activeTheme])
+  }, [themeForFiltering])
 
   const featuredArtists = useMemo(
-    () => getFeaturedArtists(adaptiveEnabled ? activeTheme : null, homeFeaturedArtistIds, 16),
-    [adaptiveEnabled, activeTheme],
+    () => getFeaturedArtists(themeForFiltering, isHannah ? hannahFeaturedArtistIds : homeFeaturedArtistIds, 16),
+    [themeForFiltering, isHannah],
+  )
+
+  // "You and your favorites" — kept from Hannah's adaptive home, with
+  // deliberate per-artist tags instead of a generic cycling label.
+  const favoriteInsights = useMemo(
+    () =>
+      HANNAH_FAVORITE_ARTISTS.map(({ artistId, tag, caption }, i) => {
+        const artist = artists.find(a => a.id === artistId)
+        return artist ? { artist, tag, caption, seed: i } : null
+      }).filter((item): item is { artist: (typeof artists)[number]; tag: string; caption: string; seed: number } => item != null),
+    [],
   )
 
   const hiddenGems = useMemo(() => getHiddenGemArtists(hiddenGemsArtistIds), [])
 
   const frequentPlays = useMemo(
-    () => (adaptiveEnabled ? filterSongsForTheme(BASE_FREQUENT_PLAYS, activeTheme) : BASE_FREQUENT_PLAYS),
-    [adaptiveEnabled, activeTheme],
+    () => (themeForFiltering ? filterSongsForTheme(BASE_FREQUENT_PLAYS, themeForFiltering) : BASE_FREQUENT_PLAYS),
+    [themeForFiltering],
   )
 
+  // Fixed Deep Dive rails for Hannah (Rihanna + Taylor Swift), kept from her
+  // adaptive home instead of the baseline's single random-artist pick.
+  const deepDiveRihannaSongs = useMemo(() => songs.filter(song => song.artistId === 'rihanna'), [])
+  const deepDiveTaylorSongs = useMemo(() => songs.filter(song => song.artistId === 'tswift'), [])
+
   const popularInCity = useMemo(
-    () => (adaptiveEnabled ? filterSongsForTheme(BASE_POPULAR_IN_CITY, activeTheme) : BASE_POPULAR_IN_CITY),
-    [adaptiveEnabled, activeTheme],
+    () => (themeForFiltering ? filterSongsForTheme(BASE_POPULAR_IN_CITY, themeForFiltering) : BASE_POPULAR_IN_CITY),
+    [themeForFiltering],
   )
+
+  // ── "Endless scroll" filler sections — generic, catalog-wide, not theme-filtered ──
+  const newReleases = useMemo(
+    () => newForYouSongIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null),
+    [],
+  )
+  const recentlyPlayed = useMemo(
+    () => recentlyPlayedIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null),
+    [],
+  )
+  const deepDiveArtist = useMemo(() => {
+    const id = DEEP_DIVE_ARTIST_POOL[Math.floor(Math.random() * DEEP_DIVE_ARTIST_POOL.length)]
+    return artists.find(a => a.id === id) ?? artists[0]
+  }, [])
+  const deepDiveSongs = useMemo(
+    () => songs.filter(s => s.artistId === deepDiveArtist.id),
+    [deepDiveArtist],
+  )
+  const specialAudioSongs = useMemo(
+    () => songs.filter(s => s.audioBadge && s.audioBadge !== 'SD').slice(0, 14),
+    [],
+  )
+  const summerSessionPlaylists = useMemo(
+    () => SUMMER_SESSION_PLAYLIST_IDS.map(id => playlists.find(p => p.id === id)).filter((p): p is typeof playlists[0] => p != null),
+    [],
+  )
+  const morePlaylistsForYou = useMemo(() => {
+    const used = new Set([
+      ...myMixPlaylistIds,
+      ...showYouWatchPlaylistIds,
+      ...SUMMER_SESSION_PLAYLIST_IDS,
+    ])
+    return playlists.filter(p => !used.has(p.id))
+  }, [])
+  const trueCrimePodcasts = useMemo(() => podcasts.filter(p => p.category === 'True Crime'), [])
+  const podcastsForYou = useMemo(() => podcasts.slice(0, 10), [])
+  const oliviaFeatured = useMemo(() => songs.filter(s => s.artistId === 'olivia-rodrigo').slice(0, 10), [])
 
   const stickyHeaderHeight = useStickyHomeHeaderHeight()
   const { scrollY, onScroll } = useStickyHomeScroll()
+
   const screenWidth = Dimensions.get('window').width
   const songPagePeek = Math.round(screenWidth * 0.32)
   const songPageWidth = screenWidth - songPagePeek
@@ -531,14 +613,29 @@ export default function HomeScreen() {
   const oliviaTopSong = songs.find(s => s.id === OLIVIA_TOP_TRACK.songId)
   const oliviaPodcastList = isOliviaSuperFan ? OLIVIA_PODCASTS : podcasts
 
+  // Hannah Journey: dedicated stage landings (Figma 2715-20026 / 20236 / 20447).
+  if (isHannahJourney) {
+    return <HannahJourneyLanding />
+  }
+
+  // "Create your own" profiles on the Latest version get the current design —
+  // the same visual system as the Hannah Journey landing, tailored to the
+  // artists picked at creation and fully populated with the classic home's
+  // discovery rails. Older prototype versions (1–3) keep their original
+  // layouts below for comparison. Hannah Journey's own landing is untouched.
+  if (activeProfile.id === 'custom' && (activeProfile.prototypeVersion ?? 4) === 4) {
+    return <CustomProfileLanding />
+  }
+
   // Adaptive personas get the redesigned JTBD landing page; the casual persona
   // (KSM) gets the generic Amazon-teal variant; the baseline (Derbc Studios,
-  // Adaptive UI off) keeps the original home below unchanged.
-  if (adaptiveEnabled) {
-    // Rabiat is the true Adaptive-UI demo: her home restructures itself from
-    // implicit/explicit signals (drop hub, lean-in/back, confidence, dual
-    // fandoms). Every other persona keeps the standard persona home.
-    if (activeProfile.id === 'rabiat') return <RabiatAdaptiveHome />
+  // Adaptive UI off) keeps the original home below unchanged. Rabiat (engaged
+  // listener, Latin) now shares the same persona-home interface as Celine
+  // instead of her old bespoke demo layout. Hannah moved back to the baseline
+  // layout too (v5) — no featured-artist hero, no session rail — but keeps
+  // "You and your favorites" and fixed Rihanna/Taylor Swift Deep Dive rails,
+  // spliced into the baseline below.
+  if (adaptiveEnabled && !isHannah) {
     return activeProfile.casual ? <CasualHome /> : <AdaptivePersonaHome />
   }
 
@@ -675,7 +772,7 @@ export default function HomeScreen() {
         )}
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{getSectionLabel('songsForYou', 'Songs for You')}</Text>
+          <Text style={s.sectionTitle}>{sectionLabel('songsForYou', 'Songs for You')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -795,7 +892,7 @@ export default function HomeScreen() {
         )}
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{getSectionLabel('continueListening', 'Continue Listening')}</Text>
+          <Text style={s.sectionTitle}>{sectionLabel('continueListening', 'Continue Listening')}</Text>
           <EdgeFadeRow>
             <ScrollView
               horizontal
@@ -837,6 +934,57 @@ export default function HomeScreen() {
           </EdgeFadeRow>
         </View>
 
+        {isHannah && favoriteInsights.length > 0 && (
+          <View style={s.section}>
+            <View style={s.favoritesHeadRow}>
+              <Text style={s.favoritesTitle}>You and your favorites</Text>
+              <TouchableOpacity onPress={() => router.push('/music')} activeOpacity={0.7}>
+                <Text style={s.seeMoreText}>SEE MORE</Text>
+              </TouchableOpacity>
+            </View>
+            <EdgeFadeRow>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.hRailContent} nestedScrollEnabled>
+                {favoriteInsights.map(item => {
+                  const art = resolveArtistAvatar(item.artist.id, item.artist.imageUri)
+                  return (
+                    <TouchableOpacity
+                      key={item.artist.id}
+                      style={s.insightCard}
+                      activeOpacity={0.85}
+                      onPress={() => router.push(`/artist/${item.artist.id}` as any)}
+                    >
+                      {art ? (
+                        <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                      ) : (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: C.surface }]} />
+                      )}
+                      <LinearGradient
+                        colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)']}
+                        locations={[0, 0.5, 1]}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      <View style={s.insightHead}>
+                        <View style={s.insightAvatarWrap}>
+                          {art ? <Image source={art} style={s.insightAvatar} resizeMode="cover" /> : <View style={[s.insightAvatar, { backgroundColor: C.surface }]} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.insightTag}>{item.tag}</Text>
+                          <Text style={s.insightName} numberOfLines={1}>{item.artist.name}</Text>
+                        </View>
+                      </View>
+                      <View style={s.insightBody}>
+                        <Text style={s.insightMonth}>THIS MONTH</Text>
+                        <Text style={s.insightCaption} numberOfLines={2}>{item.caption}</Text>
+                        <ListeningHeatmap seed={item.seed} />
+                      </View>
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            </EdgeFadeRow>
+          </View>
+        )}
+
         {isOliviaSuperFan && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Olivia Rodrigo news</Text>
@@ -854,7 +1002,7 @@ export default function HomeScreen() {
 
         <View style={s.section}>
           <Text style={s.sectionTitle}>
-            {isOliviaSuperFan ? 'Podcasts about Olivia' : getSectionLabel('podcastsForYou', 'Podcasts you may like')}
+            {isOliviaSuperFan ? 'Podcasts about Olivia' : sectionLabel('podcastsForYou', 'Podcasts you may like')}
           </Text>
           <EdgeFadeRow>
             <ScrollView
@@ -875,13 +1023,18 @@ export default function HomeScreen() {
                     activeOpacity={0.85}
                     onPress={() => router.push(`/podcast-show/${pod.id}` as any)}
                   >
-                    {art ? (
-                      <Image source={art} style={s.podcastArt} resizeMode="cover" />
-                    ) : (
-                      <View style={[s.podcastArt, { backgroundColor: coverColor }]}>
-                        <Ionicons name="mic" size={32} color="rgba(255,255,255,0.2)" />
+                    <View style={s.podcastArtWrap}>
+                      {art ? (
+                        <Image source={art} style={s.podcastArt} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.podcastArt, { backgroundColor: coverColor }]}>
+                          <Ionicons name="mic" size={32} color="rgba(255,255,255,0.2)" />
+                        </View>
+                      )}
+                      <View style={s.podcastMicBadge}>
+                        <Ionicons name="mic-outline" size={13} color="#fff" />
                       </View>
-                    )}
+                    </View>
                     <Text style={s.podcastTitle} numberOfLines={2}>{pod.title}</Text>
                     <Text style={s.podcastHost} numberOfLines={1}>{host}</Text>
                   </TouchableOpacity>
@@ -921,7 +1074,7 @@ export default function HomeScreen() {
         )}
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{getSectionLabel('albumsForYou', 'Albums for you')}</Text>
+          <Text style={s.sectionTitle}>{sectionLabel('albumsForYou', 'Albums for you')}</Text>
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.hRailContent}>
               {albumsForYou.map(album => (
@@ -929,7 +1082,7 @@ export default function HomeScreen() {
                   key={album.id}
                   album={album}
                   adaptiveEnabled={adaptiveEnabled}
-                  onOpen={() => openSong(album.id)}
+                  onOpen={() => router.push(`/album/song-album-${album.id}` as any)}
                   onDragStart={handleAlbumDragStart}
                   onDragMove={handleAlbumDragMove}
                   onDragDrop={handleAlbumDragDrop}
@@ -942,55 +1095,10 @@ export default function HomeScreen() {
           </EdgeFadeRow>
         </View>
 
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Songs from Shows You Watch</Text>
-          <EdgeFadeRow>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              nestedScrollEnabled
-              contentContainerStyle={s.hRailContent}
-            >
-              {SHOWS_YOU_WATCH.map(show => {
-                const art = albumArtAssets[show.bannerKey] ?? null
-                return (
-                  <TouchableOpacity
-                    key={show.id}
-                    style={s.showCard}
-                    activeOpacity={0.85}
-                    onPress={() => show.playlistId && router.push(`/playlist/${show.playlistId}` as any)}
-                  >
-                    <View style={s.showImageWrap}>
-                      {art ? (
-                        <Image
-                          source={art}
-                          style={s.showImage}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View style={[s.showImage, { backgroundColor: show.accentColor }]} />
-                      )}
-                      <LinearGradient
-                        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.88)']}
-                        style={s.showGradient}
-                        pointerEvents="none"
-                      />
-                      <View style={s.showTextWrap}>
-                        <Text style={s.showTitle} numberOfLines={2}>{show.title}</Text>
-                        <Text style={s.showSubtitle} numberOfLines={1}>{show.subtitle}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                )
-              })}
-            </ScrollView>
-          </EdgeFadeRow>
-        </View>
+        <ShowsYouWatchRail />
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{getSectionLabel('frequentPlays', 'Frequent plays')}</Text>
-          <Text style={s.frequentSubLabel}>Your top artists</Text>
+          <Text style={s.sectionTitle}>{sectionLabel('frequentPlays', 'Your Top Artists')}</Text>
           <EdgeFadeRow>
             <HRail
               data={featuredArtists}
@@ -1026,7 +1134,7 @@ export default function HomeScreen() {
               }}
             />
           </EdgeFadeRow>
-          <Text style={[s.frequentSubLabel, s.frequentTracksLabel]}>Popular tracks</Text>
+          <Text style={s.popularTracksTitle}>Popular Tracks</Text>
           <EdgeFadeRow>
             <HRail
               data={frequentPlays}
@@ -1064,7 +1172,7 @@ export default function HomeScreen() {
           </EdgeFadeRow>
         </View>
 
-        {(!adaptiveEnabled || activeTheme?.id === 'chill' || activeTheme?.id === 'jazz') && (
+        {(!adaptiveEnabled || isHannah || activeTheme?.id === 'chill' || activeTheme?.id === 'jazz') && (
           <View style={s.section}>
             <Text style={s.sectionTitle}>Rising & global sounds</Text>
             <Text style={s.frequentSubLabel}>Artists you might not know yet</Text>
@@ -1107,7 +1215,7 @@ export default function HomeScreen() {
         )}
 
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{getSectionLabel('popularInCity', 'Popular in your city')}</Text>
+          <Text style={s.sectionTitle}>{sectionLabel('popularInCity', 'Popular in your city')}</Text>
           <EdgeFadeRow>
             <HRail
               data={popularInCity}
@@ -1174,7 +1282,7 @@ export default function HomeScreen() {
 
         <View style={s.section}>
           <View style={s.sectionHeaderRow}>
-            <Text style={s.sectionTitleInline}>{getSectionLabel('myMixes', 'My Mixes')}</Text>
+            <Text style={s.sectionTitleInline}>{sectionLabel('myMixes', 'My Mixes')}</Text>
           </View>
           <Text style={s.sectionSubtitle}>Updated at 6:00 AM</Text>
           <EdgeFadeRow>
@@ -1211,6 +1319,428 @@ export default function HomeScreen() {
             />
           </EdgeFadeRow>
         </View>
+
+        {/* ── Endless-scroll filler — the deeper you scroll, the more the wider
+            catalog surfaces. Deliberately generic / not theme-tailored. ── */}
+
+        {newReleases.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>New Releases For You</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={newReleases}
+                keyExtractor={(song) => song.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: song }) => {
+                  const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      onPress={() => openSong(song.id)}
+                      onLongPress={() => openAdaptiveMenu({ kind: 'song', song })}
+                      delayLongPress={400}
+                      activeOpacity={0.85}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: song.albumArtColor }]}>
+                            <Ionicons name="musical-note" size={28} color="rgba(255,255,255,0.15)" />
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{song.title}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        {recentlyPlayed.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Recently Played</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={recentlyPlayed}
+                keyExtractor={(song) => song.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: song }) => {
+                  const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      onPress={() => openSong(song.id)}
+                      onLongPress={() => openAdaptiveMenu({ kind: 'song', song })}
+                      delayLongPress={400}
+                      activeOpacity={0.85}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: song.albumArtColor }]}>
+                            <Ionicons name="musical-note" size={28} color="rgba(255,255,255,0.15)" />
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{song.title}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        {isHannah ? (
+          <>
+            {[
+              { title: 'Deep Dive: Rihanna', list: deepDiveRihannaSongs },
+              { title: 'Deep Dive: Taylor Swift', list: deepDiveTaylorSongs },
+            ].map(({ title, list }) =>
+              list.length > 0 && (
+                <View style={s.section} key={title}>
+                  <Text style={s.sectionTitle}>{title}</Text>
+                  <Text style={s.frequentSubLabel}>More from an artist you follow</Text>
+                  <EdgeFadeRow>
+                    <HRail
+                      data={list}
+                      keyExtractor={(song) => song.id}
+                      contentContainerStyle={s.hRailContent}
+                      renderItem={({ item: song }) => {
+                        const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                        return (
+                          <TouchableOpacity
+                            style={s.continueCard}
+                            onPress={() => openSong(song.id)}
+                            onLongPress={() => openAdaptiveMenu({ kind: 'song', song })}
+                            delayLongPress={400}
+                            activeOpacity={0.85}
+                          >
+                            <View style={s.continueArtWrap}>
+                              {art ? (
+                                <Image source={art} style={s.continueArt} resizeMode="cover" />
+                              ) : (
+                                <View style={[s.continueArt, { backgroundColor: song.albumArtColor }]}>
+                                  <Ionicons name="musical-note" size={28} color="rgba(255,255,255,0.15)" />
+                                </View>
+                              )}
+                            </View>
+                            <Text style={s.continueTitle} numberOfLines={2}>{song.title}</Text>
+                          </TouchableOpacity>
+                        )
+                      }}
+                    />
+                  </EdgeFadeRow>
+                </View>
+              ),
+            )}
+          </>
+        ) : (
+          deepDiveSongs.length > 0 && (
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Deep Dive: {deepDiveArtist.name}</Text>
+              <Text style={s.frequentSubLabel}>More from an artist you follow</Text>
+              <EdgeFadeRow>
+                <HRail
+                  data={deepDiveSongs}
+                  keyExtractor={(song) => song.id}
+                  contentContainerStyle={s.hRailContent}
+                  renderItem={({ item: song }) => {
+                    const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                    return (
+                      <TouchableOpacity
+                        style={s.continueCard}
+                        onPress={() => openSong(song.id)}
+                        onLongPress={() => openAdaptiveMenu({ kind: 'song', song })}
+                        delayLongPress={400}
+                        activeOpacity={0.85}
+                      >
+                        <View style={s.continueArtWrap}>
+                          {art ? (
+                            <Image source={art} style={s.continueArt} resizeMode="cover" />
+                          ) : (
+                            <View style={[s.continueArt, { backgroundColor: song.albumArtColor }]}>
+                              <Ionicons name="musical-note" size={28} color="rgba(255,255,255,0.15)" />
+                            </View>
+                          )}
+                        </View>
+                        <Text style={s.continueTitle} numberOfLines={2}>{song.title}</Text>
+                      </TouchableOpacity>
+                    )
+                  }}
+                />
+              </EdgeFadeRow>
+            </View>
+          )
+        )}
+
+        {specialAudioSongs.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Special Audio Albums</Text>
+            <Text style={s.frequentSubLabel}>Dolby Atmos & 360 Reality Audio</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={specialAudioSongs}
+                keyExtractor={(song) => song.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: song }) => {
+                  const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      onPress={() => openSong(song.id)}
+                      onLongPress={() => openAdaptiveMenu({ kind: 'song', song })}
+                      delayLongPress={400}
+                      activeOpacity={0.85}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: song.albumArtColor }]}>
+                            <Ionicons name="musical-note" size={28} color="rgba(255,255,255,0.15)" />
+                          </View>
+                        )}
+                      </View>
+                      <View style={s.songTitleRow}>
+                        <Text style={[s.continueTitle, s.songTitleFlex]} numberOfLines={2}>{song.title}</Text>
+                        <Text style={s.exclusiveBadgeText}>{song.audioBadge === '360_REALITY_AUDIO' ? '360 AUDIO' : 'ATMOS'}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Stations For You</Text>
+          <Text style={s.frequentSubLabel}>Hot picks, playing now</Text>
+          <EdgeFadeRow>
+            <HRail
+              data={RADIO_STATIONS}
+              keyExtractor={(station) => station.id}
+              contentContainerStyle={s.hRailContent}
+              renderItem={({ item: station }) => {
+                const art = albumArtAssets[station.artKey] ?? null
+                return (
+                  <TouchableOpacity
+                    style={s.continueCard}
+                    onPress={() => openSong(station.songId)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={s.continueArtWrap}>
+                      {art ? (
+                        <Image source={art} style={s.continueArt} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.continueArt, { backgroundColor: C.surface }]} />
+                      )}
+                      <View style={s.radioIconBadge}>
+                        <Ionicons name="radio-outline" size={16} color="#fff" />
+                      </View>
+                    </View>
+                    <Text style={s.continueTitle} numberOfLines={2}>{station.name}</Text>
+                  </TouchableOpacity>
+                )
+              }}
+            />
+          </EdgeFadeRow>
+        </View>
+
+        {summerSessionPlaylists.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Summer Sessions</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={summerSessionPlaylists}
+                keyExtractor={(pl) => pl.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: pl }) => {
+                  const art = pl.coverArtPath ? albumArtAssets[pl.coverArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      activeOpacity={0.85}
+                      onPress={() => router.push(`/playlist/${pl.id}` as any)}
+                      onLongPress={() => openAdaptiveMenu({ kind: 'playlist', playlist: pl })}
+                      delayLongPress={400}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: C.surface }]}>
+                            <Ionicons name="musical-notes" size={28} color="rgba(255,255,255,0.15)" />
+                          </View>
+                        )}
+                        <View style={s.continuePlayPos}>
+                          <PlayOverlay size={30} />
+                        </View>
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{pl.name}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        {oliviaFeatured.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Featured This Week</Text>
+            <Text style={s.frequentSubLabel}>Because you listen to Olivia Rodrigo</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={oliviaFeatured}
+                keyExtractor={(song) => song.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: song }) => {
+                  const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      onPress={() => openSong(song.id)}
+                      onLongPress={() => openAdaptiveMenu({ kind: 'song', song })}
+                      delayLongPress={400}
+                      activeOpacity={0.85}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: song.albumArtColor }]}>
+                            <Ionicons name="musical-note" size={28} color="rgba(255,255,255,0.15)" />
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{song.title}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        {trueCrimePodcasts.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>True Crime Picks</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={trueCrimePodcasts}
+                keyExtractor={(pod) => pod.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: pod }) => {
+                  const art = pod.coverArtPath ? albumArtAssets[pod.coverArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      activeOpacity={0.85}
+                      onPress={() => router.push(`/podcast-show/${pod.id}` as any)}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: pod.coverColor }]}>
+                            <Ionicons name="mic-outline" size={28} color="rgba(255,255,255,0.2)" />
+                          </View>
+                        )}
+                        <View style={s.podcastMicBadge}>
+                          <Ionicons name="mic-outline" size={13} color="#fff" />
+                        </View>
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{pod.title}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Podcasts For You</Text>
+          <EdgeFadeRow>
+            <HRail
+              data={podcastsForYou}
+              keyExtractor={(pod) => pod.id}
+              contentContainerStyle={s.hRailContent}
+              renderItem={({ item: pod }) => {
+                const art = pod.coverArtPath ? albumArtAssets[pod.coverArtPath] : null
+                return (
+                  <TouchableOpacity
+                    style={s.continueCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push(`/podcast-show/${pod.id}` as any)}
+                  >
+                    <View style={s.continueArtWrap}>
+                      {art ? (
+                        <Image source={art} style={s.continueArt} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.continueArt, { backgroundColor: pod.coverColor }]}>
+                          <Ionicons name="mic-outline" size={28} color="rgba(255,255,255,0.2)" />
+                        </View>
+                      )}
+                      <View style={s.podcastMicBadge}>
+                        <Ionicons name="mic-outline" size={13} color="#fff" />
+                      </View>
+                    </View>
+                    <Text style={s.continueTitle} numberOfLines={2}>{pod.title}</Text>
+                  </TouchableOpacity>
+                )
+              }}
+            />
+          </EdgeFadeRow>
+        </View>
+
+        {morePlaylistsForYou.length > 0 && (
+          <View style={s.section}>
+            <View style={s.sectionHeaderRow}>
+              <Text style={s.sectionTitleInline}>Playlists You Might Like</Text>
+            </View>
+            <Text style={s.sectionSubtitle}>Fresh picks, updated every Sunday</Text>
+            <EdgeFadeRow>
+              <HRail
+                data={morePlaylistsForYou}
+                keyExtractor={(pl) => pl.id}
+                contentContainerStyle={s.hRailContent}
+                renderItem={({ item: pl }) => {
+                  const art = pl.coverArtPath ? albumArtAssets[pl.coverArtPath] : null
+                  return (
+                    <TouchableOpacity
+                      style={s.continueCard}
+                      activeOpacity={0.85}
+                      onPress={() => router.push(`/playlist/${pl.id}` as any)}
+                      onLongPress={() => openAdaptiveMenu({ kind: 'playlist', playlist: pl })}
+                      delayLongPress={400}
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: C.surface }]}>
+                            <Ionicons name="musical-notes" size={28} color="rgba(255,255,255,0.15)" />
+                          </View>
+                        )}
+                        <View style={s.continuePlayPos}>
+                          <PlayOverlay size={30} />
+                        </View>
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{pl.name}</Text>
+                    </TouchableOpacity>
+                  )
+                }}
+              />
+            </EdgeFadeRow>
+          </View>
+        )}
       </Animated.ScrollView>
 
       <StickyHomeHeader
@@ -1227,6 +1757,7 @@ export default function HomeScreen() {
           dragY={dragY}
         />
       )}
+
     </View>
   )
 }
@@ -1257,6 +1788,31 @@ const s = StyleSheet.create({
   heroSub:      { fontSize: 13, color: 'rgba(255,255,255,0.72)', marginTop: 6, lineHeight: 18 },
   heroPlayBtn:  { width: 56, height: 56, borderRadius: 28, backgroundColor: C.cyan, alignItems: 'center', justifyContent: 'center', shadowColor: C.cyan, shadowOpacity: 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
 
+  hjOliviaCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: C.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hjOliviaArt: { width: 56, height: 56, borderRadius: 28 },
+  hjOliviaEyebrow: { fontSize: 11, fontWeight: '700', color: C.cyan, letterSpacing: 0.3, marginBottom: 2 },
+  hjOliviaTitle: { ...typeHeadline(18), color: '#fff' },
+  hjOliviaSub: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
+  hjBelongRow: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  hjBelongText: { fontSize: 13, color: C.textSecondary },
+
   section:      { marginBottom: 28 },
   sectionTitle: { ...typeHeadline(23), color: C.textPrimary, marginBottom: 14, paddingHorizontal: 16 },
   sectionHeaderRow: { paddingHorizontal: 16 },
@@ -1264,7 +1820,21 @@ const s = StyleSheet.create({
   sectionSubtitle: { fontSize: 13, color: C.textSecondary, paddingHorizontal: 16, marginTop: 0, marginBottom: 14 },
 
   frequentSubLabel: { fontSize: 13, color: C.textSecondary, paddingHorizontal: 16, marginTop: -8, marginBottom: 12 },
-  frequentTracksLabel: { marginTop: 20, marginBottom: 12 },
+  popularTracksTitle: { ...typeHeadline(18), color: C.textPrimary, paddingHorizontal: 16, marginTop: 24, marginBottom: 14 },
+
+  // "You and your favorites" (Hannah, kept from her adaptive home)
+  favoritesHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 14 },
+  favoritesTitle: { ...typeHeadline(23), color: C.textPrimary },
+  seeMoreText: { fontSize: 13, fontWeight: '700', color: C.textMuted },
+  insightCard: { width: 190, height: 190, borderRadius: 16, overflow: 'hidden', padding: 12, justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)' },
+  insightHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  insightAvatarWrap: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden' },
+  insightAvatar: { width: 32, height: 32 },
+  insightTag: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  insightName: { fontSize: 14, fontWeight: '700', color: '#fff', marginTop: 2 },
+  insightBody: { gap: 4 },
+  insightMonth: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.75)', letterSpacing: 0.4 },
+  insightCaption: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 4 },
 
   songsScrollContent: { paddingLeft: 8 },
   songsPage:    { paddingRight: 8 },
@@ -1295,9 +1865,40 @@ const s = StyleSheet.create({
   },
 
   podcastCard:  { width: 200 },
-  podcastArt:   { width: 200, height: 120, borderRadius: R.sm, overflow: 'hidden', marginBottom: 8 },
+  podcastArtWrap: { position: 'relative', marginBottom: 8 },
+  podcastArt:   { width: 200, height: 120, borderRadius: R.sm, overflow: 'hidden' },
   podcastTitle: { fontSize: 14, fontWeight: '600', color: C.textPrimary, marginBottom: 2 },
   podcastHost:  { fontSize: 12, color: C.textSecondary },
+  // Black-circle mic badge — same bottom-right treatment as the radio
+  // stations' badge, so podcast cards read as clearly as station cards do.
+  podcastMicBadge: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Same black-circle treatment, bottom-left (matching the radio icon's
+  // existing position) so it actually pops against the album art.
+  radioIconBadge: {
+    position: 'absolute',
+    left: 8,
+    bottom: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   albumCard:    { width: 140 },
   albumArtWrap: { position: 'relative', marginBottom: 8 },
@@ -1397,14 +1998,6 @@ const s = StyleSheet.create({
   oliviaMerchCard: { width: 130 },
   oliviaMerchArt: { width: 130, height: 130, borderRadius: R.sm, overflow: 'hidden', marginBottom: 8 },
   oliviaMerchLabel: { fontSize: 13, fontWeight: '600', color: C.textPrimary, lineHeight: 17 },
-
-  showCard:      { width: 160 },
-  showImageWrap: { position: 'relative', borderRadius: 12, overflow: 'hidden' },
-  showImage:     { width: 160, height: 220, borderRadius: 12 },
-  showGradient:  { position: 'absolute', bottom: 0, left: 0, right: 0, height: 90 },
-  showTextWrap:  { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10 },
-  showTitle:     { fontSize: 14, fontWeight: '700', color: '#fff', lineHeight: 18, marginBottom: 2 },
-  showSubtitle:  { fontSize: 12, color: 'rgba(255,255,255,0.72)' },
 
   loveIslandRail: { marginBottom: 28 },
   villaCard:      { borderRadius: 16, overflow: 'hidden' },

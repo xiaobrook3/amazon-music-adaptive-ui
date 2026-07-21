@@ -5,33 +5,37 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { Text } from '../../src/components/AppText'
 import { AppImage as Image } from '../../src/components/AppImage'
-import { albumArtAssets, oliviaPageAssets } from '../../src/data/assetMap'
-import {
-  OLIVIA_DISCOGRAPHY,
-  type DiscographyRelease,
-  type DiscographyType,
-} from '../../src/data/oliviaRodrigoPage'
+import { albumArtAssets, oliviaPageAssets, artistAssets } from '../../src/data/assetMap'
+import { OLIVIA_DISCOGRAPHY, type DiscographyRelease } from '../../src/data/oliviaRodrigoPage'
+import { TAYLOR_DISCOGRAPHY, type TaylorDiscographyRelease } from '../../src/data/taylorSwiftPage'
+import { BTS_DISCOGRAPHY, type BtsDiscographyRelease } from '../../src/data/btsPage'
 import { C, typeHeadline } from '../../src/theme'
-import NotFound from '../+not-found'
 
 type FilterTab = 'all' | 'albums' | 'singles' | 'eps'
+type AnyRelease = DiscographyRelease | TaylorDiscographyRelease | BtsDiscographyRelease
 
 const GREY = '#a6a6a6'
 
-function resolveArt(key?: string) {
-  return (key ? albumArtAssets[key] : null) ?? oliviaPageAssets.profile
+// Discography data + art fallback + display name per artist — add a new entry
+// here when a new artist gets a full "You & Artist" build-out.
+const ARTIST_DISCOGRAPHIES: Record<string, { name: string; releases: AnyRelease[]; fallbackArt: any }> = {
+  'olivia-rodrigo': { name: 'Olivia Rodrigo', releases: OLIVIA_DISCOGRAPHY, fallbackArt: oliviaPageAssets.profile },
+  'tswift':         { name: 'Taylor Swift',   releases: TAYLOR_DISCOGRAPHY, fallbackArt: artistAssets['tswift'] },
+  'bts':            { name: 'BTS',            releases: BTS_DISCOGRAPHY,    fallbackArt: artistAssets['bts'] },
 }
 
-function typeLabel(type: DiscographyType): string {
+function typeLabel(type: AnyRelease['type']): string {
   switch (type) {
     case 'album':   return 'Album'
     case 'deluxe':  return 'Deluxe'
     case 'single':  return 'Single'
     case 'ep':      return 'EP'
+    case 'live':    return 'Live'
+    default:        return type
   }
 }
 
-function releaseMatchesFilter(r: DiscographyRelease, filter: FilterTab): boolean {
+function releaseMatchesFilter(r: AnyRelease, filter: FilterTab): boolean {
   if (filter === 'all') return true
   if (filter === 'albums') return r.type === 'album' || r.type === 'deluxe'
   if (filter === 'singles') return r.type === 'single'
@@ -41,55 +45,45 @@ function releaseMatchesFilter(r: DiscographyRelease, filter: FilterTab): boolean
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function AlbumCard({ release }: { release: DiscographyRelease }) {
-  const [expanded, setExpanded] = useState(false)
+function resolveArt(key: string | undefined, fallback: any) {
+  return (key ? albumArtAssets[key] : null) ?? fallback
+}
+
+function AlbumCard({ release, fallbackArt, router }: { release: AnyRelease; fallbackArt: any; router: ReturnType<typeof useRouter> }) {
   const trackCount = release.tracks?.length ?? 0
 
   return (
-    <View style={s.albumCard}>
-      <TouchableOpacity
-        style={s.albumRow}
-        activeOpacity={0.85}
-        onPress={() => release.tracks && setExpanded(v => !v)}
-      >
-        <Image source={resolveArt(release.artKey)} style={s.albumArt} resizeMode="cover" />
+    <TouchableOpacity
+      style={s.albumCard}
+      activeOpacity={0.85}
+      onPress={() => router.push(`/album/${release.id}` as any)}
+    >
+      <View style={s.albumRow}>
+        <Image source={resolveArt(release.artKey, fallbackArt)} style={s.albumArt} resizeMode="cover" />
         <View style={{ flex: 1 }}>
           <Text style={s.albumTitle} numberOfLines={1}>{release.title}</Text>
           <Text style={s.albumMeta}>{typeLabel(release.type)} • {trackCount} tracks</Text>
         </View>
-        {release.tracks ? (
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={GREY}
-          />
-        ) : null}
-      </TouchableOpacity>
-
-      {expanded && release.tracks && (
-        <View style={s.trackList}>
-          {release.tracks.map((t, i) => (
-            <View key={t.title + i} style={s.trackRow}>
-              <Text style={s.trackNum}>{i + 1}</Text>
-              <Text style={s.trackTitle} numberOfLines={1}>{t.title}</Text>
-              <Text style={s.trackDur}>{t.duration}</Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
+        <Ionicons name="chevron-forward" size={18} color={GREY} />
+      </View>
+    </TouchableOpacity>
   )
 }
 
-function SingleRow({ release }: { release: DiscographyRelease }) {
+function SingleRow({ release, fallbackArt, router }: { release: AnyRelease; fallbackArt: any; router: ReturnType<typeof useRouter> }) {
   return (
-    <View style={s.singleRow}>
-      <Image source={resolveArt(release.artKey)} style={s.singleArt} resizeMode="cover" />
+    <TouchableOpacity
+      style={s.singleRow}
+      activeOpacity={0.85}
+      onPress={() => router.push(`/album/${release.id}` as any)}
+    >
+      <Image source={resolveArt(release.artKey, fallbackArt)} style={s.singleArt} resizeMode="cover" />
       <View style={{ flex: 1 }}>
         <Text style={s.singleTitle} numberOfLines={1}>{release.title}</Text>
         <Text style={s.singleMeta}>{typeLabel(release.type)}</Text>
       </View>
-    </View>
+      <Ionicons name="chevron-forward" size={16} color={GREY} />
+    </TouchableOpacity>
   )
 }
 
@@ -101,14 +95,17 @@ export default function ArtistDiscographyScreen() {
   const insets = useSafeAreaInsets()
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
 
+  const artistData = ARTIST_DISCOGRAPHIES[id ?? ''] ?? ARTIST_DISCOGRAPHIES['olivia-rodrigo']
+  const fallbackArt = artistData.fallbackArt
+
   const filtered = useMemo(
-    () => OLIVIA_DISCOGRAPHY.filter(r => releaseMatchesFilter(r, activeFilter)),
-    [activeFilter],
+    () => artistData.releases.filter(r => releaseMatchesFilter(r, activeFilter)),
+    [artistData, activeFilter],
   )
 
   // Group by year for the "All" timeline view
-  const byYear = useMemo<Map<number, DiscographyRelease[]>>(() => {
-    const map = new Map<number, DiscographyRelease[]>()
+  const byYear = useMemo<Map<number, AnyRelease[]>>(() => {
+    const map = new Map<number, AnyRelease[]>()
     for (const r of filtered) {
       const list = map.get(r.year) ?? []
       list.push(r)
@@ -122,12 +119,7 @@ export default function ArtistDiscographyScreen() {
     [byYear],
   )
 
-  // The catalog data here is Olivia's; don't render it under another
-  // artist's name if someone hand-edits the URL.
-  if (id !== 'olivia-rodrigo') {
-    return <NotFound />
-  }
-  const artistName = 'Olivia Rodrigo'
+  const artistName = artistData.name
 
   const FILTER_TABS: { key: FilterTab; label: string }[] = [
     { key: 'all',     label: 'All' },
@@ -142,11 +134,7 @@ export default function ArtistDiscographyScreen() {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-          hitSlop={12}
-          style={s.backBtn}
-        >
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={s.backBtn}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
@@ -195,9 +183,9 @@ export default function ArtistDiscographyScreen() {
                 <View style={s.yearReleases}>
                   {releases.map(r =>
                     r.type === 'album' || r.type === 'deluxe' || (r.type === 'ep' && r.tracks) ? (
-                      <AlbumCard key={r.id} release={r} />
+                      <AlbumCard key={r.id} release={r} fallbackArt={fallbackArt} router={router} />
                     ) : (
-                      <SingleRow key={r.id} release={r} />
+                      <SingleRow key={r.id} release={r} fallbackArt={fallbackArt} router={router} />
                     ),
                   )}
                 </View>
@@ -208,7 +196,7 @@ export default function ArtistDiscographyScreen() {
           // Album cards only
           <View style={s.albumsSection}>
             {filtered.map(r => (
-              <AlbumCard key={r.id} release={r} />
+              <AlbumCard key={r.id} release={r} fallbackArt={fallbackArt} router={router} />
             ))}
           </View>
         ) : activeFilter === 'eps' ? (
@@ -216,9 +204,9 @@ export default function ArtistDiscographyScreen() {
           <View style={s.albumsSection}>
             {filtered.map(r =>
               r.tracks ? (
-                <AlbumCard key={r.id} release={r} />
+                <AlbumCard key={r.id} release={r} fallbackArt={fallbackArt} router={router} />
               ) : (
-                <SingleRow key={r.id} release={r} />
+                <SingleRow key={r.id} release={r} fallbackArt={fallbackArt} router={router} />
               ),
             )}
           </View>
@@ -226,7 +214,7 @@ export default function ArtistDiscographyScreen() {
           // Singles flat list
           <View style={s.singlesSection}>
             {filtered.map(r => (
-              <SingleRow key={r.id} release={r} />
+              <SingleRow key={r.id} release={r} fallbackArt={fallbackArt} router={router} />
             ))}
           </View>
         )}
@@ -369,37 +357,6 @@ const s = StyleSheet.create({
   },
 
   // Track list inside album card
-  trackList: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 2,
-  },
-  trackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-    gap: 12,
-  },
-  trackNum: {
-    width: 20,
-    fontSize: 13,
-    color: GREY,
-    textAlign: 'center',
-  },
-  trackTitle: {
-    flex: 1,
-    fontSize: 14,
-    color: '#fff',
-  },
-  trackDur: {
-    fontSize: 13,
-    color: GREY,
-    minWidth: 36,
-    textAlign: 'right',
-  },
-
   // Single row
   singleRow: {
     flexDirection: 'row',

@@ -6,14 +6,14 @@ export const OLIVIA_ABOUT_ASK_CHIPS = [
 export const OLIVIA_ABOUT_LYRIC_NOTES = [
   {
     id: 'drivers',
-    title: '"drivers license" — the bridge heard \'round the world',
+    title: '"drivers license", the bridge heard \'round the world',
     linkLabel: 'Production note',
     locked: false,
     artKey: 'olivia-about-note-drivers',
   },
   {
     id: 'vampire',
-    title: '"vampire" — the key change, decoded',
+    title: '"vampire", the key change, decoded',
     linkLabel: 'Keep listening to unlock',
     locked: true,
     artKey: 'olivia-rodrigo-guts',
@@ -48,7 +48,7 @@ export const OLIVIA_ABOUT_INSPIRES = [
 
 export const OLIVIA_ABOUT_MERCH = [
   { title: 'GUTS Tour Tee', price: '$38', artKey: 'olivia-about-merch-tee' },
-  { title: 'GUTS Vinyl — Purple', price: '$32', artKey: 'olivia-about-merch-vinyl' },
+  { title: 'GUTS Vinyl, Purple', price: '$32', artKey: 'olivia-about-merch-vinyl' },
   { title: 'GUTS Era Poster', price: '$18', artKey: 'olivia-rodrigo-guts' },
 ]
 

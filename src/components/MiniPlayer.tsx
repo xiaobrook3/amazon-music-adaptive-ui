@@ -1,7 +1,6 @@
 import { TouchableOpacity, View, StyleSheet } from 'react-native'
 import { AppImage as Image } from './AppImage'
 import { Text } from './AppText'
-import EqualizerBars from './EqualizerBars'
 import { useRouter } from 'expo-router'
 import { usePlaybackState, usePlaybackProgress } from '../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../context/AdaptiveUIContext'
@@ -45,10 +44,6 @@ export default function MiniPlayer({ embedded = false }: Props) {
             ) : (
               <View style={[s.art, { backgroundColor: song.albumArtColor }]} />
             )}
-            {/* Now-playing equalizer overlay */}
-            <View style={s.vizOverlay} pointerEvents="none">
-              <EqualizerBars playing={isPlaying} size={15} color="#fff" />
-            </View>
           </View>
           <View style={s.meta}>
             <Text style={s.title} numberOfLines={1}>{song.title}</Text>
@@ -131,12 +126,6 @@ const s = StyleSheet.create({
     height: 43,
     borderRadius: 4,
     overflow: 'hidden',
-  },
-  vizOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.34)',
   },
   meta: {
     flex: 1,

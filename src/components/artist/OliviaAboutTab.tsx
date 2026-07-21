@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { albumArtAssets, oliviaAboutAssets, oliviaPageAssets, logoAssets } from '../../data/assetMap'
 import { songs } from '../../data/mockData'
+import { findFanGroupForArtist, getFanGroupPosts, resolvePostArt } from '../../data/fanGroupContent'
 import { usePlaybackState } from '../../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import {
@@ -33,19 +34,6 @@ const CARD_W = (SCREEN_W - 44) / 2
 
 function resolveAboutArt(key: string) {
   return oliviaAboutAssets[key] ?? albumArtAssets[key] ?? oliviaPageAssets.profile
-}
-
-function SectionTag({ label, variant }: { label: string; variant: 'teal' | 'purple' | 'gold' }) {
-  const styles = {
-    teal: { bg: '#13322c', text: '#4fe3c0' },
-    purple: { bg: '#2a2440', text: '#c9b6e0' },
-    gold: { bg: '#3a2e18', text: '#e8b860' },
-  }[variant]
-  return (
-    <View style={[a.tag, { backgroundColor: styles.bg }]}>
-      <Text style={[a.tagText, { color: styles.text }]}>{label}</Text>
-    </View>
-  )
 }
 
 function InfluenceAvatar({
@@ -89,6 +77,14 @@ export default function OliviaAboutTab() {
   const [joined, setJoined] = useState(false)
   const [query, setQuery] = useState('')
 
+  // Real fan group + a real post from it (src/data/fanGroupContent.ts),
+  // replacing the previous hardcoded "Sad Girl Hour" placeholder post.
+  const fanGroup = findFanGroupForArtist('olivia-rodrigo')
+  const fanPost = fanGroup ? getFanGroupPosts(fanGroup.id)[0] : undefined
+  const openFanGroup = () => {
+    if (fanGroup) router.push(`/fan-group/${fanGroup.id}` as any)
+  }
+
   // Ask-Alexa hands the question to Maestro, which actually answers it.
   const askAlexa = (text?: string) => {
     const asked = (text ?? query).trim()
@@ -111,13 +107,6 @@ export default function OliviaAboutTab() {
 
   return (
     <View style={a.wrap}>
-      <View style={a.banner}>
-        <Ionicons name="sparkles" size={14} color={C.cyan} />
-        <Text style={a.bannerText}>
-          Deeper because you've listened 6 years — newcomers see a shorter version.
-        </Text>
-      </View>
-
       <View style={a.storyCard}>
         <Text style={a.sectionTitle18}>The story so far</Text>
         <View style={a.storyMediaWrap}>
@@ -128,7 +117,7 @@ export default function OliviaAboutTab() {
           </View>
         </View>
         <Text style={a.bodyText}>
-          From bedroom demos to SOUR's record-breaking debut, then the sharper, restless GUTS — here's how Olivia turned teenage heartbreak into a generation's soundtrack.
+          From bedroom demos to SOUR's record-breaking debut, then the sharper, restless GUTS, here's how Olivia turned teenage heartbreak into a generation's soundtrack.
         </Text>
         <TouchableOpacity
           style={a.linkRow}
@@ -143,7 +132,7 @@ export default function OliviaAboutTab() {
       <View style={a.block}>
         <Text style={a.sectionTitle18}>Ask about this era</Text>
         <Text style={a.muted13}>
-          Ask Alexa anything about the GUTS era — she knows its whole world.
+          Ask Alexa anything about the GUTS era, she knows its whole world.
         </Text>
         <View style={a.askBar}>
           <Image source={logoAssets.alexa} style={a.alexaLogo} resizeMode="contain" />
@@ -170,11 +159,8 @@ export default function OliviaAboutTab() {
       </View>
 
       <View style={a.block}>
-        <View style={a.titleRow}>
-          <Text style={a.sectionTitle18}>Lyric meanings & production notes</Text>
-          <SectionTag label="unlocks with depth" variant="teal" />
-        </View>
-        <Text style={a.muted13}>Layers reveal as you listen — never dumped all at once.</Text>
+        <Text style={a.sectionTitle18}>Lyric meanings & production notes</Text>
+        <Text style={a.muted13}>Layers reveal as you listen, never dumped all at once.</Text>
         <EdgeFadeRow>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={a.noteRail}>
             {OLIVIA_ABOUT_LYRIC_NOTES.map(note => (
@@ -226,75 +212,94 @@ export default function OliviaAboutTab() {
 
       <View style={a.influencePanel}>
         <Text style={a.sectionTitle18}>Influence web</Text>
-        <Text style={a.muted13}>Who shaped her sound — and who she's shaping</Text>
+        <Text style={a.muted13}>Who shaped her sound, and who she's shaping</Text>
+
         <Text style={a.influenceLabel}>INFLUENCED BY</Text>
-        <View style={a.influenceRow}>
-          {OLIVIA_ABOUT_INFLUENCED_BY.map(person => (
-            <InfluenceAvatar
-              key={person.name}
-              name={person.name}
-              artKey={person.artKey}
-              onPress={() => setQuery(`Tell me about ${person.name}`)}
-            />
-          ))}
-        </View>
+        <EdgeFadeRow fadeColor="#000">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={a.influenceRail}>
+            {OLIVIA_ABOUT_INFLUENCED_BY.map(person => (
+              <InfluenceAvatar
+                key={person.name}
+                name={person.name}
+                artKey={person.artKey}
+                onPress={() => setQuery(`Tell me about ${person.name}`)}
+              />
+            ))}
+          </ScrollView>
+        </EdgeFadeRow>
+
+        {/* Compact divider hub — same photo/name/tag as before, just no
+            longer a full-width centered circle breaking up the two rails. */}
         <View style={a.influenceHub}>
+          <View style={a.hubDivider} />
           <View style={a.hubRing}>
             <Image source={oliviaPageAssets.profile} style={a.hubPhoto} resizeMode="cover" />
           </View>
-          <Text style={a.hubName}>Olivia Rodrigo</Text>
-          <Text style={a.hubTag}>THE ARTIST</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={a.hubName}>Olivia Rodrigo</Text>
+            <Text style={a.hubTag}>THE ARTIST</Text>
+          </View>
+          <View style={a.hubDivider} />
         </View>
+
         <Text style={a.influenceLabel}>SHE INSPIRES</Text>
-        <View style={a.influenceRow}>
-          {OLIVIA_ABOUT_INSPIRES.map(person => (
-            <InfluenceAvatar
-              key={person.name}
-              name={person.name}
-              artKey={person.artKey}
-              onPress={() => setQuery(`Tell me about ${person.name}`)}
-            />
-          ))}
-        </View>
+        <EdgeFadeRow fadeColor="#000">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={a.influenceRail}>
+            {OLIVIA_ABOUT_INSPIRES.map(person => (
+              <InfluenceAvatar
+                key={person.name}
+                name={person.name}
+                artKey={person.artKey}
+                onPress={() => setQuery(`Tell me about ${person.name}`)}
+              />
+            ))}
+          </ScrollView>
+        </EdgeFadeRow>
       </View>
 
-      <View style={a.fanHeader}>
-        <Text style={a.sectionTitle16}>Popular posts from fan groups</Text>
-        <Text style={a.seeMore}>See more</Text>
-      </View>
-      <View style={a.postCard}>
-        <View style={a.groupPill}>
-          <Text style={a.groupPillText}>Sad Girl Hour</Text>
-        </View>
-        <View style={a.postUserRow}>
-          <LinearGradient colors={['#f472b6', '#7c3aed']} style={a.postAvatar}>
-            <Ionicons name="person" size={16} color="#fff" />
-          </LinearGradient>
-          <View>
-            <Text style={a.postHandle}>@i&lt;3orod</Text>
-            <Text style={a.postTime}>2 days ago</Text>
+      {/* Real post from Olivia's actual fan group (src/data/fanGroupContent.ts
+          fg-hj-olivia), not a hardcoded placeholder — "See more" opens the
+          real /fan-group/[id] page. */}
+      {fanGroup && fanPost && (
+        <>
+          <View style={a.fanHeader}>
+            <Text style={a.sectionTitle16}>Popular posts from fan groups</Text>
+            <TouchableOpacity onPress={openFanGroup} activeOpacity={0.8}>
+              <Text style={a.seeMore}>See more</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-        <Text style={a.bodyText}>
-          Whenever I just need to unwind and let things out, this album is the one. six years and it still hits the exact same.
-        </Text>
-        <Image source={resolveAboutArt('olivia-about-fan-post')} style={a.postImage} resizeMode="cover" />
-        <View style={a.reactionsRow}>
-          <View style={a.reaction}>
-            <Ionicons name="heart-outline" size={14} color="#a7aeb6" />
-            <Text style={a.reactionText}>1.2k</Text>
-          </View>
-          <View style={a.reaction}>
-            <Ionicons name="chatbubble-outline" size={14} color="#a7aeb6" />
-            <Text style={a.reactionText}>84</Text>
-          </View>
-        </View>
-      </View>
+          <TouchableOpacity style={a.postCard} activeOpacity={0.85} onPress={openFanGroup}>
+            <View style={a.groupPill}>
+              <Text style={a.groupPillText}>{fanGroup.name}</Text>
+            </View>
+            <View style={a.postUserRow}>
+              <LinearGradient colors={['#f472b6', '#7c3aed']} style={a.postAvatar}>
+                <Ionicons name="person" size={16} color="#fff" />
+              </LinearGradient>
+              <View>
+                <Text style={a.postHandle}>{fanPost.handle}</Text>
+                <Text style={a.postTime}>{fanPost.time}</Text>
+              </View>
+            </View>
+            <Text style={a.bodyText}>{fanPost.body}</Text>
+            {fanPost.artKey && (
+              <Image source={resolvePostArt(fanPost.artKey)} style={a.postImage} resizeMode="cover" />
+            )}
+            <View style={a.reactionsRow}>
+              <View style={a.reaction}>
+                <Ionicons name="heart-outline" size={14} color="#a7aeb6" />
+                <Text style={a.reactionText}>{fanPost.likes}</Text>
+              </View>
+              <View style={a.reaction}>
+                <Ionicons name="chatbubble-outline" size={14} color="#a7aeb6" />
+                <Text style={a.reactionText}>{fanPost.comments}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </>
+      )}
 
-      <View style={a.titleRow}>
-        <Text style={a.sectionTitle18}>The Livies</Text>
-        <SectionTag label="community, opt-in" variant="gold" />
-      </View>
+      <Text style={a.sectionTitle18}>The Livies</Text>
       <View style={a.liviesCard}>
         <View style={a.liviesRow}>
           <View style={a.avatarStack}>
@@ -320,7 +325,7 @@ export default function OliviaAboutTab() {
           </TouchableOpacity>
         </View>
         <Text style={a.muted13}>
-          A fan space, not a public feed — your posts stay among Livies.
+          A fan space, not a public feed, your posts stay among Livies.
         </Text>
       </View>
 
@@ -338,7 +343,7 @@ export default function OliviaAboutTab() {
           <TouchableOpacity
             style={a.ticketsBtn}
             activeOpacity={0.85}
-            onPress={() => showConfirmation(`Opening Ticketmaster — ${OLIVIA_ABOUT_EVENTS[0].title}`)}
+            onPress={() => showConfirmation(`Opening Ticketmaster, ${OLIVIA_ABOUT_EVENTS[0].title}`)}
           >
             <Text style={a.ticketsBtnText}>Tickets</Text>
           </TouchableOpacity>
@@ -350,7 +355,7 @@ export default function OliviaAboutTab() {
                 key={item.title}
                 style={a.merchCard}
                 activeOpacity={0.85}
-                onPress={() => showConfirmation(`Added to bag — ${item.title} · ${item.price}`)}
+                onPress={() => showConfirmation(`Added to bag, ${item.title} · ${item.price}`)}
               >
                 <Image source={resolveAboutArt(item.artKey)} style={a.merchArt} resizeMode="cover" />
                 <Text style={a.merchTitle}>{item.title}</Text>
@@ -367,24 +372,6 @@ export default function OliviaAboutTab() {
 const a = StyleSheet.create({
   wrap: { paddingHorizontal: 16, paddingTop: 12, gap: 24, paddingBottom: 24 },
   block: { gap: 12 },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    backgroundColor: '#121a22',
-    borderWidth: 1,
-    borderColor: '#1c2a30',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  bannerText: {
-    flex: 1,
-    fontFamily: FONT_FAMILY.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    color: '#c2c9d1',
-  },
   storyCard: {
     backgroundColor: '#000',
     borderWidth: 1,
@@ -475,8 +462,6 @@ const a = StyleSheet.create({
   },
   chipText: { fontFamily: FONT_FAMILY.medium, fontSize: 12.5, color: '#c2c9d1' },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
-  tag: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  tagText: { fontFamily: FONT_FAMILY.medium, fontSize: 11, letterSpacing: 0.03 },
   tagInline: { fontFamily: FONT_FAMILY.medium, fontSize: 12, letterSpacing: 0.03, color: C.cyan },
   noteRail: { gap: 12, paddingVertical: 4 },
   noteCard: {
@@ -552,49 +537,46 @@ const a = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 18,
     gap: 10,
-    alignItems: 'center',
   },
   influenceLabel: {
     fontFamily: FONT_FAMILY.medium,
     fontSize: 11,
     color: '#6e7681',
     letterSpacing: 1.8,
-    textAlign: 'center',
     marginTop: 4,
   },
-  influenceRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  influenceItem: { alignItems: 'center', gap: 9 },
+  influenceRail: { gap: 14, paddingVertical: 4 },
+  influenceItem: { alignItems: 'center', gap: 9, width: 76 },
   influenceName: {
     fontFamily: FONT_FAMILY.medium,
     fontSize: 11,
     color: '#c2c9d1',
     textAlign: 'center',
   },
-  influenceHub: { alignItems: 'center', gap: 8, paddingVertical: 8 },
+  // Compact horizontal divider — Olivia's photo + name flanked by hairlines,
+  // anchoring the two influence rails instead of a full-width centered circle.
+  influenceHub: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  hubDivider: { flex: 1, height: 1, backgroundColor: '#242c35' },
   hubRing: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 2.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
     borderColor: 'rgba(79,231,238,0.95)',
-    padding: 3,
+    padding: 2,
     shadowColor: C.cyan,
-    shadowOpacity: 0.55,
-    shadowRadius: 12,
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 0 },
   },
-  hubPhoto: { width: '100%', height: '100%', borderRadius: 44 },
-  hubName: { fontFamily: FONT_FAMILY.medium, fontSize: 14, color: '#fff' },
+  hubPhoto: { width: '100%', height: '100%', borderRadius: 20 },
+  hubName: { fontFamily: FONT_FAMILY.medium, fontSize: 13, color: '#fff' },
   hubTag: {
     fontFamily: FONT_FAMILY.medium,
     fontSize: 10,
     color: '#4fe7ee',
-    letterSpacing: 1.6,
+    letterSpacing: 1.4,
+    marginTop: 1,
   },
   fanHeader: {
     flexDirection: 'row',

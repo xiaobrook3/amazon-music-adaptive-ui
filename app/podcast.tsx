@@ -13,24 +13,13 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { podcasts, user, type Podcast } from '../src/data/mockData'
+import { podcasts, type Podcast } from '../src/data/mockData'
 import { albumArtAssets } from '../src/data/assetMap'
 import { C, R, typeHeadline } from '../src/theme'
 
 const FEATURED = podcasts.slice(0, 6)
 const CONTINUE = podcasts.slice(2, 5)
-const RECENT = podcasts.slice(0, 10)
 const CATEGORIES = ['All', 'Following', 'Music', 'Charts', 'Comedy', 'News']
-
-type InnerTab = 'resume' | 'discover'
-
-function getGreeting(firstName: string): string {
-  const hour = new Date().getHours()
-  if (hour >= 5 && hour < 12) return `Good Morning, ${firstName}`
-  if (hour >= 12 && hour < 17) return `Good Afternoon, ${firstName}`
-  if (hour >= 17 && hour < 21) return `Good Evening, ${firstName}`
-  return `Winding Down, ${firstName}`
-}
 
 function PlayOverlay({ size = 28 }: { size?: number }) {
   return (
@@ -85,44 +74,13 @@ function PodcastCard({ pod, onPress, wide = false }: { pod: Podcast; onPress?: (
   )
 }
 
-function PodcastListRow({ pod, onPress, onPlay }: { pod: Podcast; onPress?: () => void; onPlay?: () => void }) {
-  const art = pod.coverArtPath ? albumArtAssets[pod.coverArtPath] : null
-  return (
-    <TouchableOpacity style={p.listRow} activeOpacity={0.8} onPress={onPress}>
-      <View style={[p.listArt, { backgroundColor: pod.coverColor }]}>
-        {art && <Image source={art} style={StyleSheet.absoluteFillObject} resizeMode="cover" />}
-      </View>
-      <View style={p.listRowBody}>
-        <Text style={p.listTitle} numberOfLines={1}>{pod.title}</Text>
-        <Text style={p.listSub} numberOfLines={2}>{pod.description}</Text>
-        <Text style={p.listMeta}>{pod.episodeCount} episodes · {pod.category}</Text>
-      </View>
-      <TouchableOpacity style={p.playCircle} onPress={onPlay} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Ionicons name="play" size={16} color={C.bg} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  )
-}
-
-function EmptyState({ icon, label, sub }: { icon: string; label: string; sub?: string }) {
-  return (
-    <View style={p.emptyState}>
-      <Ionicons name={icon as any} size={36} color={C.textMuted} />
-      <Text style={p.emptyStateText}>{label}</Text>
-      {sub ? <Text style={p.emptyStateSub}>{sub}</Text> : null}
-    </View>
-  )
-}
-
 export default function PodcastScreen() {
   const router = useRouter()
   const insets = useSafeAreaInsets()
-  const [activeInnerTab, setActiveInnerTab] = useState<InnerTab>('resume')
   const [activeCategory, setActiveCategory] = useState('All')
 
   const hero = useMemo(() => podcasts[Math.floor(Math.random() * podcasts.length)], [])
   const heroArt = hero.coverArtPath ? albumArtAssets[hero.coverArtPath] : null
-  const firstName = user.name.split(' ')[0]
 
   const openShow = (pid: string) => router.push(`/podcast-show/${pid}` as any)
   const openPlayer = (pid: string) => router.push(`/podcast-player/${pid}` as any)
@@ -134,64 +92,6 @@ export default function PodcastScreen() {
     if (activeCategory === 'Following') return [...FEATURED, ...CONTINUE]
     return podcasts.filter(pod => pod.category === activeCategory)
   }, [activeCategory])
-
-  const resumeContent = (
-    <>
-      <View style={p.greetingWrap}>
-        <Text style={p.greetingText}>{getGreeting(firstName)}</Text>
-        <Text style={p.greetingSub}>Pick up your podcasts where you left off.</Text>
-      </View>
-
-      <View style={p.section}>
-        <Text style={p.sectionTitle}>Continue listening</Text>
-        <View style={p.listBlock}>
-          {CONTINUE.length === 0 ? (
-            <EmptyState icon="headset-outline" label="Nothing in progress" sub="Start a podcast to see it here." />
-          ) : (
-            CONTINUE.map(pod => (
-              <PodcastListRow
-                key={pod.id}
-                pod={pod}
-                onPress={() => openShow(pod.id)}
-                onPlay={() => openPlayer(pod.id)}
-              />
-            ))
-          )}
-        </View>
-      </View>
-
-      <SectionRow title="Your shows">
-        {FEATURED.map(pod => (
-          <PodcastCard key={pod.id} pod={pod} wide onPress={() => openShow(pod.id)} />
-        ))}
-      </SectionRow>
-
-      <View style={p.section}>
-        <Text style={p.sectionTitle}>Saved episodes</Text>
-        <EmptyState
-          icon="bookmark-outline"
-          label="No saved episodes yet"
-          sub="Save episodes while listening to find them here."
-        />
-      </View>
-
-      <View style={p.section}>
-        <Text style={p.sectionTitle}>Recently played</Text>
-        <EdgeFadeRow>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            nestedScrollEnabled
-            contentContainerStyle={p.hRailContent}
-          >
-            {RECENT.map(pod => (
-              <PodcastCard key={`recent-${pod.id}`} pod={pod} onPress={() => openShow(pod.id)} />
-            ))}
-          </ScrollView>
-        </EdgeFadeRow>
-      </View>
-    </>
-  )
 
   const discoverContent = (
     <>
@@ -311,27 +211,12 @@ export default function PodcastScreen() {
         <View style={p.headerSpacer} />
       </View>
 
-      <View style={p.innerTabRow}>
-        {(['resume', 'discover'] as InnerTab[]).map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[p.innerTab, activeInnerTab === tab && p.innerTabActive]}
-            onPress={() => setActiveInnerTab(tab)}
-            activeOpacity={0.8}
-          >
-            <Text style={[p.innerTabLabel, activeInnerTab === tab && p.innerTabLabelActive]}>
-              {tab === 'discover' ? 'Discover' : 'Resume'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {activeInnerTab === 'resume' ? resumeContent : discoverContent}
+        {discoverContent}
       </ScrollView>
     </View>
   )
@@ -360,26 +245,6 @@ const p = StyleSheet.create({
     marginHorizontal: 8,
   },
   headerSpacer: { width: 40 },
-
-  innerTabRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 8,
-  },
-  innerTab: {
-    paddingVertical: 8,
-    paddingHorizontal: 22,
-    borderRadius: R.full,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  innerTabActive: { backgroundColor: C.cyan },
-  innerTabLabel: { fontSize: 14, fontWeight: '600', color: C.textPrimary },
-  innerTabLabelActive: { color: '#000000' },
-
-  greetingWrap: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 20 },
-  greetingText: { ...typeHeadline(28), color: C.textPrimary },
-  greetingSub: { fontSize: 14, color: C.textSecondary, marginTop: 4 },
 
   heroWrap: { marginBottom: 20 },
   heroBg: { width: '100%', height: 320 },
@@ -461,29 +326,6 @@ const p = StyleSheet.create({
   podcastTitle: { fontSize: 14, fontWeight: '600', color: C.textPrimary, marginBottom: 2, lineHeight: 18 },
   podcastHost: { fontSize: 12, color: C.textSecondary },
 
-  listBlock: { paddingHorizontal: 16, gap: 4 },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  listArt: { width: 64, height: 64, borderRadius: R.sm, overflow: 'hidden' },
-  listRowBody: { flex: 1, marginLeft: 14 },
-  listTitle: { fontSize: 14, fontWeight: '600', color: C.textPrimary },
-  listSub: { fontSize: 12, color: C.textSecondary, marginTop: 2, lineHeight: 17 },
-  listMeta: { fontSize: 11, color: C.textMuted, marginTop: 3 },
-  playCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.cyanBright,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12 },
   gridCard: { width: '47%', gap: 4 },
   gridArt: { width: '100%', aspectRatio: 1, borderRadius: R.md, overflow: 'hidden' },
@@ -496,24 +338,5 @@ const p = StyleSheet.create({
     borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 32,
-    gap: 8,
-  },
-  emptyStateText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.textSecondary,
-    textAlign: 'center',
-  },
-  emptyStateSub: {
-    fontSize: 13,
-    color: C.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 })

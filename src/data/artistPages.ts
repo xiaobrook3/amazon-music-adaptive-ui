@@ -109,6 +109,30 @@ const ARTIST_MERCH: Record<string, ArtistMerchItem[]> = {
     { name: 'Future Nostalgia Vinyl',type: 'Vinyl', price: '$39', artKey: 'dua-lipa' },
     { name: 'Radical Optimism Tee',  type: 'Tee',   price: '$32', artKey: 'dua-lipa' },
   ],
+  lorde: [
+    { name: 'Melodrama Vinyl',       type: 'Vinyl',  price: '$38', artKey: 'lorde-melodrama' },
+    { name: 'Pure Heroine Tee',      type: 'Tee',    price: '$30', artKey: 'lorde-pure-heroine' },
+    { name: 'Virgin Poster',         type: 'Poster', price: '$16', artKey: 'lorde-virgin' },
+  ],
+  mitski: [
+    { name: 'Puberty 2 Vinyl',       type: 'Vinyl', price: '$36', artKey: 'mitski-puberty-2' },
+    { name: 'Be the Cowboy Tee',     type: 'Tee',   price: '$29', artKey: 'mitski-be-the-cowboy' },
+    { name: 'Be the Cowboy CD',      type: 'CD',    price: '$18', artKey: 'mitski-be-the-cowboy' },
+  ],
+  beyonce: [
+    { name: 'Lemonade Vinyl',        type: 'Vinyl', price: '$42', artKey: 'beyonce-lemonade' },
+    { name: 'Self-Titled Tee',       type: 'Tee',   price: '$34', artKey: 'beyonce-self-titled' },
+    { name: 'Formation CD',          type: 'CD',    price: '$20', artKey: 'beyonce-lemonade' },
+  ],
+  'ariana-grande': [
+    { name: 'Sweetener Vinyl',       type: 'Vinyl', price: '$37', artKey: 'ariana-sweetener' },
+    { name: 'Dangerous Woman Tee',   type: 'Tee',   price: '$30', artKey: 'ariana-dangerous-woman' },
+  ],
+  'sabrina-carpenter': [
+    { name: 'Short n\' Sweet Vinyl', type: 'Vinyl', price: '$36', artKey: 'sabrina-short-n-sweet' },
+    { name: 'Espresso Tee',          type: 'Tee',   price: '$28', artKey: 'sabrina-espresso' },
+    { name: 'Man\'s Best Friend CD', type: 'CD',    price: '$18', artKey: 'sabrina-mans-best-friend' },
+  ],
 }
 
 // ── Curated lyrics for the few artists deep enough to warrant them.
@@ -217,6 +241,26 @@ const ARTIST_LYRICS: Record<string, ArtistLyric[]> = {
       lyric: "I'm waiting for it, that green light, I want it",
       gradient: ['rgba(10,26,10,0.2)', 'rgba(20,60,30,0.6)'],
     },
+    {
+      song: 'Virgin',
+      artKey: 'lorde-virgin',
+      lyric: 'the rawest, most exposed she has ever sounded on a record',
+      gradient: ['rgba(26,26,10,0.2)', 'rgba(70,70,30,0.6)'],
+    },
+  ],
+  mitski: [
+    {
+      song: 'Your Best American Girl',
+      artKey: 'mitski-puberty-2',
+      lyric: 'the quiet-to-loud swing that levels the room every time',
+      gradient: ['rgba(10,26,42,0.2)', 'rgba(30,60,110,0.6)'],
+    },
+    {
+      song: 'Two Slow Dancers',
+      artKey: 'mitski-be-the-cowboy',
+      lyric: 'the last-dance song you save for the ones you already miss',
+      gradient: ['rgba(26,10,10,0.2)', 'rgba(90,30,30,0.6)'],
+    },
   ],
   // Original fan-caption text (not song lyrics) — evocative mood notes fans
   // tag on a track, so the "moments" section stays populated without lyrics.
@@ -280,7 +324,7 @@ const ARTIST_LYRICS: Record<string, ArtistLyric[]> = {
     {
       song: 'Bad Romance',
       artKey: 'gaga-fame-monster',
-      lyric: 'couture chaos — the anthem for owning the whole room',
+      lyric: 'couture chaos, the anthem for owning the whole room',
       gradient: ['rgba(26,10,10,0.2)', 'rgba(90,20,30,0.6)'],
     },
     {
@@ -302,6 +346,48 @@ const ARTIST_LYRICS: Record<string, ArtistLyric[]> = {
       artKey: 'tate-mcrae',
       lyric: 'a petty little victory lap, and it slaps',
       gradient: ['rgba(22,10,22,0.18)', 'rgba(70,28,80,0.6)'],
+    },
+  ],
+  beyonce: [
+    {
+      song: 'Formation',
+      artKey: 'beyonce-lemonade',
+      lyric: 'a whole statement of a song, you do not just play it, you march to it',
+      gradient: ['rgba(42,28,8,0.2)', 'rgba(120,80,20,0.6)'],
+    },
+    {
+      song: 'Drunk in Love',
+      artKey: 'beyonce-self-titled',
+      lyric: 'the one that turns any room into 2am at the after-party',
+      gradient: ['rgba(10,10,10,0.2)', 'rgba(50,50,50,0.6)'],
+    },
+  ],
+  'ariana-grande': [
+    {
+      song: 'no tears left to cry',
+      artKey: 'ariana-sweetener',
+      lyric: 'the turn-the-corner song, sad girl walks in, main character walks out',
+      gradient: ['rgba(26,16,42,0.2)', 'rgba(80,50,120,0.6)'],
+    },
+    {
+      song: 'Into You',
+      artKey: 'ariana-dangerous-woman',
+      lyric: 'the whistle note that lives rent-free in everyone\'s head',
+      gradient: ['rgba(30,8,20,0.2)', 'rgba(100,30,60,0.6)'],
+    },
+  ],
+  'sabrina-carpenter': [
+    {
+      song: 'Espresso',
+      artKey: 'sabrina-espresso',
+      lyric: 'that\'s that me espresso energy, you know the one',
+      gradient: ['rgba(30,18,8,0.2)', 'rgba(110,70,30,0.6)'],
+    },
+    {
+      song: "Man's Best Friend",
+      artKey: 'sabrina-mans-best-friend',
+      lyric: 'wry, petty, and completely in on the joke',
+      gradient: ['rgba(30,14,8,0.2)', 'rgba(110,55,30,0.6)'],
     },
   ],
 }
@@ -357,7 +443,7 @@ function buildEras(artist: Artist, artistSongs: Song[], badge: string): ArtistEr
       season: i === 0 ? 'This year' : `${BASE_YEAR - i}`,
       title: album,
       badge,
-      description: `Your ${album} era — ${phrase}`,
+      description: `Your ${album} era, ${phrase}`,
       eraImageKey: artKey,
       topTrack: { title: tracks[0].title, plays: Math.max(8, 38 - i * 7), artKey },
       playedThen: tracks.slice(0, 3).map(t => ({
@@ -412,7 +498,7 @@ const EXCLUSIVE_KINDS: ((c: ExclusiveContext) => Omit<ArtistExclusive, 'artKey'>
     title: `You & ${firstName}, by the numbers`,
     date: `Since ${sinceYear}`,
     milestone: 'Your rewind\nis ready',
-    body: `You're in the top ${topPercent}% of ${firstName} listeners — see your story.`,
+    body: `You're in the top ${topPercent}% of ${firstName} listeners, see your story.`,
   }),
   ({ firstName, topAlbum }) => ({
     tag: 'BEHIND THE SCENES',
@@ -433,7 +519,7 @@ const EXCLUSIVE_KINDS: ((c: ExclusiveContext) => Omit<ArtistExclusive, 'artKey'>
     title: `${firstName}: Live`,
     date: 'Streaming now',
     milestone: 'Front-row\nseat unlocked',
-    body: `Watch ${firstName}'s tour film — unlocked because you never miss a drop.`,
+    body: `Watch ${firstName}'s tour film, unlocked because you never miss a drop.`,
   }),
   ({ firstName, bondYears }) => ({
     tag: 'A NOTE FOR YOU',
@@ -456,18 +542,6 @@ export function lyricForSong(artistId: string, songTitle: string): ArtistLyric |
   const lyrics = ARTIST_LYRICS[artistId]
   if (!lyrics?.length) return null
   return lyrics.find(l => l.song.toLowerCase() === songTitle.toLowerCase()) ?? null
-}
-
-/** The durable listener state an artist profile opens in — mirrors
- * mockData's bond tiers (cold / casual / regular / superfan). */
-export type ListenerState = 'cold' | 'casual' | 'regular' | 'superfan'
-export function listenerStateFor(artistId: string): ListenerState {
-  const a = artists.find(x => x.id === artistId)
-  if (!a) return 'cold'
-  if (a.milestoneTierId === 'devoted' || a.milestoneTierId === 'legendary' || a.topPercent <= 2) return 'superfan'
-  if (a.milestoneTierId === 'fan') return 'regular'
-  if (a.userBondWeeks >= 4) return 'casual'
-  return 'cold'
 }
 
 export function buildArtistPage(artistId: string): ArtistPageData {

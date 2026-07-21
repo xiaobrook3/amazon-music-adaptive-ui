@@ -21,7 +21,7 @@ const EPISODE_TOPICS = [
 ]
 
 const ABOUT_EXTRA =
-  ' Each episode blends interviews, deep cuts, and honest conversation — settle in and listen all the way through.'
+  ' Each episode blends interviews, deep cuts, and honest conversation, settle in and listen all the way through.'
 
 export interface PodcastEpisode {
   podcastId: string
@@ -68,7 +68,7 @@ export function findPodcast(id: string | undefined): Podcast {
         id,
         title: artistShowTitle(artist.id, artist.name),
         host: `${artist.name} Fan Network`,
-        description: `Era deep-dives, interviews, and fan conversations — everything ${artist.name}`,
+        description: `Era deep-dives, interviews, and fan conversations, everything ${artist.name}`,
         episodeCount: artistShowEpisodeCount(artist.id),
         coverColor: '#1a1a2e',
         coverArtPath: artist.imageUri,

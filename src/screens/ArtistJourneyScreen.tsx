@@ -1,10 +1,11 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   ScrollView,
   View,
   TouchableOpacity,
   StyleSheet,
   ImageBackground,
+  Dimensions,
 } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -16,28 +17,42 @@ import { Text } from '../components/AppText'
 import { AppImage as Image } from '../components/AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { artists, songs } from '../data/mockData'
+import { artists, songs, type Song } from '../data/mockData'
 import { albumArtAssets, resolveArtistAvatar } from '../data/assetMap'
-import { buildArtistPage, listenerStateFor, type ArtistLyric } from '../data/artistPages'
+import { buildArtistPage, type ArtistLyric } from '../data/artistPages'
 import { getArtistAbout } from '../data/artistAbout'
 import { usePlaybackState } from '../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
 import { useProfiles } from '../context/ProfilesContext'
+import { useLikedSongs } from '../context/LikedSongsContext'
+import { filterJourneyTab, useYouAndArtistUnlock } from '../hooks/useYouAndArtistUnlock'
+import UnlockDot from '../components/artist/UnlockDot'
+import UnlockTraceBorder from '../components/artist/UnlockTraceBorder'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
-import { ArtistEventsCard, ArtistMerchGrid, type MerchItem } from '../components/artist/ArtistCommerce'
+import LyricCardStack from '../components/artist/LyricCardStack'
+import { ArtistEventsCard, type MerchItem } from '../components/artist/ArtistCommerce'
+import { artistShowTitle, artistShowEpisodeCount } from '../data/podcastEpisodes'
 import { C, typeHeadline } from '../theme'
-
-
-// RN-web sizes an ImageBackground's inner image from the asset's intrinsic
-// dimensions when the style has no explicit width/height (native stretches
-// it). Force full-bleed so web and Expo Go render identically.
-const COVER_IMG = { width: '100%', height: '100%' } as const
 
 const MUSIC_STREAMS = [89_234_567, 45_678_901, 23_456_789, 12_345_678, 9_876_543, 4_567_890]
 function fmtStreams(n: number) { return n.toLocaleString('en-US') }
+
+// Top Songs pagination — same "Songs for You" 3-per-page snap pattern used on
+// Olivia's New-listener Music tab, ported here so every generic artist page
+// matches it.
+const SCREEN_W = Dimensions.get('window').width
+const POP_SONGS_PER_PAGE = 3
+const POP_PAGE_PEEK = Math.round(SCREEN_W * 0.3)
+const POP_PAGE_WIDTH = SCREEN_W - POP_PAGE_PEEK
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
 
 const ERA_CARD_W = 120
 const ERA_CARD_H = 122
@@ -48,6 +63,24 @@ function ExplicitBadge() {
   return (
     <View style={s.explicitBadge}>
       <Text style={s.explicitText}>E</Text>
+    </View>
+  )
+}
+
+// Heart + menu — same RowIcons pattern used on Olivia's/Taylor's/BTS's Top
+// Songs rows, so liking a track works consistently across every artist page.
+function RowIcons({ song, light }: { song: Song; light?: boolean }) {
+  const { likedSongIds, toggleLike } = useLikedSongs()
+  const liked = likedSongIds.has(song.id)
+  const { open } = useAdaptiveMenu()
+  return (
+    <View style={s.rowIcons}>
+      <TouchableOpacity onPress={() => toggleLike(song.id)} hitSlop={8}>
+        <Ionicons name={liked ? 'heart' : 'heart-outline'} size={20} color={liked ? (light ? '#fff' : C.cyan) : '#fff'} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => open({ kind: 'song', song })} hitSlop={8}>
+        <Ionicons name="ellipsis-horizontal" size={18} color="#888" />
+      </TouchableOpacity>
     </View>
   )
 }
@@ -83,38 +116,18 @@ function LyricStackCard({
   )
 }
 
-// Deep-link tab values (?tab=you|about|events|merch) — same contract the
-// HTML embeds honored, now handled natively.
-const DEEP_TABS: Record<string, string> = {
-  about: 'About',
-  events: 'Events',
-  merch: 'Merch',
-}
-
-export default function ArtistJourneyScreen({ id, initialTab }: { id: string; initialTab?: string }) {
+export default function ArtistJourneyScreen({ id }: { id: string }) {
   const router = useRouter()
-
-  // Deep-linked or reloaded pages have no history entry — a bare router.back()
-  // silently no-ops and the back chevron reads as broken. Land on Home instead.
-  const goBack = () => {
-    if (router.canGoBack()) router.back()
-    else router.replace('/')
-  }
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
   const { activeProfile } = useProfiles()
+  const { likedSongIds } = useLikedSongs()
+  const tabScrollRef = useRef<ScrollView>(null)
 
   const artist = useMemo(() => artists.find(a => a.id === id) ?? artists[0], [id])
   const page = useMemo(() => buildArtistPage(artist.id), [artist.id])
-
-  // Durable listener state — the four discrete steps the adaptive prototypes
-  // staged (cold/casual/regular/superfan), derived from the listener's bond
-  // with this artist. Gates how much of the page has been earned: the page
-  // starts standard and grows, it never guesses.
-  const state = useMemo(() => listenerStateFor(artist.id), [artist.id])
-  const converged = state === 'regular' || state === 'superfan'
   const artistSongs = useMemo(() => songs.filter(sg => sg.artistId === artist.id), [artist.id])
   const about = useMemo(() => getArtistAbout(artist.id), [artist.id])
   const merchItems = useMemo<MerchItem[]>(
@@ -128,44 +141,112 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
     [artist],
   )
 
+  // New-listener Music tab (ported from Olivia's isCasual layout, applied
+  // generically) — New Album banner, paginated Top Songs, Top Albums, a
+  // catalog-deeper "More from" rail, Fan Favorites, Related Artists,
+  // Playlists featuring the artist, Podcasts about them, Related Radio
+  // Stations. All derived from data this screen already computes.
+  const newAlbumSong = useMemo(
+    () => artistSongs.find(sg => sg.album === page.eras[0]?.title) ?? artistSongs[0],
+    [artistSongs, page.eras],
+  )
+  // Not every artist's latest release is a full album — when the release
+  // only groups one track, call it what it is instead of "NEW ALBUM".
+  const newAlbumEyebrow = useMemo(() => {
+    if (!newAlbumSong) return 'NEW ALBUM'
+    const trackCount = artistSongs.filter(sg => sg.album === newAlbumSong.album).length
+    return trackCount > 1 ? 'NEW ALBUM' : 'NEW SINGLE'
+  }, [artistSongs, newAlbumSong])
+  // Artists with no songs at all still often have an upcoming show — same
+  // banner design, sourced from Events instead of a track.
+  const tourEvent = about?.events?.[0]
+  const popularPages = useMemo(() => chunk(artistSongs.slice(0, 6), POP_SONGS_PER_PAGE), [artistSongs])
+  const popularSnapOffsets = useMemo(() => popularPages.map((_, i) => i * POP_PAGE_WIDTH), [popularPages])
+  const moreFromArtist = useMemo(() => artistSongs.slice(6, 14), [artistSongs])
+  const fanFavSongs = useMemo(() => [...artistSongs].reverse().slice(0, 6), [artistSongs])
+  const stations = useMemo(
+    () => page.eras.slice(0, 4).map(era => ({ name: `${era.title} Radio`, artKey: era.eraImageKey, trackTitle: era.topTrack.title })),
+    [page.eras],
+  )
+  const podcastShows = useMemo(() => {
+    const showArtists = [artist, ...relatedArtists.slice(0, 3)]
+    return showArtists.map(a => ({
+      id: `podshow-${a.id}`,
+      title: artistShowTitle(a.id, a.name),
+      episodeCount: artistShowEpisodeCount(a.id),
+      art: resolveArtistAvatar(a.id, a.imageUri),
+    }))
+  }, [artist, relatedArtists])
+
+  // No separate Merch tab — the About tab's Merch section already covers it.
+  // You & Artist sits right beside Music for every persona.
   const TABS = useMemo(
-    () => ['Music', 'Events', 'Merch', 'About', `You & ${page.firstName}`] as const,
+    () => ['Music', `You & ${page.firstName}`, 'Events', 'About'] as const,
     [page.firstName],
   )
   const journeyTab = `You & ${page.firstName}`
-
-  const [tab, setTab] = useState<string>(() =>
-    initialTab === 'you' ? journeyTab : DEEP_TABS[initialTab ?? ''] ?? 'Music',
+  // Every persona (not just the dedicated casual persona, KSM) is a genuine
+  // new listener on a generic artist page until they've actually followed,
+  // played, and liked that specific artist — no persona has a "home theme"
+  // here the way Olivia/Taylor/BTS work, so this gates on the real
+  // per-artist ratchet in ArtistEngagementContext. The one exception: a
+  // "Create your own" profile is a declared superfan of the artists picked
+  // at creation, so those pages open pre-unlocked (createCustomProfile also
+  // pre-earns the ratchet flags — this flag makes the intent explicit and
+  // keeps the page unlocked even after a ratchet reset).
+  const gateYouAndArtist = !activeProfile.superfanArtistIds?.includes(artist.id)
+  const artistSongIds = useMemo(() => artistSongs.map(sg => sg.id), [artistSongs])
+  const {
+    isUnlocked,
+    showUnlockDot,
+    markFollowed,
+    markPlayed,
+    dismissUnlockDot,
+    hasEverFollowed,
+  } = useYouAndArtistUnlock(artist.id, {
+    gateTab: gateYouAndArtist,
+    showDot: gateYouAndArtist,
+    artistSongIds,
+    likedSongIds,
+  })
+  const visibleTabs = useMemo(
+    () => filterJourneyTab(TABS, journeyTab, isUnlocked),
+    [TABS, journeyTab, isUnlocked],
   )
+
+  const [tab, setTab] = useState<string>('Music')
   const [selectedIdx, setSelectedIdx] = useState(0)
-  // Following mirrors the earned relationship; new listeners start unfollowed.
-  const [following, setFollowing] = useState(converged)
-  // Popular community scope — Everyone's chart vs what super fans replay.
-  const [popScope, setPopScope] = useState<'everyone' | 'superfans'>('everyone')
+  const [following, setFollowing] = useState(!gateYouAndArtist)
 
-  // If the route instance is ever reused with a different artist (replace/
-  // setParams instead of push), reseed the per-artist state — otherwise the
-  // previous artist's follow state, era index, and tab label leak through.
   useEffect(() => {
-    setFollowing(converged)
-    setSelectedIdx(0)
-    setPopScope('everyone')
-    setTab(initialTab === 'you' ? journeyTab : DEEP_TABS[initialTab ?? ''] ?? 'Music')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [artist.id])
+    setFollowing(!gateYouAndArtist || hasEverFollowed())
+  }, [activeProfile.id, gateYouAndArtist, hasEverFollowed])
 
-  // Popular rows: dedupe by title; the super-fan scope reads the community's
-  // replay chart (a deterministic alternate ordering of the same catalog).
-  const popularRows = useMemo(() => {
-    const seen = new Set<string>()
-    const rows = artistSongs.filter(sg => {
-      if (seen.has(sg.title)) return false
-      seen.add(sg.title)
-      return true
-    }).slice(0, 6)
-    if (popScope === 'superfans' && rows.length > 1) return [...rows.slice(1), rows[0]]
-    return rows
-  }, [artistSongs, popScope])
+  useEffect(() => {
+    if (!isUnlocked && tab === journeyTab) setTab('Music')
+  }, [isUnlocked, tab, journeyTab])
+
+  // Guarded by a ref rather than a "was locked, now unlocked" transition
+  // check, so the trace still fires the first time she SEES the unlocked
+  // tab even if the unlock happened off-screen — not just on a live
+  // transition while this screen is mounted.
+  const [showUnlockTrace, setShowUnlockTrace] = useState(false)
+  const hasFiredUnlockTraceRef = useRef(false)
+  useEffect(() => {
+    if (isUnlocked && showUnlockDot && !hasFiredUnlockTraceRef.current) {
+      hasFiredUnlockTraceRef.current = true
+      // You & Artist sits right after Music now, so scroll to the start to reveal it.
+      requestAnimationFrame(() => tabScrollRef.current?.scrollTo({ x: 0, animated: true }))
+      setShowUnlockTrace(true)
+    }
+  }, [isUnlocked, showUnlockDot])
+
+  const toggleFollow = () => {
+    setFollowing(v => {
+      if (!v) markFollowed()
+      return !v
+    })
+  }
 
   const avatar = resolveArtistAvatar(artist.id, artist.imageUri)
   const resolveArt = (key: string) => albumArtAssets[key] ?? avatar
@@ -196,8 +277,17 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
       : artistSongs[0]
     if (match) {
       playSongAt(match.id)
+      markPlayed()
       router.push('/now-playing')
     }
+  }
+
+  // Playlist cards aren't real playlists (no playlistId to route to) — play
+  // the track from the era they were built from, same "tap to play" behavior
+  // songs and albums already have instead of a no-op tap.
+  const playByArtKey = (artKey: string) => {
+    const era = page.eras.find(e => e.eraImageKey === artKey)
+    playByTitle(era?.topTrack.title)
   }
 
   // Shuffle starts a random track without leaving the page — the mini player
@@ -206,6 +296,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
     if (artistSongs.length === 0) return
     const pick = artistSongs[Math.floor(Math.random() * artistSongs.length)]
     playSongAt(pick.id)
+    markPlayed()
     showConfirmation(`Shuffling ${artist.name}`)
   }
 
@@ -224,16 +315,16 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
         {/* Hero */}
         <View style={s.heroWrap}>
           {heroSource ? (
-            <ImageBackground source={heroSource} style={s.heroBg} imageStyle={COVER_IMG} resizeMode="cover">
+            <ImageBackground source={heroSource} style={s.heroBg} resizeMode="cover">
               <HeroOverlay
                 insets={insets}
                 page={page}
                 avatar={avatar}
                 activeProfile={activeProfile}
                 following={following}
-                showProof={converged}
-                onBack={goBack}
-                onToggleFollow={() => setFollowing(f => !f)}
+                showSinceBubble={isUnlocked}
+                onBack={() => router.back()}
+                onToggleFollow={toggleFollow}
                 onPlay={() => playByTitle()}
                 onShuffle={shufflePlay}
                 onMenu={showArtistMenu}
@@ -247,9 +338,9 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 avatar={avatar}
                 activeProfile={activeProfile}
                 following={following}
-                showProof={converged}
-                onBack={goBack}
-                onToggleFollow={() => setFollowing(f => !f)}
+                showSinceBubble={isUnlocked}
+                onBack={() => router.back()}
+                onToggleFollow={toggleFollow}
                 onPlay={() => playByTitle()}
                 onShuffle={shufflePlay}
                 onMenu={showArtistMenu}
@@ -260,10 +351,28 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
 
         {/* Tabs */}
         <View style={s.tabBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
-            {TABS.map(t => (
-              <TouchableOpacity key={t} onPress={() => setTab(t)} style={s.tabItem}>
-                <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
+          <ScrollView
+            ref={tabScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.tabRow}
+          >
+            {visibleTabs.map(t => (
+              <TouchableOpacity
+                key={t}
+                onPress={() => {
+                  setTab(t)
+                  if (t === journeyTab) dismissUnlockDot()
+                }}
+                style={s.tabItem}
+              >
+                {t === journeyTab && showUnlockTrace && (
+                  <UnlockTraceBorder onComplete={() => setShowUnlockTrace(false)} />
+                )}
+                <View style={s.tabLabelRow}>
+                  {t === journeyTab && showUnlockDot && <UnlockDot />}
+                  <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
+                </View>
                 {tab === t && <View style={s.tabUnderline} />}
               </TouchableOpacity>
             ))}
@@ -271,41 +380,16 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
         </View>
 
         {tab === journeyTab ? (
-          !(converged && hasJourney) ? (
-            <View style={s.content}>
-              {/* The journey exists only once there is a journey — until then
-                  the tab is honest about what will appear here */}
-              <View style={s.block}>
-                <View style={s.coldHint}>
-                  <Text style={s.coldHintLead}>
-                    No history between you two yet. Listen for a few weeks and this tab becomes{' '}
-                    <Text style={s.histBold}>your timeline</Text> with {page.firstName} — eras, first
-                    plays, and the numbers behind them.
-                  </Text>
-                  <View style={s.coldChipRow}>
-                    {['Era timeline', 'First play', 'Minutes & streaks'].map(cLabel => (
-                      <View key={cLabel} style={s.coldChip}>
-                        <Text style={s.coldChipText}>{cLabel}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  <Text style={s.coldHintNote}>
-                    Nothing is stored until it&apos;s earned; the standard page holds until then.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ) : (
           <View style={s.content}>
-            {/* Exclusive — a milestone unlock, so it only exists at full depth */}
-            {page.exclusive && state === 'superfan' && (
+            {/* Exclusive */}
+            {page.exclusive && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Exclusive For You</Text>
                 <View style={s.exclusiveCard}>
                   <ImageBackground
                     source={resolveArt(page.exclusive.artKey)}
                     style={s.exclusiveImg}
-                    imageStyle={[COVER_IMG, s.exclusiveImgRadius]}
+                    imageStyle={s.exclusiveImgRadius}
                     resizeMode="cover"
                   >
                     <LinearGradient
@@ -335,9 +419,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 <View style={s.block}>
                   <View style={s.sectionHeaderRow}>
                     <Text style={s.sectionTitle}>Your Journey with {page.firstName}</Text>
-                    <TouchableOpacity onPress={() => setSelectedIdx(0)} hitSlop={8}>
-                      <Text style={s.sectionLink}>Back to Now</Text>
-                    </TouchableOpacity>
+                    <Text style={s.sectionLink}>Back to Now</Text>
                   </View>
 
                   <ScrollView
@@ -357,7 +439,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                           <ImageBackground
                             source={resolveArt(era.eraImageKey)}
                             style={StyleSheet.absoluteFill}
-                            imageStyle={[COVER_IMG, { borderRadius: 8 }]}
+                            imageStyle={{ borderRadius: 8 }}
                             resizeMode="cover"
                           >
                             <LinearGradient
@@ -393,13 +475,13 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
             )}
 
             {/* Time together */}
-            {selectedEra && (
+            {hasJourney && selectedEra && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Time You Spent Together</Text>
                 <ImageBackground
                   source={resolveArt(selectedEra.eraImageKey)}
                   style={s.statsCard}
-                  imageStyle={[COVER_IMG, { borderRadius: 12 }]}
+                  imageStyle={{ borderRadius: 12 }}
                   resizeMode="cover"
                 >
                   <View style={s.statsOverlay} />
@@ -434,6 +516,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>What you played back then</Text>
+                  <Text style={s.sectionLink}>SEE MORE</Text>
                 </View>
                 <LinearGradient
                   colors={['rgba(80,76,118,0.48)', 'rgba(0,0,0,0.95)']}
@@ -470,31 +553,9 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>Your Favorite Lyrics</Text>
+                  <Text style={s.sectionLink}>SEE MORE</Text>
                 </View>
-                <View style={s.lyricStack}>
-                  {page.lyrics[1] && (
-                    <LyricStackCard
-                      item={page.lyrics[1]}
-                      variant="back"
-                      containerStyle={[s.lyricBackCard, s.lyricBackLeft]}
-                      resolveArt={resolveArt}
-                    />
-                  )}
-                  {page.lyrics[2] && (
-                    <LyricStackCard
-                      item={page.lyrics[2]}
-                      variant="back"
-                      containerStyle={[s.lyricBackCard, s.lyricBackRight]}
-                      resolveArt={resolveArt}
-                    />
-                  )}
-                  <LyricStackCard
-                    item={page.lyrics[0]}
-                    variant="front"
-                    containerStyle={s.lyricFrontCard}
-                    resolveArt={resolveArt}
-                  />
-                </View>
+                <LyricCardStack items={page.lyrics} resolveArt={resolveArt} />
               </View>
             )}
 
@@ -503,13 +564,15 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               <View style={s.block}>
                 <View style={s.sectionHeaderRow}>
                   <Text style={s.sectionTitle}>Playlists Similar to this Era</Text>
+                  <Text style={s.sectionLink}>SEE MORE</Text>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.playlistRail}>
                   {page.playlists.map(pl => (
-                    <View key={pl.title} style={s.playlistCard}>
-                      <Image source={resolveArt(pl.artKey)} style={s.playlistArt} />
-                      <Text style={s.playlistTitle} numberOfLines={2}>{pl.title}</Text>
-                    </View>
+                    <TouchableOpacity key={pl.title} style={s.discCard} activeOpacity={0.85} onPress={() => playByArtKey(pl.artKey)}>
+                      <Image source={resolveArt(pl.artKey)} style={s.discArt} resizeMode="cover" />
+                      <Text style={s.discTitle} numberOfLines={1}>{pl.title}</Text>
+                      <Text style={s.discMeta} numberOfLines={1}>Playlist • Amazon Music</Text>
+                    </TouchableOpacity>
                   ))}
                 </ScrollView>
               </View>
@@ -522,7 +585,7 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 <ImageBackground
                   source={resolveArt(page.firstPlay.artKey)}
                   style={s.firstPlayCard}
-                  imageStyle={[COVER_IMG, { borderRadius: 12 }]}
+                  imageStyle={{ borderRadius: 12 }}
                   resizeMode="cover"
                 >
                   <LinearGradient
@@ -541,49 +604,19 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               </View>
             )}
 
-            {/* Merch — only for artists with a curated capsule */}
-            {page.merch.length > 0 && (
-              <View style={s.block}>
-                <View style={s.sectionHeaderRow}>
-                  <Text style={s.sectionTitle}>Shop {page.firstName} Merch</Text>
-                  <TouchableOpacity onPress={() => setTab('Merch')} hitSlop={8}>
-                    <Text style={s.sectionLink}>SEE ALL</Text>
-                  </TouchableOpacity>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.merchRail}>
-                  {page.merch.map(item => (
-                    <TouchableOpacity
-                      key={item.name}
-                      style={s.merchCard}
-                      activeOpacity={0.85}
-                      onPress={() => showConfirmation(`Added to bag — ${item.name} · ${item.price}`)}
-                    >
-                      <View style={s.merchArtWrap}>
-                        <Image source={resolveArt(item.artKey)} style={s.merchArt} />
-                        <View style={s.merchTypeChip}>
-                          <Text style={s.merchTypeText}>{item.type.toUpperCase()}</Text>
-                        </View>
-                      </View>
-                      <Text style={s.merchName} numberOfLines={2}>{item.name}</Text>
-                      <View style={s.merchPriceRow}>
-                        <Text style={s.merchPrice}>{item.price}</Text>
-                        <View style={s.merchBuyBtn}>
-                          <Ionicons name="bag-add-outline" size={14} color={C.bg} />
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+            {/* Fallback for very thin artists: at least offer their tracks */}
+            {!hasJourney && (
+              <View style={s.emptyTab}>
+                <Text style={s.emptyTabText}>We're still building your story with {page.firstName}.</Text>
               </View>
             )}
-
           </View>
-          )
         ) : tab === 'About' ? (
           about ? (
             <ArtistAboutTab
               data={about}
               artistName={page.name}
+              artistId={artist.id}
               sinceYear={Number(page.sinceLabel.replace(/\D/g, '')) || undefined}
               merch={merchItems}
             />
@@ -613,96 +646,77 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
           )
         ) : tab === 'Music' ? (
           <View style={s.content}>
-            {/* Session context — a short-term signal; appears once there's any history */}
-            {state !== 'cold' && artistSongs.length > 0 && (
-              <View style={s.block}>
-                <View style={s.ctxCard}>
-                  <Ionicons name="pulse" size={16} color="#F0CB80" />
-                  <Text style={s.ctxText} numberOfLines={2}>
-                    Back in <Text style={s.ctxBold}>{artistSongs[0].album}</Text> this session.
-                  </Text>
-                  <TouchableOpacity style={s.ctxBtn} activeOpacity={0.8} onPress={() => playByTitle()}>
-                    <Text style={s.ctxBtnText}>Keep going</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
 
-            {/* Popular — the standard chart for new listeners; once the
-                relationship is real, your top songs lead (a format change,
-                not a different catalog) */}
-            <View style={s.block}>
-              <View style={s.sectionHeaderRow}>
-                <Text style={s.sectionTitle}>Popular</Text>
-                {state === 'superfan' && (
-                  <View style={s.scopeRow}>
-                    {(['everyone', 'superfans'] as const).map(sc => (
-                      <TouchableOpacity
-                        key={sc}
-                        style={[s.scopePill, popScope === sc && s.scopePillActive]}
-                        activeOpacity={0.8}
-                        onPress={() => setPopScope(sc)}
-                      >
-                        <Text style={[s.scopeText, popScope === sc && s.scopeTextActive]}>
-                          {sc === 'everyone' ? 'Everyone' : 'Super fans'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+            {/* New Album feature banner */}
+            {newAlbumSong ? (
+              <View style={s.block}>
+                <TouchableOpacity style={s.newAlbumCard} activeOpacity={0.88} onPress={() => playByTitle(newAlbumSong.title)}>
+                  <Image source={resolveArt(newAlbumSong.albumArtPath ?? '')} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={12} />
+                  <View style={s.newAlbumScrim} />
+                  <View style={s.newAlbumRow}>
+                    <Image source={resolveArt(newAlbumSong.albumArtPath ?? '')} style={s.newAlbumCover} resizeMode="cover" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.newAlbumEyebrow}>{newAlbumEyebrow}</Text>
+                      <Text style={s.newAlbumCardTitle} numberOfLines={2}>{newAlbumSong.album}</Text>
+                      <Text style={s.newAlbumSub} numberOfLines={1}>{artist.name}'s latest</Text>
+                    </View>
                   </View>
-                )}
+                  <TouchableOpacity hitSlop={8} onPress={() => openAdaptiveMenu({ kind: 'song', song: newAlbumSong })} style={s.newAlbumMore}>
+                    <Ionicons name="ellipsis-horizontal" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </TouchableOpacity>
               </View>
-              <Text style={s.popSub}>
-                {popScope === 'superfans'
-                  ? 'What super fans replay the most.'
-                  : state === 'cold'
-                    ? 'Most-streamed, same order for everyone.'
-                    : state === 'casual'
-                      ? 'Most-streamed. Your plays get marked, and that\u2019s it.'
-                      : 'Your top songs lead. The full catalog is one tap away.'}
-              </Text>
-              {artistSongs.length > 0 ? (
+            ) : tourEvent ? (
+              // No song data at all — same banner design, sourced from her
+              // next show instead of a track.
+              <View style={s.block}>
+                <TouchableOpacity style={s.newAlbumCard} activeOpacity={0.88} onPress={() => setTab('Events')}>
+                  <Image source={avatar} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={12} />
+                  <View style={s.newAlbumScrim} />
+                  <View style={s.newAlbumRow}>
+                    <Image source={avatar} style={s.newAlbumCover} resizeMode="cover" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.newAlbumEyebrow}>TOUR ANNOUNCEMENT</Text>
+                      <Text style={s.newAlbumCardTitle} numberOfLines={2}>{tourEvent.title}</Text>
+                      <Text style={s.newAlbumSub} numberOfLines={1}>{tourEvent.venue}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {/* Top Songs — paginated 3-per-page snap scroll, same as Olivia's */}
+            <View style={s.block}>
+              <Text style={s.sectionTitle}>Top Songs</Text>
+              {popularPages.length > 0 ? (
                 <>
-                  {popularRows.map((sg, idx) => {
-                    const ranked = converged && idx < 3
-                    const row = (
-                      <>
-                        {ranked ? (
-                          <Text style={s.rankIdx}>{idx + 1}</Text>
-                        ) : (
-                          <Text style={s.popIdx}>{idx + 1}</Text>
-                        )}
-                        <Image source={resolveArt(sg.albumArtPath ?? '')} style={s.popArt} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={s.popTitle} numberOfLines={1}>{sg.title}</Text>
-                          <Text style={ranked ? s.rankMeta : s.popMeta} numberOfLines={1}>
-                            {fmtStreams(MUSIC_STREAMS[idx] ?? 100_000)}
-                            {state !== 'cold' && idx === 0 && popScope === 'everyone' ? (
-                              <Text style={s.youPlay}>  ·  You play this most</Text>
-                            ) : null}
-                          </Text>
-                        </View>
-                        <TouchableOpacity hitSlop={8} onPress={() => openAdaptiveMenu({ kind: 'song', song: sg })}>
-                          <Ionicons name="ellipsis-horizontal" size={18} color={ranked ? '#dfe6ee' : '#888'} />
-                        </TouchableOpacity>
-                      </>
-                    )
-                    return ranked ? (
-                      <TouchableOpacity key={sg.id} activeOpacity={0.85} onPress={() => playByTitle(sg.title)}>
-                        <LinearGradient
-                          colors={idx < 2 ? ['#5b7681', '#333e44'] : ['#5f56a0', '#39355c']}
-                          start={{ x: 0, y: 0.5 }}
-                          end={{ x: 1, y: 0.5 }}
-                          style={s.rankRow}
-                        >
-                          {row}
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity key={sg.id} style={s.popRow} activeOpacity={0.8} onPress={() => playByTitle(sg.title)}>
-                        {row}
-                      </TouchableOpacity>
-                    )
-                  })}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    decelerationRate="normal"
+                    snapToOffsets={popularSnapOffsets}
+                    snapToAlignment="start"
+                    nestedScrollEnabled
+                    contentContainerStyle={[s.popScrollContent, { paddingRight: POP_PAGE_PEEK }]}
+                  >
+                    {popularPages.map((page_, pageIdx) => (
+                      <View key={`pop-page-${pageIdx}`} style={[s.popPage, { width: POP_PAGE_WIDTH }]}>
+                        {page_.map((sg, i) => {
+                          const globalIdx = pageIdx * POP_SONGS_PER_PAGE + i
+                          return (
+                            <TouchableOpacity key={sg.id} style={s.popRow} activeOpacity={0.8} onPress={() => playByTitle(sg.title)}>
+                              <Image source={resolveArt(sg.albumArtPath ?? '')} style={s.popArt} />
+                              <View style={{ flex: 1 }}>
+                                <Text style={s.popTitle} numberOfLines={1}>{globalIdx + 1}. {sg.title}</Text>
+                                <Text style={s.popMeta} numberOfLines={1}>{artist.name} • {fmtStreams(MUSIC_STREAMS[globalIdx] ?? 100_000)}</Text>
+                              </View>
+                              <RowIcons song={sg} />
+                            </TouchableOpacity>
+                          )
+                        })}
+                      </View>
+                    ))}
+                  </ScrollView>
                   <TouchableOpacity
                     style={s.discLink}
                     activeOpacity={0.7}
@@ -716,44 +730,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 <Text style={s.emptyTabText}>No tracks yet.</Text>
               )}
             </View>
-
-            {/* Your history — the durable record; appears once it exists */}
-            {converged && (
-              <View style={s.block}>
-                <Text style={s.sectionTitle}>You & {page.firstName}</Text>
-                <TouchableOpacity activeOpacity={0.88} onPress={() => setTab(journeyTab)}>
-                  <ImageBackground
-                    source={avatar ?? undefined}
-                    style={s.histCard}
-                    imageStyle={[COVER_IMG, { borderRadius: 12 }]}
-                    resizeMode="cover"
-                  >
-                    <LinearGradient
-                      colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.88)']}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    <View style={s.histPill}>
-                      <Text style={s.histPillText}>{page.sinceLabel}</Text>
-                    </View>
-                    <View style={s.histBody}>
-                      <Text style={s.histEyebrow}>
-                        {state === 'superfan' ? page.listenerBadge.toUpperCase() : 'YOUR JOURNEY'}
-                      </Text>
-                      <Text style={s.histTitle}>Your journey so far</Text>
-                      {page.firstPlay && (
-                        <Text style={s.histMeta}>
-                          It started with <Text style={s.histBold}>{page.firstPlay.title}</Text> in {page.firstPlay.date}.
-                        </Text>
-                      )}
-                      <View style={s.histGo}>
-                        <Text style={s.histGoText}>Open your journey</Text>
-                        <Ionicons name="chevron-forward" size={13} color="#fff" />
-                      </View>
-                    </View>
-                  </ImageBackground>
-                </TouchableOpacity>
-              </View>
-            )}
 
             {/* Top Albums */}
             {page.eras.length > 0 && (
@@ -771,10 +747,44 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               </View>
             )}
 
-            {/* Fans also like */}
+            {/* More from [Artist] — "Because you like…" equivalent, drawn from
+                deeper catalog since a new listener has no taste history yet */}
+            {moreFromArtist.length > 0 && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>More from {artist.name}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.discRail}>
+                  {moreFromArtist.map(sg => (
+                    <TouchableOpacity key={sg.id} style={s.discCard} activeOpacity={0.85} onPress={() => playByTitle(sg.title)}>
+                      <Image source={resolveArt(sg.albumArtPath ?? '')} style={s.discArt} resizeMode="cover" />
+                      <Text style={s.discTitle} numberOfLines={1}>{sg.title}</Text>
+                      <Text style={s.discMeta} numberOfLines={1}>{sg.album}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Fan Favorites */}
+            {fanFavSongs.length > 0 && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Fan Favorites</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.discRail}>
+                  {fanFavSongs.map(sg => (
+                    <TouchableOpacity key={sg.id} style={s.discCard} activeOpacity={0.85} onPress={() => playByTitle(sg.title)}>
+                      <Image source={resolveArt(sg.albumArtPath ?? '')} style={s.discArt} resizeMode="cover" />
+                      <Text style={s.discTitle} numberOfLines={1}>{sg.title}</Text>
+                      <Text style={s.discMeta} numberOfLines={1}>{sg.album}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Related Artists — generic framing (not "Fans also love") since
+                that personalized framing hasn't been earned for a new listener */}
             {relatedArtists.length > 0 && (
               <View style={s.block}>
-                <Text style={s.sectionTitle}>Fans also like</Text>
+                <Text style={s.sectionTitle}>Related Artists</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.fanRail}>
                   {relatedArtists.map(a => {
                     const av = resolveArtistAvatar(a.id, a.imageUri)
@@ -794,6 +804,68 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
                 </ScrollView>
               </View>
             )}
+
+            {/* Playlists featuring [Artist] — editorial only, no "your" playlists yet */}
+            {page.playlists.length > 0 && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Playlists featuring {artist.name}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.discRail}>
+                  {page.playlists.map(pl => (
+                    <TouchableOpacity key={pl.title} style={s.discCard} activeOpacity={0.85} onPress={() => playByArtKey(pl.artKey)}>
+                      <Image source={resolveArt(pl.artKey)} style={s.discArt} resizeMode="cover" />
+                      <Text style={s.discTitle} numberOfLines={1}>{pl.title}</Text>
+                      <Text style={s.discMeta} numberOfLines={1}>Playlist • Amazon Music</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Podcasts about [Artist] */}
+            <View style={s.block}>
+              <Text style={s.sectionTitle}>Podcasts about {artist.name}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.discRail}>
+                {podcastShows.map(show => (
+                  <TouchableOpacity key={show.id} style={s.discCard} activeOpacity={0.85} onPress={() => router.push(`/podcast-show/${show.id}` as any)}>
+                    <View>
+                      {show.art ? (
+                        <Image source={show.art} style={s.discArt} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.discArt, { backgroundColor: '#1a1a2e', alignItems: 'center', justifyContent: 'center' }]}>
+                          <Ionicons name="mic-outline" size={26} color="rgba(255,255,255,0.25)" />
+                        </View>
+                      )}
+                      <View style={s.micBadge}>
+                        <Ionicons name="mic-outline" size={26} color="#fff" />
+                      </View>
+                    </View>
+                    <Text style={s.discTitle} numberOfLines={1}>{show.title}</Text>
+                    <Text style={s.discMeta} numberOfLines={1}>{show.episodeCount} episodes</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Related Radio Stations */}
+            {stations.length > 0 && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Related Radio Stations</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.discRail}>
+                  {stations.map(st => (
+                    <TouchableOpacity key={st.name} style={s.discCard} activeOpacity={0.85} onPress={() => playByTitle(st.trackTitle)}>
+                      <View>
+                        <Image source={resolveArt(st.artKey)} style={s.discArt} resizeMode="cover" />
+                        <View style={s.radioBadge}>
+                          <MaterialIcons name="sensors" size={26} color="#fff" />
+                        </View>
+                      </View>
+                      <Text style={s.discTitle} numberOfLines={1}>{st.name}</Text>
+                      <Text style={s.discMeta} numberOfLines={1}>Station • {artist.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
         ) : tab === 'Events' ? (
           <View style={s.content}>
@@ -804,22 +876,6 @@ export default function ArtistJourneyScreen({ id, initialTab }: { id: string; in
               ) : (
                 <View style={s.emptyTab}>
                   <Text style={s.emptyTabText}>No upcoming shows near you.</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        ) : tab === 'Merch' ? (
-          <View style={s.content}>
-            <View style={s.block}>
-              <View style={s.sectionHeaderRow}>
-                <Text style={s.sectionTitle}>Official Store</Text>
-
-              </View>
-              {merchItems.length > 0 ? (
-                <ArtistMerchGrid items={merchItems} resolveArt={resolveArt} />
-              ) : (
-                <View style={s.emptyTab}>
-                  <Text style={s.emptyTabText}>No merch yet.</Text>
                 </View>
               )}
             </View>
@@ -840,7 +896,7 @@ function HeroOverlay({
   avatar,
   activeProfile,
   following,
-  showProof,
+  showSinceBubble,
   onBack,
   onToggleFollow,
   onPlay,
@@ -850,9 +906,9 @@ function HeroOverlay({
   insets: { top: number }
   page: ReturnType<typeof buildArtistPage>
   avatar: any
-  activeProfile: { initial: string; color: string }
+  activeProfile: { initial: string; color: string; image?: any }
   following: boolean
-  showProof: boolean
+  showSinceBubble: boolean
   onBack: () => void
   onToggleFollow: () => void
   onPlay: () => void
@@ -880,22 +936,24 @@ function HeroOverlay({
         </TouchableOpacity>
       </View>
 
-      {/* The relationship proof cluster is earned — new listeners see the
-          standard hero until there's a "since" worth showing */}
-      {showProof && (
-        <View style={s.profileCluster}>
-          {avatar && <Image source={avatar} style={s.artistAvatar} resizeMode="cover" />}
+      <View style={s.profileCluster}>
+        {avatar && <Image source={avatar} style={s.artistAvatar} resizeMode="cover" />}
+        {showSinceBubble && (
           <View style={s.userBubbleWrap}>
             <View style={s.sinceBubble}>
               <Ionicons name="heart" size={14} color="#fff" />
               <Text style={s.sinceText}>{page.sinceLabel}</Text>
             </View>
-            <View style={[s.userAvatar, { backgroundColor: activeProfile.color }]}>
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{activeProfile.initial}</Text>
+            <View style={[s.userAvatar, !activeProfile.image && { backgroundColor: activeProfile.color }]}>
+              {activeProfile.image ? (
+                <Image source={activeProfile.image} style={s.userAvatarImg} resizeMode="cover" />
+              ) : (
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{activeProfile.initial}</Text>
+              )}
             </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
       <View style={s.heroMeta}>
         <Text style={s.heroName} numberOfLines={2}>{page.name}</Text>
@@ -971,7 +1029,9 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#000',
+    overflow: 'hidden',
   },
+  userAvatarImg: { width: '100%', height: '100%' },
   heroMeta: { paddingHorizontal: 16, paddingBottom: 8, marginTop: 108 },
   heroName: { ...typeHeadline(33), color: '#fff', letterSpacing: -0.5 },
   heroFollowers: { fontSize: 15, color: '#acb3b4', marginTop: 2 },
@@ -1008,6 +1068,7 @@ const s = StyleSheet.create({
   tabBar: { backgroundColor: '#000', borderBottomWidth: 1, borderBottomColor: C.border },
   tabRow: { paddingHorizontal: 8 },
   tabItem: { paddingHorizontal: 10, paddingVertical: 10, position: 'relative' },
+  tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   tabText: { fontSize: 12, color: '#fff', fontWeight: '400' },
   tabTextActive: { fontWeight: '700' },
   tabUnderline: { position: 'absolute', bottom: 0, left: 8, right: 8, height: 2, backgroundColor: C.cyan },
@@ -1016,31 +1077,6 @@ const s = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { ...typeHeadline(20), color: '#fff' },
 
-  merchRail: { gap: 12, paddingRight: 16 },
-  merchCard: { width: 132 },
-  merchArtWrap: { position: 'relative', marginBottom: 8 },
-  merchArt: { width: 132, height: 132, borderRadius: 10, backgroundColor: C.surface },
-  merchTypeChip: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  merchTypeText: { fontSize: 9, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
-  merchName: { fontSize: 13, fontWeight: '600', color: '#fff', lineHeight: 17, marginBottom: 6 },
-  merchPriceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  merchPrice: { fontSize: 14, fontWeight: '700', color: C.cyan },
-  merchBuyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   sectionLink: { fontSize: 14, color: '#757575', fontWeight: '700' },
   eraRail: { gap: 12, paddingVertical: 4 },
   eraCard: { width: ERA_CARD_W, height: ERA_CARD_H, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
@@ -1172,9 +1208,6 @@ const s = StyleSheet.create({
   lyricStackFans: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   lyricStackFansText: { fontSize: 11, color: '#fff' },
   playlistRail: { gap: 12 },
-  playlistCard: { width: 173 },
-  playlistArt: { width: 173, height: 173, borderRadius: 8, marginBottom: 5 },
-  playlistTitle: { fontSize: 16, color: '#fff', fontWeight: '700' },
   firstPlayCard: { height: 105, borderRadius: 12, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', padding: 10, gap: 10 },
   firstPlayArt: { width: 81, height: 81, borderRadius: 4 },
   firstPlayEyebrow: { fontSize: 12, color: C.cyan, fontWeight: '700' },
@@ -1186,105 +1219,10 @@ const s = StyleSheet.create({
   aboutChip: { flex: 1, backgroundColor: C.surface, borderRadius: 10, padding: 12, gap: 4 },
   aboutChipLabel: { fontSize: 11, color: '#8a8a8a' },
   aboutChipValue: { fontSize: 14, color: '#fff', fontWeight: '700' },
-  popRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  popIdx: { width: 18, fontSize: 13, color: '#8a8a8a', textAlign: 'center' },
-  popArt: { width: 48, height: 48, borderRadius: 4 },
-  popTitle: { fontSize: 15, color: '#fff', fontWeight: '600' },
-  popMeta: { fontSize: 12, color: '#8a8a8a', marginTop: 2 },
-  popSub: { fontSize: 12, color: '#8a8a8a', marginTop: -4, marginBottom: 10, lineHeight: 17 },
-  youPlay: { color: C.cyan, fontWeight: '700', fontSize: 12 },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  rankIdx: {
-    width: 24,
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  rankMeta: { fontSize: 12, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
-  scopeRow: {
-    flexDirection: 'row',
-    gap: 3,
-    backgroundColor: '#0a0f14',
-    borderWidth: 1,
-    borderColor: '#242C35',
-    borderRadius: 16,
-    padding: 3,
-  },
-  scopePill: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12 },
-  scopePillActive: { backgroundColor: 'rgba(0,213,221,0.16)' },
-  scopeText: { fontSize: 11, fontWeight: '700', color: '#8A93A0' },
-  scopeTextActive: { color: C.cyan },
-  ctxCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 13,
-    borderRadius: 12,
-    backgroundColor: 'rgba(232,184,96,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(232,184,96,0.26)',
-  },
-  ctxText: { flex: 1, fontSize: 13, lineHeight: 18, color: '#C2C9D1' },
-  ctxBold: { color: '#F0CB80', fontWeight: '700' },
-  ctxBtn: {
-    borderWidth: 1,
-    borderColor: 'rgba(232,184,96,0.4)',
-    borderRadius: 14,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
-  ctxBtnText: { fontSize: 11.5, fontWeight: '700', color: '#F0CB80' },
-  histCard: { minHeight: 168, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end' },
-  histPill: {
-    position: 'absolute',
-    top: 11,
-    right: 11,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-  },
-  histPillText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  histBody: { padding: 14, gap: 3 },
-  histEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, color: C.cyan },
-  histTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  histMeta: { fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.78)' },
-  histBold: { color: '#fff', fontWeight: '700' },
-  histGo: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 9 },
-  histGoText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  coldHint: {
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(37,209,218,0.32)',
-    borderRadius: 14,
-    padding: 14,
-    gap: 10,
-  },
-  coldHintLead: { fontSize: 13, lineHeight: 19, color: '#C2C9D1' },
-  coldChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  coldChip: {
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: '#242C35',
-  },
-  coldChipText: { fontSize: 11.5, fontWeight: '700', color: '#8A93A0' },
-  coldHintNote: { fontSize: 11, lineHeight: 16, color: '#8A93A0' },
+  popRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  popArt: { width: 56, height: 56, borderRadius: 6, borderWidth: 0.75, borderColor: 'rgba(255,255,255,0.24)' },
+  popTitle: { ...typeHeadline(16), color: '#fff', flexShrink: 1 },
+  popMeta: { fontSize: 12, color: '#8a8a8a', marginTop: 3 },
   popDur: { fontSize: 12, color: '#8a8a8a' },
   emptyTab: { alignItems: 'center', paddingTop: 48, paddingBottom: 80 },
   emptyTabText: { color: '#555', fontSize: 14, textAlign: 'center' },
@@ -1303,4 +1241,52 @@ const s = StyleSheet.create({
   fanAvatar: { width: 100, height: 100, borderRadius: 50 },
   fanAvatarFallback: { backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
   fanName: { ...typeHeadline(13), color: '#fff', textAlign: 'center' },
+
+  // New Album feature banner — ported from Olivia's New-listener Music tab
+  newAlbumCard: { borderRadius: 4, overflow: 'hidden', padding: 12, flexDirection: 'row', alignItems: 'center' },
+  newAlbumScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
+  newAlbumRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  newAlbumCover: { width: 81, height: 81, borderRadius: 4, borderWidth: 0.75, borderColor: 'rgba(255,255,255,0.24)' },
+  newAlbumEyebrow: { fontSize: 12, fontWeight: '700', color: C.cyan },
+  newAlbumCardTitle: { ...typeHeadline(16), color: '#fff', marginTop: 2 },
+  newAlbumSub: { fontSize: 12, color: '#fff', marginTop: 3 },
+  newAlbumMore: { marginLeft: 8, alignSelf: 'flex-start' },
+
+  // Top Songs pagination
+  popScrollContent: { paddingLeft: 16 },
+  popPage: { paddingRight: 20 },
+  rowIcons: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+
+  // Discovery-style rail cards (More from Artist, Fan Favorites, Podcasts, Radio)
+  discRail: { paddingHorizontal: 16, gap: 14 },
+  discCard: { width: 173 },
+  discArt: { width: 173, height: 173, borderRadius: 8, borderWidth: 0.75, borderColor: 'rgba(255,255,255,0.24)' },
+  discTitle: { ...typeHeadline(16), color: '#fff', marginTop: 6 },
+  discMeta: { fontSize: 14, color: '#a6a6a6', marginTop: 1 },
+  radioBadge: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micBadge: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

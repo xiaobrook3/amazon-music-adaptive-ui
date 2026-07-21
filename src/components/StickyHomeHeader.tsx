@@ -1,10 +1,12 @@
-import { useRef, useMemo, useState, useEffect } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { Text } from './AppText'
+import { AppImage as Image } from './AppImage'
 import ProfileSwitcherSheet from './ProfileSwitcherSheet'
+import AdaptiveToggle from './AdaptiveToggle'
 import { useProfiles } from '../context/ProfilesContext'
 import { hexWithAlpha } from '../utils/color'
 import { C } from '../theme'
@@ -14,18 +16,14 @@ const CONTENT_PILLS = ['Music', 'Podcast', 'Audible'] as const
 export const STICKY_HEADER_BODY_HEIGHT = 48
 
 /**
- * Drill-down domain nav. When `domain` is null the three domain pills show; tap
- * one and the others collapse, a back arrow appears, and the domain becomes a
- * two-segment toggle (domain browse vs the tailored `subLabel` cut).
+ * Drill-down domain nav. When `domain` is null the domain pills show; tap one
+ * and the others collapse, replaced by a back arrow + the picked domain's name.
  */
 export type DomainNav = {
   domains: readonly string[]
   domain: number | null
-  focus: number
-  subLabel: string
   onSelectDomain: (i: number) => void
   onBack: () => void
-  onFocus: (i: number) => void
 }
 
 type Props = {
@@ -53,40 +51,6 @@ export function useStickyHomeScroll() {
     [scrollY],
   )
   return { scrollY, onScroll }
-}
-
-const SEG_W = 94
-
-/** Two-segment control with an accent indicator that springs left↔right. */
-function SegToggle({
-  labels,
-  active,
-  onSelect,
-  accent,
-}: {
-  labels: [string, string]
-  active: number
-  onSelect: (i: number) => void
-  accent: string
-}) {
-  const anim = useRef(new Animated.Value(active)).current
-  useEffect(() => {
-    Animated.spring(anim, { toValue: active, useNativeDriver: true, damping: 20, stiffness: 240, mass: 0.7 }).start()
-  }, [active, anim])
-  const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: [0, SEG_W] })
-  return (
-    <View style={s.segTrack}>
-      <Animated.View
-        style={[s.segIndicator, { backgroundColor: accent, transform: [{ translateX }] }]}
-        pointerEvents="none"
-      />
-      {labels.map((label, i) => (
-        <TouchableOpacity key={label} style={s.seg} activeOpacity={0.85} onPress={() => onSelect(i)}>
-          <Text style={[s.segLabel, i === active && s.segLabelActive]} numberOfLines={1}>{label}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  )
 }
 
 export default function StickyHomeHeader({ firstName, activePill, onPillChange, scrollY, domainNav }: Props) {
@@ -125,9 +89,7 @@ export default function StickyHomeHeader({ firstName, activePill, onPillChange, 
         ]}
       />
       <View style={s.topBar}>
-        {/* Avatar reflects the active persona and opens the profile switcher.
-            (Adaptive UI is now driven by the chosen profile, so the old toggle
-            pill has been removed.) */}
+        {/* Avatar reflects the active persona and opens the profile switcher. */}
         <TouchableOpacity
           style={[
             s.avatarBtn,
@@ -138,7 +100,11 @@ export default function StickyHomeHeader({ firstName, activePill, onPillChange, 
           accessibilityRole="button"
           accessibilityLabel={`Switch profile, current: ${activeProfile.name}`}
         >
-          <Text style={[s.avatarText, { color: C.cyan }]}>{activeProfile.initial}</Text>
+          {activeProfile.image ? (
+            <Image source={activeProfile.image} style={s.avatarImg} resizeMode="cover" />
+          ) : (
+            <Text style={[s.avatarText, { color: C.cyan }]}>{activeProfile.initial}</Text>
+          )}
         </TouchableOpacity>
 
         {domainNav ? (
@@ -156,7 +122,7 @@ export default function StickyHomeHeader({ firstName, activePill, onPillChange, 
                 </TouchableOpacity>
               ))
             ) : (
-              // Level 2 — back + [domain | subLabel] segmented toggle
+              // Level 2 — back + the picked domain's name
               <>
                 <TouchableOpacity
                   style={s.backPill}
@@ -168,12 +134,9 @@ export default function StickyHomeHeader({ firstName, activePill, onPillChange, 
                 >
                   <Ionicons name="chevron-back" size={20} color="#fff" />
                 </TouchableOpacity>
-                <SegToggle
-                  labels={[domainNav.domains[domainNav.domain], domainNav.subLabel]}
-                  active={domainNav.focus}
-                  onSelect={domainNav.onFocus}
-                  accent={C.cyan}
-                />
+                <View style={[s.contentPill, s.contentPillActive]}>
+                  <Text style={[s.contentPillLabel, s.contentPillLabelActive]}>{domainNav.domains[domainNav.domain]}</Text>
+                </View>
               </>
             )}
           </View>
@@ -194,6 +157,12 @@ export default function StickyHomeHeader({ firstName, activePill, onPillChange, 
             })}
           </View>
         )}
+
+        {/* Manual override for Rabiat's "Prototype V2 · Adaptive UI" demo —
+            restored top-right toggle from the earlier prototype. Scoped to
+            the rabiat profile only; every other persona (Hannah Journey
+            included) keeps its header exactly as-is. */}
+        {activeProfile.id === 'rabiat' && <AdaptiveToggle />}
       </View>
 
       <ProfileSwitcherSheet visible={switcherOpen} onClose={() => setSwitcherOpen(false)} />
@@ -236,25 +205,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segTrack: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 17,
-    padding: 3,
-    height: 34,
-    position: 'relative',
-  },
-  segIndicator: {
-    position: 'absolute',
-    top: 3,
-    left: 3,
-    width: SEG_W,
-    height: 28,
-    borderRadius: 14,
-  },
-  seg: { width: SEG_W, alignItems: 'center', justifyContent: 'center' },
-  segLabel: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  segLabelActive: { color: '#000', fontWeight: '700' },
   contentPill: {
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -282,8 +232,10 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImg: { width: '100%', height: '100%' },
   avatarText: { fontSize: 13, fontWeight: '700', color: C.cyan },
 })
