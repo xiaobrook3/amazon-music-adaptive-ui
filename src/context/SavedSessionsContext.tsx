@@ -38,16 +38,16 @@ export function generateSessionDescription(sessionSongs: Song[], label: string):
   const labelLower = label.toLowerCase()
 
   if (labelLower.includes('late night')) {
-    return 'Your late-night wind-down — picked up right where you left off'
+    return 'Your late-night wind-down, picked up right where you left off'
   }
   if (labelLower.includes('morning')) {
-    return `Your morning soundtrack with ${artist} — start right where you paused`
+    return `Your morning soundtrack with ${artist}, start right where you paused`
   }
   if (labelLower.includes('afternoon')) {
     return 'You enjoyed this mix I made for you for your jazzy afternoon'
   }
   if (labelLower.includes('evening')) {
-    return `Evening with ${artist} — a vibe worth keeping`
+    return `Evening with ${artist}, a vibe worth keeping`
   }
   if (labelLower.includes('night')) {
     return 'A vibe you saved when everything was hitting just right'
@@ -55,7 +55,7 @@ export function generateSessionDescription(sessionSongs: Song[], label: string):
   if (label.includes(' with ')) {
     return `A vibe you saved when everything was hitting just right with ${artist}`
   }
-  return `A personal mix anchored by ${artist} — saved for when you're ready`
+  return `A personal mix anchored by ${artist}, saved for when you're ready`
 }
 
 const SEED_SESSIONS: SavedSession[] = [
@@ -63,7 +63,7 @@ const SEED_SESSIONS: SavedSession[] = [
     id: 'ss-seed-1',
     savedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
     label: 'Evening Vibes · Jun 24',
-    description: 'Evening with BTS — a vibe worth keeping',
+    description: 'Evening with BTS, a vibe worth keeping',
     songs: songs.slice(0, 10),
     coverArtPath: songs[0]?.albumArtPath,
   },

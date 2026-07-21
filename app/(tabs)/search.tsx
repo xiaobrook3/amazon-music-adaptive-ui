@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { songs, artists, playlists, podcasts, fanGroups } from '../../src/data/mockData'
+import { audiobooks } from '../../src/data/audibleBooks'
 import { albumArtAssets, resolveArtistAvatar } from '../../src/data/assetMap'
 import { usePlaybackState } from '../../src/hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../src/context/AdaptiveUIContext'
@@ -192,6 +193,14 @@ export default function FindScreen() {
     ? podcasts.filter(pod => pod.title.toLowerCase().includes(q) || pod.host.toLowerCase().includes(q)).slice(0, 6)
     : []
   const fanGroupResults = showResults ? fanGroups.filter(fg => fg.name.toLowerCase().includes(q)) : []
+  const audiobookResults = showResults
+    ? audiobooks.filter(
+        b =>
+          b.title.toLowerCase().includes(q) ||
+          b.author.toLowerCase().includes(q) ||
+          b.narrator.toLowerCase().includes(q),
+      ).slice(0, 8)
+    : []
 
   const typeFilter = activePill
   const showSection = (section: string) =>
@@ -213,7 +222,7 @@ export default function FindScreen() {
 
   const handleCategory = (section: 'genre' | 'podcast' | 'audible') => (label: string) => {
     if (section === 'audible') {
-      showConfirmation('Audiobooks open in the Audible app')
+      router.push(`/audible-category/${encodeURIComponent(label)}` as any)
       return
     }
     if (section === 'podcast') {
@@ -451,7 +460,7 @@ export default function FindScreen() {
                     <TouchableOpacity
                       key={fg.id}
                       style={s.resultRow}
-                      onPress={() => fg.artistId && router.push(`/artist/${fg.artistId}` as any)}
+                      onPress={() => router.push(`/fan-group/${fg.id}` as any)}
                       activeOpacity={0.8}
                     >
                       <View style={[s.resultArt, s.resultArtRound, { backgroundColor: C.elevated, alignItems: 'center', justifyContent: 'center' }]}>
@@ -468,14 +477,50 @@ export default function FindScreen() {
               </>
             )}
 
-            {typeFilter === 'Audiobooks' && (
+            {showSection('Audiobooks') && audiobookResults.length > 0 && (
+              <>
+                <View style={s.sectionHeader}>
+                  <Text style={s.sectionTitle}>Audiobooks</Text>
+                </View>
+                <View style={s.resultsList}>
+                  {audiobookResults.map(book => {
+                    const art = book.coverArtPath ? albumArtAssets[book.coverArtPath] : null
+                    return (
+                      <TouchableOpacity
+                        key={book.id}
+                        style={s.resultRow}
+                        onPress={() => router.push(`/audible-book/${book.id}` as any)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={s.resultArt}>
+                          {art ? (
+                            <Image source={art} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                          ) : (
+                            <View style={[s.resultArt, { backgroundColor: book.coverColor, alignItems: 'center', justifyContent: 'center' }]}>
+                              <Ionicons name="book" size={20} color="rgba(255,255,255,0.4)" />
+                            </View>
+                          )}
+                        </View>
+                        <View style={s.resultMeta}>
+                          <Text style={s.resultTitle} numberOfLines={1}>{book.title}</Text>
+                          <Text style={s.resultArtist} numberOfLines={1}>{book.author} · {book.narrator}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={C.textMuted} />
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+              </>
+            )}
+
+            {typeFilter === 'Audiobooks' && audiobookResults.length === 0 && query.trim().length > 0 && (
               <Text style={[s.emptyResults, { paddingHorizontal: 16 }]}>
-                Audiobooks live in the Audible app.
+                No audiobooks found for "{query}"
               </Text>
             )}
 
             {results.length === 0 && artistResults.length === 0 && playlistResults.length === 0 &&
-              podcastResults.length === 0 && fanGroupResults.length === 0 && (
+              podcastResults.length === 0 && fanGroupResults.length === 0 && audiobookResults.length === 0 && (
               <Text style={[s.emptyResults, { paddingHorizontal: 16 }]}>No results for "{query}"</Text>
             )}
           </>

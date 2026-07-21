@@ -6,6 +6,21 @@ export function hexWithAlpha(hex: string, alpha: number): string {
   return `${hex}${a}`
 }
 
+/**
+ * Builds an rgba() tint at the given alpha from a theme's `heroHue`, which is
+ * either a hex string ('#7B2D8E') or an rgba() string ('rgba(52, 28, 14, 0.8)')
+ * depending on the theme. Falls back to a neutral plum if neither parses.
+ */
+export function tintFromHue(hue: string, alpha: number): string {
+  if (hue.startsWith('#')) {
+    const h = hue.replace('#', '')
+    return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${alpha})`
+  }
+  const m = hue.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+  if (m) return `rgba(${m[1]},${m[2]},${m[3]},${alpha})`
+  return `rgba(38,22,32,${alpha})`
+}
+
 export function parseDurationSeconds(duration: string): number {
   const parts = duration.split(':').map(Number)
   if (parts.length === 2) return parts[0] * 60 + parts[1]

@@ -11,7 +11,7 @@ export const TAYLOR_TOP_TRACK = {
 
 export const TAYLOR_EXCLUSIVE_TRACK = {
   songId: 's-ts-folk-01',
-  title: "All Too Well (10 Min Version) — Studio Demo",
+  title: "All Too Well (10 Min Version), Studio Demo",
   subtitle: 'Only top 1% Swifties can access this',
   artKey: 'tswift-1',
 }
@@ -41,7 +41,7 @@ export const TAYLOR_PODCASTS = [
 ]
 
 export const TAYLOR_NEWS = {
-  headline: "The Life of a Showgirl — World Tour dates confirmed",
+  headline: "The Life of a Showgirl, World Tour dates confirmed",
   body: "47 cities announced · 3 nights at SoFi Stadium · Ticket pre-sale opens July 14",
   date: 'Jul 7, 2026',
 }
@@ -49,7 +49,7 @@ export const TAYLOR_NEWS = {
 export const TAYLOR_SUPERFAN_MERCH = [
   { id: 'ts-merch1', label: "reputation Vinyl (Taylor's Version)", artKey: 'ts-reputation' },
   { id: 'ts-merch2', label: 'Eras Tour Crew Tee', artKey: 'ts-showgirl' },
-  { id: 'ts-merch3', label: "folklore — Limited Edition LP", artKey: 'ts-1989-polaroid' },
+  { id: 'ts-merch3', label: "folklore, Limited Edition LP", artKey: 'ts-1989-polaroid' },
   { id: 'ts-merch4', label: 'TTPD Signed Anthology', artKey: 'ts-tortured-poets' },
 ]
 

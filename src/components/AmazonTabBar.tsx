@@ -118,6 +118,8 @@ const s = StyleSheet.create({
     gap: 3,
     width: C.navItemWidth,
   },
+  // Figma "Nav Bar" (node 28:239) specifies 31x31 icons, but that reads too
+  // large on-device — reverted to the original shared size.
   icon: {
     width: C.navIconSize,
     height: C.navIconSize,

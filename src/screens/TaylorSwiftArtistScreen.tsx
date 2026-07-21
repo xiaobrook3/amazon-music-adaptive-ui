@@ -16,16 +16,23 @@ import Animated, {
 import { Text } from '../components/AppText'
 import { AppImage as Image } from '../components/AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { songs } from '../data/mockData'
-import { albumArtAssets, artistAssets } from '../data/assetMap'
+import { albumArtAssets, artistAssets, hannahJourneyAssets } from '../data/assetMap'
+
+// Same real Taylor hero-card background used on Insights (app/insights.tsx
+// SUPERFAN_HERO_CARDS 'taylor' entry) — reused here rather than a new asset.
+const heroBgTaylor = require('../../assets/hannah-journey/insights-superfan-hero-bg-taylor.png')
 import { useProfiles } from '../context/ProfilesContext'
+import { useHannahJourney } from '../context/HannahJourneyContext'
 import {
   TAYLOR_ERAS,
   TAYLOR_FAVORITE_LYRICS,
   TAYLOR_JOURNEY_STATS,
+  TAYLOR_ERA_PLAYLISTS,
   type TaylorEraId,
 } from '../data/taylorSwiftPage'
 import {
@@ -39,21 +46,20 @@ import { getArtistAbout } from '../data/artistAbout'
 import { usePlaybackState } from '../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../components/AdaptiveContextMenu'
-import { C, typeHeadline } from '../theme'
+import { C, typeHeadline, FONT_FAMILY_EMBER, FONT_FAMILY_DISPLAY } from '../theme'
 import ArtistAboutTab from '../components/artist/ArtistAboutTab'
 import TaylorMusicTab from '../components/artist/TaylorMusicTab'
 import { ArtistEventsCard, ArtistMerchGrid } from '../components/artist/ArtistCommerce'
-
-
-// RN-web sizes an ImageBackground's inner image from the asset's intrinsic
-// dimensions when the style has no explicit width/height (native stretches
-// it). Force full-bleed so web and Expo Go render identically.
-const COVER_IMG = { width: '100%', height: '100%' } as const
+import LyricCardStack from '../components/artist/LyricCardStack'
+import SuperfanGoldGlow from '../components/SuperfanGoldGlow'
 
 const SCREEN_W = Dimensions.get('window').width
-const TABS = ['Music', 'Events', 'Merch', 'About', 'You & Taylor'] as const
+/** You & Taylor sits right beside Music for every persona. */
+const TABS = ['Music', 'You & Taylor', 'Events', 'Merch', 'About'] as const
 const ERA_CARD_W = 120
 const ERA_CARD_H = 122
+const ERA_RAIL_GAP = 12
+const HJ_ERA_CARD_H = 166
 const MERCH_CARD_W = (SCREEN_W - 44) / 2
 
 // Resolve art key to image source — album art first, then artist assets
@@ -62,68 +68,36 @@ function resolveArt(key?: string) {
   return albumArtAssets[key] ?? artistAssets[key] ?? albumArtAssets['tswift-1'] ?? null
 }
 
-// Gradient for the front lyric card
-const LYRIC_FRONT_GRADIENT = ['rgba(180,140,220,0.12)', 'rgba(180,140,220,0.55)'] as const
-
-type LyricItem = (typeof TAYLOR_FAVORITE_LYRICS)[number]
-
-function LyricStackCard({
-  item,
-  variant,
-  containerStyle,
-}: {
-  item: LyricItem
-  variant: 'front' | 'back'
-  containerStyle: any
-}) {
-  const front = variant === 'front'
-  return (
-    <View style={containerStyle}>
-      <LinearGradient
-        colors={front ? LYRIC_FRONT_GRADIENT : item.gradient}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={s.lyricStackHeader}>
-        <Image source={resolveArt(item.artKey)} style={s.lyricStackArt} />
-        <Text style={s.lyricStackSong} numberOfLines={1}>{item.song}</Text>
-      </View>
-      <Text style={front ? s.lyricStackTextFront : s.lyricStackText}>{item.lyric}</Text>
-      <View style={s.lyricStackFans}>
-        <Ionicons name="heart" size={front ? 14 : 12} color={C.cyan} />
-        <Text style={s.lyricStackFansText}>by 18k fans</Text>
-      </View>
-    </View>
-  )
-}
-
-// Deep-link tab values (?tab=you|about|events|merch), same contract as the
-// Olivia and journey screens.
-const DEEP_TABS: Record<string, (typeof TABS)[number]> = {
-  you: 'You & Taylor',
-  about: 'About',
-  events: 'Events',
-  merch: 'Merch',
-}
-
-export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: string } = {}) {
+export default function TaylorSwiftArtistScreen() {
   const router = useRouter()
-
-  // Deep-linked or reloaded pages have no history entry — a bare router.back()
-  // silently no-ops and the back chevron reads as broken. Land on Home instead.
-  const goBack = () => {
-    if (router.canGoBack()) router.back()
-    else router.replace('/')
-  }
   const insets = useSafeAreaInsets()
   const { playSongAt } = usePlaybackState()
-  const { showConfirmation } = useAdaptiveUI()
+  const { showConfirmation, activeTheme } = useAdaptiveUI()
   const { activeProfile } = useProfiles()
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
+  // Only a persona actually themed as a Taylor superfan (Hannah, Brooke) gets
+  // the "connected to Taylor" signals (Since bubble + own avatar next to her
+  // photo) — everyone else is a genuine new listener here and shouldn't see
+  // a false connection, even though the rest of the page stays full-superfan.
+  // "Create your own" profiles that picked Taylor count too — they're a
+  // declared superfan of her, so they earn the same connection signals.
+  const isTaylorFan =
+    activeTheme?.id === 'taylor-swift-superfan' ||
+    !!activeProfile.superfanArtistIds?.includes('tswift')
+  // Hannah Journey is a Taylor Swift superfan from the very start (no
+  // new→engaged→superfan arc like Olivia's) — gates the Figma Hannah Journey
+  // hero/tab treatment on top of the generic isTaylorFan superfan content
+  // Brooke and the original `hannah` persona already see.
+  const { isHannahJourney } = useHannahJourney()
 
-  const [tab, setTab] = useState<(typeof TABS)[number]>(() => DEEP_TABS[initialTab ?? ''] ?? 'Music')
+  const [tab, setTab] = useState<(typeof TABS)[number]>('Music')
   const [selectedEraId, setSelectedEraId] = useState<TaylorEraId>('lover')
   const [following, setFollowing] = useState(true)
-  const [lyricIndex, setLyricIndex] = useState(0)
+  // Gradient border ring size for the Hannah Journey "Super Fan" pill — same
+  // onLayout-measured-SVG-stroke technique as Olivia's superFanBtn, so the
+  // pill's pink→lavender→blue gradient border matches hers exactly instead of
+  // a plain solid cyan border.
+  const [superFanBtnSize, setSuperFanBtnSize] = useState({ width: 0, height: 0 })
 
   const selectedEra = useMemo(
     () => TAYLOR_ERAS.find(e => e.id === selectedEraId) ?? TAYLOR_ERAS[4],
@@ -196,13 +170,12 @@ export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: s
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <View style={s.heroWrap}>
           <ImageBackground
-            source={albumArtAssets['ts-showgirl']}
+            source={artistAssets['tswift-1']}
             style={s.heroBg}
-            imageStyle={COVER_IMG}
             resizeMode="cover"
           >
             <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(40,10,70,0.7)', 'rgba(20,5,40,0.96)', '#000']}
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(30,60,25,0.7)', 'rgba(10,26,8,0.96)', '#000']}
               locations={[0.3, 0.48, 0.72, 0.9, 1]}
               style={StyleSheet.absoluteFill}
             />
@@ -212,65 +185,170 @@ export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: s
             />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={goBack} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showMenu}>
-                <Ionicons name="options-outline" size={22} color="#fff" />
+                {isHannahJourney ? (
+                  // Same corrected solid-funnel glyph as Olivia's Hannah Journey hero
+                  // (hannahJourneyAssets.filterIcon) — not the Ionicons outline stand-in.
+                  <Image source={hannahJourneyAssets.filterIcon} style={s.filterIconHJ} resizeMode="contain" />
+                ) : (
+                  <Ionicons name="options-outline" size={22} color="#fff" />
+                )}
               </TouchableOpacity>
             </View>
 
             <View style={s.profileCluster}>
               <Image source={albumArtAssets['tswift-1']} style={s.artistAvatar} resizeMode="cover" />
-              <View style={s.userBubbleWrap}>
-                <View style={[s.userAvatar, { backgroundColor: activeProfile.color }]}>
-                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
-                    {activeProfile.initial}
-                  </Text>
-                </View>
-                {!activeProfile.casual && (
-                  <View style={s.sinceBubble}>
-                    <Ionicons name="heart" size={14} color="#fff" />
-                    <Text style={s.sinceText}>Since {TAYLOR_SUPERFAN_STATS.firstListenYear}</Text>
+              {(isHannahJourney || isTaylorFan) && (
+                <View style={s.userBubbleWrap}>
+                  <View style={[s.userAvatar, !activeProfile.image && { backgroundColor: activeProfile.color }]}>
+                    {activeProfile.image ? (
+                      <Image source={activeProfile.image} style={s.userAvatarImg} resizeMode="cover" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>
+                        {activeProfile.initial}
+                      </Text>
+                    )}
                   </View>
-                )}
-              </View>
+                  {/* Non-HJ since-pill, unchanged: stacked under the avatar via this
+                      wrap's flex layout. Hannah Journey gets the standalone
+                      absolutely-positioned bubble below instead (Figma node
+                      2740-29136), matching Olivia's hero exactly. */}
+                  {!isHannahJourney && (
+                    <View style={s.sinceBubble}>
+                      <Ionicons name="heart" size={14} color="#fff" />
+                      <Text style={s.sinceText}>Since {TAYLOR_SUPERFAN_STATS.firstListenYear}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
+            {/* Hannah Journey "following bubble" — positioned independently of
+                profileCluster/userBubbleWrap (Taylor's hero uses an older flex-row
+                layout for those, left untouched for other personas) at the same
+                Figma-absolute hero coordinates Olivia's uses: left 109/top 187.
+                Solid pink fill, no border, plus a 2-circle speech-bubble tail
+                pointing at the user avatar. */}
+            {isHannahJourney && (
+              <View style={s.followingBubbleHJWrap}>
+                <View style={s.followingBubbleTailBig} />
+                <View style={s.followingBubbleTailSmall} />
+                <View style={[s.sinceBubble, s.sinceBubbleHJ, { backgroundColor: '#DE909C' }]}>
+                  <Image
+                    source={hannahJourneyAssets.sinceBubbleHeart}
+                    style={s.sinceBubbleIconHJ}
+                    resizeMode="contain"
+                  />
+                  <Text style={[s.sinceText, s.sinceTextHJ]}>Since {TAYLOR_SUPERFAN_STATS.firstListenYear}</Text>
+                </View>
+              </View>
+            )}
 
             <View style={s.heroMeta}>
               <Text style={s.heroName}>Taylor Swift</Text>
-              <Text style={s.heroFollowers}>82M+ Followers</Text>
+              {/* Figma hero (node 2576-38587): follower count is 14px — mirrors the
+                  same HJ-gated correction made on Olivia's hero. */}
+              <Text style={[s.heroFollowers, isHannahJourney && s.heroFollowersHJ]}>82M+ Followers</Text>
             </View>
 
             <View style={s.controlPanel}>
               <View style={s.controlLeft}>
-                <TouchableOpacity
-                  onPress={() => setFollowing(!following)}
-                  style={[s.followBtn, following && s.followingBtn]}
-                >
-                  <Ionicons name="heart" size={16} color={following ? C.cyan : '#fff'} />
-                  <Text style={s.followBtnText}>{following ? 'Following' : 'Follow'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.roundIconBtn} onPress={shuffleTaylor} hitSlop={8}>
-                  <Ionicons name="shuffle" size={20} color="#fff" />
-                </TouchableOpacity>
+                {isHannahJourney ? (
+                  // Figma Hannah Journey "Super Fan" pill — matches Olivia's superFanBtn
+                  // treatment exactly (plain cyan border, no fill) and is non-interactive:
+                  // Hannah is always a Taylor superfan, so there's no Follow/Following toggle.
+                  <TouchableOpacity
+                    style={[s.followBtn, s.superFanBtn]}
+                    activeOpacity={1}
+                    onLayout={e => {
+                      const { width, height } = e.nativeEvent.layout
+                      setSuperFanBtnSize({ width, height })
+                    }}
+                  >
+                    {/* Gradient border ring: SVG stroke (not a filled plate) so the
+                        button's transparent fill is untouched — matches Olivia's
+                        superFanBtn treatment exactly (pink → lavender → blue). */}
+                    {superFanBtnSize.width > 0 && superFanBtnSize.height > 0 && (
+                      <Svg
+                        style={StyleSheet.absoluteFill}
+                        width={superFanBtnSize.width}
+                        height={superFanBtnSize.height}
+                        pointerEvents="none"
+                      >
+                        <Defs>
+                          <SvgLinearGradient
+                            id="taylorSuperFanBorderGrad"
+                            x1="0"
+                            y1="0.6063"
+                            x2="1"
+                            y2="0.3937"
+                          >
+                            <Stop offset="0.0273" stopColor="#DE909C" />
+                            <Stop offset="0.5741" stopColor="#A6A0C7" />
+                            <Stop offset="1" stopColor="#6DAFF1" />
+                          </SvgLinearGradient>
+                        </Defs>
+                        <Rect
+                          x={1}
+                          y={1}
+                          width={Math.max(superFanBtnSize.width - 2, 0)}
+                          height={Math.max(superFanBtnSize.height - 2, 0)}
+                          rx={19}
+                          ry={19}
+                          fill="none"
+                          stroke="url(#taylorSuperFanBorderGrad)"
+                          strokeWidth={2}
+                        />
+                      </Svg>
+                    )}
+                    <Image
+                      source={hannahJourneyAssets.superfanFollowHeart}
+                      style={s.superFanHeartIcon}
+                      resizeMode="contain"
+                    />
+                    <Text style={[s.followBtnText, s.followBtnTextEmber]}>Super Fan</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => setFollowing(!following)}
+                    style={[s.followBtn, following && s.followingBtn]}
+                  >
+                    <Ionicons name="heart" size={16} color={following ? C.cyan : '#fff'} />
+                    <Text style={s.followBtnText}>{following ? 'Following' : 'Follow'}</Text>
+                  </TouchableOpacity>
+                )}
+                {/* Figma HJ order: Super Fan/Follow + more | shuffle + play */}
+                {!isHannahJourney && (
+                  <TouchableOpacity style={s.roundIconBtn} onPress={shuffleTaylor} hitSlop={8}>
+                    <Ionicons name="shuffle" size={20} color="#fff" />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={s.roundIconBtn} onPress={showMenu} hitSlop={8}>
                   <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity style={s.playBtn} onPress={() => playTaylor()} activeOpacity={0.85}>
-                <Ionicons name="play" size={26} color="#000" style={{ marginLeft: 3 }} />
-              </TouchableOpacity>
+              <View style={isHannahJourney ? s.controlRight : undefined}>
+                {isHannahJourney && (
+                  <TouchableOpacity style={s.roundIconBtn} onPress={shuffleTaylor} hitSlop={8}>
+                    <Ionicons name="shuffle" size={20} color="#fff" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={s.playBtn} onPress={() => playTaylor()} activeOpacity={0.85}>
+                  <Ionicons name="play" size={26} color="#000" style={{ marginLeft: 3 }} />
+                </TouchableOpacity>
+              </View>
             </View>
           </ImageBackground>
         </View>
 
         {/* ── Tab bar (sticky) ────────────────────────────────────────────── */}
         <View style={s.tabBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[s.tabRow, isHannahJourney && s.tabRowHJ]}>
             {TABS.map(t => (
               <TouchableOpacity key={t} onPress={() => setTab(t)} style={s.tabItem}>
-                <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
+                <Text style={[s.tabText, tab === t && s.tabTextActive, isHannahJourney && s.tabTextHJ]}>{t}</Text>
                 {tab === t && <View style={s.tabUnderline} />}
               </TouchableOpacity>
             ))}
@@ -315,68 +393,112 @@ export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: s
         )}
 
         {tab === 'About' && aboutData && (
-          <ArtistAboutTab data={aboutData} artistName="Taylor Swift" />
+          <ArtistAboutTab data={aboutData} artistName="Taylor Swift" artistId="tswift" />
         )}
 
         {tab === 'You & Taylor' && (
           <View style={s.content}>
 
-            {/* ── Superfan badge ────────────────────────────────────────── */}
-            <View style={s.superfanBanner}>
-              <LinearGradient
-                colors={['#2d0a4e', '#1a0030']}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={s.superfanBadge}>
-                <Ionicons name="star" size={16} color="#f0c744" />
-                <Text style={s.superfanBadgeText}>SUPERFAN</Text>
+            {/* ── Superfan hero card — Hannah Journey only ─────────────────
+                Matches Olivia's HannahJourneyYouAndOlivia.tsx glass hero
+                exactly (same pink→lavender→blue gradient, same copy shape)
+                instead of the gold "SUPERFAN" badge banner every other
+                persona sees below. */}
+            {isHannahJourney && (
+              <View style={s.hjHeroOuter}>
+                {/* Real Taylor hero card — same gold→blue gradient, background
+                    photo, and copy already established for her on the Insights
+                    "Superfan highlights" row (app/insights.tsx SUPERFAN_HERO_CARDS
+                    'taylor' entry), not Olivia's pink/lavender/blue palette. */}
+                <LinearGradient
+                  colors={['#fae6bf', '#008ef3']}
+                  style={s.hjHeroPlate}
+                />
+                <View style={s.hjHeroGlass}>
+                  <ImageBackground source={heroBgTaylor} style={s.hjHeroInner} imageStyle={{ borderRadius: 16 }} resizeMode="cover">
+                    <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.32)']} style={StyleSheet.absoluteFill} />
+                    <View style={s.hjHeroTop}>
+                      <View style={s.hjHeroBadgeRow}>
+                        <Image source={hannahJourneyAssets.superfanIcon} style={s.hjHeroBadgeIcon} resizeMode="contain" />
+                        <Text style={s.hjHeroBadgeText}>Superfan</Text>
+                      </View>
+                      <Text style={s.hjHeroSince}>Since March 2023</Text>
+                    </View>
+                    <View style={s.hjHeroBottom}>
+                      <View>
+                        <Text style={s.hjHeroHeadline}>Top 1% Listener</Text>
+                        <Text style={s.hjHeroSub}>among 4M+ listeners</Text>
+                      </View>
+                      <TouchableOpacity style={s.hjHeroShare} activeOpacity={0.8}>
+                        <Ionicons name="share-outline" size={14} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </ImageBackground>
+                </View>
               </View>
-              <Text style={s.superfanPercent}>{TAYLOR_SUPERFAN_STATS.topPercentLabel}</Text>
-              <Text style={s.superfanDesc}>
-                You're one of the most dedicated Swifties on Amazon Music
-              </Text>
-              <View style={s.superfanStatsRow}>
-                <View style={s.superfanStat}>
-                  <Text style={s.superfanStatNum}>{TAYLOR_SUPERFAN_STATS.totalPlays.toLocaleString()}</Text>
-                  <Text style={s.superfanStatLabel}>Total Streams</Text>
-                </View>
-                <View style={s.superfanStatDivider} />
-                <View style={s.superfanStat}>
-                  <Text style={s.superfanStatNum}>{TAYLOR_SUPERFAN_STATS.streakDays}</Text>
-                  <Text style={s.superfanStatLabel}>Day Streak</Text>
-                </View>
-                <View style={s.superfanStatDivider} />
-                <View style={s.superfanStat}>
-                  <Text style={s.superfanStatNum}>{TAYLOR_SUPERFAN_STATS.erasBadgeLabel}</Text>
-                  <Text style={s.superfanStatLabel}>Eras Badge</Text>
-                </View>
-              </View>
-            </View>
+            )}
 
-            {/* ── Exclusive For You ─────────────────────────────────────── */}
-            <View style={s.block}>
-              <Text style={s.sectionTitle}>Exclusive For You</Text>
-              <TouchableOpacity style={s.exclusiveCard} onPress={() => playTaylor(TAYLOR_EXCLUSIVE_TRACK.songId)} activeOpacity={0.85}>
-                <ImageBackground
-                  source={resolveArt(TAYLOR_EXCLUSIVE_TRACK.artKey)}
-                  style={s.exclusiveImg}
-                  imageStyle={[COVER_IMG, s.exclusiveImgRadius]}
-                  resizeMode="cover"
-                >
-                  <LinearGradient
-                    colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.94)']}
-                    locations={[0.45, 1]}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={s.exclusiveImgCaption}>
-                    <Text style={s.exclusiveImgTitle} numberOfLines={2}>
-                      {TAYLOR_EXCLUSIVE_TRACK.title}
-                    </Text>
-                    <Text style={s.exclusiveImgSub}>{TAYLOR_EXCLUSIVE_TRACK.subtitle}</Text>
+            {/* ── Superfan badge — every other persona ─────────────────── */}
+            {!isHannahJourney && (
+              <View style={s.superfanBanner}>
+                <LinearGradient
+                  colors={['#1e4a20', '#0a1c0a']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={s.superfanBadge}>
+                  <Ionicons name="star" size={16} color="#f0c744" />
+                  <Text style={s.superfanBadgeText}>SUPERFAN</Text>
+                </View>
+                <Text style={s.superfanPercent}>{TAYLOR_SUPERFAN_STATS.topPercentLabel}</Text>
+                <Text style={s.superfanDesc}>
+                  You're one of the most dedicated Swifties on Amazon Music
+                </Text>
+                <View style={s.superfanStatsRow}>
+                  <View style={s.superfanStat}>
+                    <Text style={s.superfanStatNum}>{TAYLOR_SUPERFAN_STATS.totalPlays.toLocaleString()}</Text>
+                    <Text style={s.superfanStatLabel}>Total Streams</Text>
                   </View>
-                </ImageBackground>
-              </TouchableOpacity>
-            </View>
+                  <View style={s.superfanStatDivider} />
+                  <View style={s.superfanStat}>
+                    <Text style={s.superfanStatNum}>{TAYLOR_SUPERFAN_STATS.streakDays}</Text>
+                    <Text style={s.superfanStatLabel}>Day Streak</Text>
+                  </View>
+                  <View style={s.superfanStatDivider} />
+                  <View style={s.superfanStat}>
+                    <Text style={s.superfanStatNum}>{TAYLOR_SUPERFAN_STATS.erasBadgeLabel}</Text>
+                    <Text style={s.superfanStatLabel}>Eras Badge</Text>
+                  </View>
+                </View>
+                <SuperfanGoldGlow borderRadius={16} />
+              </View>
+            )}
+
+            {/* Exclusive For You — not on Olivia's HJ-superfan page, every other persona only */}
+            {!isHannahJourney && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Exclusive For You</Text>
+                <TouchableOpacity style={s.exclusiveCard} onPress={() => playTaylor(TAYLOR_EXCLUSIVE_TRACK.songId)} activeOpacity={0.85}>
+                  <ImageBackground
+                    source={resolveArt(TAYLOR_EXCLUSIVE_TRACK.artKey)}
+                    style={s.exclusiveImg}
+                    imageStyle={s.exclusiveImgRadius}
+                    resizeMode="cover"
+                  >
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.94)']}
+                      locations={[0.45, 1]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.exclusiveImgCaption}>
+                      <Text style={s.exclusiveImgTitle} numberOfLines={2}>
+                        {TAYLOR_EXCLUSIVE_TRACK.title}
+                      </Text>
+                      <Text style={s.exclusiveImgSub}>{TAYLOR_EXCLUSIVE_TRACK.subtitle}</Text>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* ── Your top track ────────────────────────────────────────── */}
             <View style={s.block}>
@@ -397,43 +519,105 @@ export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: s
               </View>
             </View>
 
-            {/* ── Your Eras Timeline ────────────────────────────────────── */}
-            <View style={s.block}>
-              <Text style={s.sectionTitle}>Your Eras</Text>
-              <Text style={s.sectionSub}>A journey through your Taylor Swift story</Text>
-
-              {/* Timeline rail */}
-              <View style={s.eraTimeline}>
-                <View style={s.timelineTrack}>
-                  <Animated.View style={[s.timelineFill, timelineFillStyle]} />
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={s.eraScroll}>
-                  {TAYLOR_ERAS.map(era => {
-                    const active = era.id === selectedEraId
-                    return (
-                      <TouchableOpacity
-                        key={era.id}
-                        style={[s.eraCard, active && s.eraCardActive]}
-                        onPress={() => setSelectedEraId(era.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Image source={resolveArt(era.eraImageKey)} style={s.eraCardImg} />
-                        <LinearGradient
-                          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
-                          style={StyleSheet.absoluteFill}
-                        />
-                        <Text style={s.eraCardSeason}>{era.season}</Text>
-                        <Text style={s.eraCardTitle} numberOfLines={2}>{era.title}</Text>
-                        {active && <View style={s.eraActiveDot} />}
-                      </TouchableOpacity>
-                    )
-                  })}
+            {/* ── Your Eras — Hannah Journey gets Olivia's card+dot-timeline
+                carousel (same component shape as HannahJourneyYouAndOlivia.tsx's
+                "Your Journey with Olivia", just Taylor's 7 real eras instead of
+                4); every other persona keeps the original progress-bar rail. ── */}
+            {isHannahJourney ? (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Your Eras</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.hjEraRailScroll}>
+                  <View>
+                    <View style={s.hjEraRail}>
+                      {TAYLOR_ERAS.map((era, i) => {
+                        const selected = era.id === selectedEraId
+                        // Card 0 (showgirl, the newest/"current" era) always carries
+                        // the glow, mirroring Olivia's girl-in-love treatment.
+                        const glow = i === 0 || selected
+                        return (
+                          <TouchableOpacity
+                            key={era.id}
+                            activeOpacity={0.85}
+                            onPress={() => setSelectedEraId(era.id)}
+                            style={[s.hjEraCard, glow && s.hjEraCardGlow, selected && s.hjEraCardSelectedBorder]}
+                          >
+                            <Image source={resolveArt(era.eraImageKey)} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                            {!selected && <View style={s.hjEraCardDim} />}
+                            <LinearGradient
+                              colors={['rgba(102,102,102,0)', 'rgba(0,0,0,0.6)']}
+                              style={StyleSheet.absoluteFill}
+                            />
+                            {i === 0 && (
+                              <Image source={hannahJourneyAssets.superfanIcon} style={s.hjEraCardCrest} resizeMode="contain" />
+                            )}
+                            <View style={s.hjEraCaption}>
+                              <Text style={s.hjEraSeason} numberOfLines={1}>{era.season}</Text>
+                              <Text style={s.hjEraTitle} numberOfLines={1} ellipsizeMode="tail">{era.title}</Text>
+                              <Text style={s.hjEraBadge}>{era.badge}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        )
+                      })}
+                    </View>
+                    <View style={s.hjEraTimeline}>
+                      <View style={s.hjEraTimelineLead} />
+                      <View
+                        style={[
+                          s.hjEraTimelineSolid,
+                          { width: (TAYLOR_ERAS.length - 1) * (ERA_CARD_W + ERA_RAIL_GAP) },
+                        ]}
+                      />
+                      <View style={s.hjEraTimelineRow}>
+                        {TAYLOR_ERAS.map(era => (
+                          <View key={era.id} style={s.hjEraTimelineCell}>
+                            <View style={[s.hjEraTimelineDot, era.id === selectedEraId && s.hjEraTimelineDotActive]} />
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
                 </ScrollView>
               </View>
+            ) : (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Your Eras</Text>
+                <Text style={s.sectionSub}>A journey through your Taylor Swift story</Text>
 
-              {/* Selected era detail */}
-              {selectedEra && (
+                {/* Timeline rail */}
+                <View style={s.eraTimeline}>
+                  <View style={s.timelineTrack}>
+                    <Animated.View style={[s.timelineFill, timelineFillStyle]} />
+                  </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={s.eraScroll}>
+                    {TAYLOR_ERAS.map(era => {
+                      const active = era.id === selectedEraId
+                      return (
+                        <TouchableOpacity
+                          key={era.id}
+                          style={[s.eraCard, active && s.eraCardActive]}
+                          onPress={() => setSelectedEraId(era.id)}
+                          activeOpacity={0.8}
+                        >
+                          <Image source={resolveArt(era.eraImageKey)} style={s.eraCardImg} />
+                          <LinearGradient
+                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
+                            style={StyleSheet.absoluteFill}
+                          />
+                          <Text style={s.eraCardSeason}>{era.season}</Text>
+                          <Text style={s.eraCardTitle} numberOfLines={2}>{era.title}</Text>
+                          {active && <View style={s.eraActiveDot} />}
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+            )}
+
+            {/* Selected era detail */}
+            {selectedEra && (
+              <View style={s.block}>
                 <View style={s.eraDetail}>
                   <View style={s.eraDetailBadge}>
                     <Text style={s.eraDetailBadgeText}>{selectedEra.badge}</Text>
@@ -464,81 +648,106 @@ export default function TaylorSwiftArtistScreen({ initialTab }: { initialTab?: s
                     ))}
                   </View>
                 </View>
-              )}
-            </View>
+              </View>
+            )}
+
+            {/* ── Time You Spent Together — journey stats grid, Hannah Journey only ── */}
+            {isHannahJourney && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Time You Spent Together</Text>
+                <View style={s.statsRow}>
+                  <View style={s.statCard}>
+                    <Text style={s.statNum}>{TAYLOR_JOURNEY_STATS.minutesListened.toLocaleString()}</Text>
+                    <Text style={s.statLabel}>Minutes Listened</Text>
+                  </View>
+                  <View style={s.statCard}>
+                    <Text style={s.statNum}>{TAYLOR_JOURNEY_STATS.longestStreakDays}</Text>
+                    <Text style={s.statLabel}>Day Streak</Text>
+                  </View>
+                  <View style={s.statCard}>
+                    <Text style={s.statNum}>{TAYLOR_JOURNEY_STATS.amongFriendsRank}</Text>
+                    <Text style={s.statLabel}>Among Friends</Text>
+                  </View>
+                </View>
+              </View>
+            )}
 
             {/* ── Favorite Lyrics ──────────────────────────────────────── */}
             <View style={s.block}>
-              <Text style={s.sectionTitle}>Your Favorite Lyrics</Text>
-              <View style={s.lyricStack}>
-                {TAYLOR_FAVORITE_LYRICS.length > 1 && (
-                  <LyricStackCard
-                    item={TAYLOR_FAVORITE_LYRICS[(lyricIndex + 1) % TAYLOR_FAVORITE_LYRICS.length]}
-                    variant="back"
-                    containerStyle={[s.lyricCard, s.lyricCardBack]}
-                  />
-                )}
-                <TouchableOpacity
-                  onPress={() => setLyricIndex(i => (i + 1) % TAYLOR_FAVORITE_LYRICS.length)}
-                  activeOpacity={0.92}
-                >
-                  <LyricStackCard
-                    item={TAYLOR_FAVORITE_LYRICS[lyricIndex]}
-                    variant="front"
-                    containerStyle={[s.lyricCard, s.lyricCardFront]}
-                  />
+              <View style={s.lyricHeadRow}>
+                <Text style={s.sectionTitle}>Your Favorite Lyrics</Text>
+                <TouchableOpacity onPress={() => router.push('/artist-lyrics/tswift' as any)}>
+                  <Text style={s.lyricSeeMore}>SEE MORE</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={s.lyricSwipeHint}>Tap to see next lyric</Text>
+              <LyricCardStack items={TAYLOR_FAVORITE_LYRICS} resolveArt={resolveArt} />
             </View>
 
-            {/* ── Journey stats ────────────────────────────────────────── */}
-            <View style={s.block}>
-              <Text style={s.sectionTitle}>Your Stats</Text>
-              <View style={s.statsRow}>
-                <View style={s.statCard}>
-                  <Text style={s.statNum}>{TAYLOR_JOURNEY_STATS.minutesListened.toLocaleString()}</Text>
-                  <Text style={s.statLabel}>Minutes Listened</Text>
-                </View>
-                <View style={s.statCard}>
-                  <Text style={s.statNum}>{TAYLOR_JOURNEY_STATS.longestStreakDays}</Text>
-                  <Text style={s.statLabel}>Longest Streak (days)</Text>
-                </View>
-                <View style={s.statCard}>
-                  <Text style={s.statNum}>{TAYLOR_JOURNEY_STATS.amongFriendsRank}</Text>
-                  <Text style={s.statLabel}>Among Friends</Text>
-                </View>
+            {/* ── Playlists — Hannah Journey only ─────────────────────── */}
+            {isHannahJourney && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Playlists Similar to this Era</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={s.playlistRail}>
+                  {TAYLOR_ERA_PLAYLISTS.map(pl => (
+                    <TouchableOpacity key={pl.title} style={s.playlistCard} activeOpacity={0.85} onPress={() => playTaylor()}>
+                      <Image source={resolveArt(pl.artKey)} style={s.playlistArt} resizeMode="cover" />
+                      <Text style={s.playlistTitle} numberOfLines={1}>{pl.title}</Text>
+                      <Text style={s.playlistMeta} numberOfLines={1}>Playlist • Amazon Music</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
-            </View>
+            )}
+
+            {/* ── Where it started — first-ever-play banner, Hannah Journey only ── */}
+            {isHannahJourney && (
+              <View style={s.block}>
+                <Text style={s.sectionTitle}>Where it started</Text>
+                <TouchableOpacity style={s.topTrackCard} activeOpacity={0.85} onPress={() => playTaylor('s-ts1989')}>
+                  <Image source={resolveArt('ts-1989')} style={s.topTrackArt} />
+                  <View style={s.topTrackMeta}>
+                    <Text style={s.firstPlayEyebrow}>YOUR FIRST EVER PLAY</Text>
+                    <Text style={s.topTrackTitle}>Blank Space</Text>
+                    <Text style={s.topTrackSub}>Since {TAYLOR_SUPERFAN_STATS.firstListenYear}</Text>
+                  </View>
+                  <Ionicons name="play-circle" size={40} color={C.cyan} />
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* ── News ─────────────────────────────────────────────────── */}
-            <View style={s.block}>
-              <Text style={s.sectionTitle}>Latest News</Text>
-              <View style={s.newsCard}>
-                <LinearGradient
-                  colors={['#1a0030', '#2d0a4e']}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={s.newsDot} />
-                <Text style={s.newsHeadline}>{TAYLOR_NEWS.headline}</Text>
-                <Text style={s.newsBody}>{TAYLOR_NEWS.body}</Text>
-                <Text style={s.newsDate}>{TAYLOR_NEWS.date}</Text>
-              </View>
-            </View>
+            {/* Latest News / Superfan Picks — not on Olivia's HJ-superfan page, every other persona only */}
+            {!isHannahJourney && (
+              <>
+                <View style={s.block}>
+                  <Text style={s.sectionTitle}>Latest News</Text>
+                  <View style={s.newsCard}>
+                    <LinearGradient
+                      colors={['#0a1c0a', '#1e4a20']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={s.newsDot} />
+                    <Text style={s.newsHeadline}>{TAYLOR_NEWS.headline}</Text>
+                    <Text style={s.newsBody}>{TAYLOR_NEWS.body}</Text>
+                    <Text style={s.newsDate}>{TAYLOR_NEWS.date}</Text>
+                  </View>
+                </View>
 
-            {/* ── Superfan merch ───────────────────────────────────────── */}
-            <View style={s.block}>
-              <Text style={s.sectionTitle}>Superfan Picks</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                contentContainerStyle={s.superfanMerchRow}>
-                {TAYLOR_SUPERFAN_MERCH.map(item => (
-                  <TouchableOpacity key={item.id} style={s.superfanMerchCard} activeOpacity={0.8}>
-                    <Image source={resolveArt(item.artKey)} style={s.superfanMerchArt} />
-                    <Text style={s.superfanMerchLabel} numberOfLines={2}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                <View style={s.block}>
+                  <Text style={s.sectionTitle}>Superfan Picks</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={s.superfanMerchRow}>
+                    {TAYLOR_SUPERFAN_MERCH.map(item => (
+                      <TouchableOpacity key={item.id} style={s.superfanMerchCard} activeOpacity={0.8}>
+                        <Image source={resolveArt(item.artKey)} style={s.superfanMerchArt} />
+                        <Text style={s.superfanMerchLabel} numberOfLines={2}>{item.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </>
+            )}
 
           </View>
         )}
@@ -560,10 +769,11 @@ const s = StyleSheet.create({
   heroTopGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 100 },
   heroTopNav: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 },
   iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  profileCluster: { position: 'absolute', left: 16, bottom: 108, flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  profileCluster: { position: 'absolute', left: 16, bottom: 148, flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   artistAvatar: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' },
   userBubbleWrap: { gap: 6, marginBottom: 4 },
-  userAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  userAvatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  userAvatarImg: { width: '100%', height: '100%' },
   sinceBubble: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   sinceText: { fontSize: 11, color: '#fff' },
   heroMeta: { paddingHorizontal: 16, marginBottom: 12 },
@@ -633,8 +843,8 @@ const s = StyleSheet.create({
   eraCardTitle: { fontSize: 11, color: '#fff', fontWeight: '700', marginTop: 2 },
   eraActiveDot: { position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.cyan },
   eraDetail: { backgroundColor: '#0c0c0c', borderRadius: 14, padding: 16 },
-  eraDetailBadge: { backgroundColor: 'rgba(180,140,220,0.18)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 8 },
-  eraDetailBadgeText: { fontSize: 11, color: 'rgba(200,160,240,0.9)', fontWeight: '700' },
+  eraDetailBadge: { alignSelf: 'flex-start', marginBottom: 8 },
+  eraDetailBadgeText: { fontSize: 12, color: C.cyan, fontWeight: '700' },
   eraDetailDesc: { fontSize: 13, color: '#ccc', lineHeight: 20, marginBottom: 16 },
   eraTopTrack: { marginBottom: 16 },
   eraTopTrackLabel: { fontSize: 11, color: GREY, marginBottom: 8 },
@@ -649,19 +859,9 @@ const s = StyleSheet.create({
   eraAlsoArt: { width: '100%', aspectRatio: 1, borderRadius: 6 },
   eraAlsoTitle: { fontSize: 10, color: '#aaa', textAlign: 'center', marginTop: 4 },
 
-  // Lyrics stack
-  lyricStack: { height: 180 },
-  lyricCard: { position: 'absolute', left: 0, right: 0, height: 170, borderRadius: 16, padding: 16, overflow: 'hidden' },
-  lyricCardBack: { top: 8, transform: [{ rotate: '3.5deg' }] },
-  lyricCardFront: { top: 0 },
-  lyricStackHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  lyricStackArt: { width: 32, height: 32, borderRadius: 4 },
-  lyricStackSong: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
-  lyricStackText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 22, fontStyle: 'italic' },
-  lyricStackTextFront: { fontSize: 16, color: '#fff', lineHeight: 24, fontWeight: '500', fontStyle: 'italic' },
-  lyricStackFans: { flexDirection: 'row', alignItems: 'center', gap: 4, position: 'absolute', bottom: 14, right: 16 },
-  lyricStackFansText: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
-  lyricSwipeHint: { textAlign: 'center', fontSize: 11, color: GREY, marginTop: 8 },
+  // Lyrics — card stack itself now lives in the shared <LyricCardStack />
+  lyricHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  lyricSeeMore: { fontSize: 12, color: C.cyan },
 
   // Stats
   statsRow: { flexDirection: 'row', gap: 10 },
@@ -681,4 +881,115 @@ const s = StyleSheet.create({
   superfanMerchCard: { width: 130 },
   superfanMerchArt: { width: 130, height: 130, borderRadius: 10 },
   superfanMerchLabel: { fontSize: 12, color: '#ddd', marginTop: 6, lineHeight: 16 },
+
+  // ── Hannah Journey–only hero + tab additions ──────────────────────────────
+  filterIconHJ: { width: 24, height: 24 },
+  // Figma Hannah Journey "since" pill: pink fill, no border — matches Olivia's
+  // sinceBubbleHJ padding/gap exactly (5/5/3).
+  sinceBubbleHJ: { borderWidth: 0, paddingHorizontal: 5, paddingVertical: 5, gap: 3, backgroundColor: '#DE909C' },
+  // Matches Olivia's sinceBubbleIcon size exactly (18x18, not 16x16).
+  sinceBubbleIconHJ: { width: 18, height: 18 },
+  sinceTextHJ: { fontFamily: FONT_FAMILY_DISPLAY.regular, fontSize: 12, fontWeight: '400' },
+  // Figma node 2740-29136 hero-absolute coordinates (left 109/top 187) — the
+  // bubble itself sits at this wrap's origin; the tail dots are offset
+  // relative to it (Figma coords minus this wrap's own 109/187 origin).
+  followingBubbleHJWrap: { position: 'absolute', left: 109, top: 187 },
+  followingBubbleTailBig: {
+    position: 'absolute',
+    left: 7.76,
+    top: 22.08,
+    width: 10.94,
+    height: 10.94,
+    borderRadius: 5.47,
+    backgroundColor: '#DE909C',
+  },
+  followingBubbleTailSmall: {
+    position: 'absolute',
+    left: 4.18,
+    top: 33.03,
+    width: 4.97,
+    height: 4.97,
+    borderRadius: 2.49,
+    backgroundColor: '#DE909C',
+  },
+  // "You & Taylor" Hannah-Journey hero card — same shape/gradient as Olivia's
+  // superfanHeroOuter/Plate/Glass/Inner in HannahJourneyYouAndOlivia.tsx.
+  hjHeroOuter: { borderRadius: 24, overflow: 'hidden', minHeight: 252, backgroundColor: '#000' },
+  hjHeroPlate: { ...StyleSheet.absoluteFillObject, borderRadius: 24 },
+  hjHeroGlass: { margin: 0, padding: 8, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: 'rgba(30,30,30,0.6)' },
+  hjHeroInner: { height: 216, borderRadius: 16, overflow: 'hidden', paddingHorizontal: 16, paddingVertical: 14, justifyContent: 'space-between' },
+  hjHeroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  hjHeroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hjHeroBadgeIcon: { width: 27, height: 24 },
+  hjHeroBadgeText: { fontFamily: FONT_FAMILY_EMBER.bold, fontSize: 16, color: '#fff' },
+  hjHeroSince: { fontFamily: FONT_FAMILY_EMBER.regular, fontSize: 12, color: '#fff' },
+  hjHeroBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  hjHeroHeadline: { fontFamily: FONT_FAMILY_DISPLAY.bold, fontSize: 28, color: '#fff' },
+  hjHeroSub: { fontFamily: FONT_FAMILY_EMBER.regular, fontSize: 16, color: '#fff' },
+  hjHeroShare: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' },
+  // Hannah-Journey era carousel — same card/timeline shape as
+  // HannahJourneyYouAndOlivia.tsx's "Your Journey with Olivia".
+  hjEraRailScroll: { paddingLeft: 0 },
+  hjEraRail: { flexDirection: 'row', gap: ERA_RAIL_GAP, paddingVertical: 4 },
+  hjEraCard: { width: ERA_CARD_W, height: HJ_ERA_CARD_H, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
+  hjEraCardDim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
+  hjEraCardGlow: {
+    shadowColor: 'rgba(127,119,215,0.45)',
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  hjEraCardSelectedBorder: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
+  hjEraCardCrest: { position: 'absolute', top: 8, left: 8, width: 32, height: 32 },
+  hjEraCaption: { backgroundColor: 'rgba(30,30,30,0.56)', paddingHorizontal: 12, paddingVertical: 8, gap: 4 },
+  hjEraSeason: { fontFamily: FONT_FAMILY_EMBER.regular, fontSize: 12, color: '#a6a6a6' },
+  hjEraTitle: { fontFamily: FONT_FAMILY_EMBER.bold, fontSize: 16, color: '#fff' },
+  hjEraBadge: { fontFamily: FONT_FAMILY_EMBER.regular, fontSize: 12, color: '#fff' },
+  hjEraTimeline: { position: 'relative', height: 16, marginTop: 10 },
+  hjEraTimelineLead: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    width: ERA_CARD_W / 2 - 8,
+    height: 0,
+    borderTopWidth: 1,
+    borderStyle: 'dotted',
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  hjEraTimelineSolid: {
+    position: 'absolute',
+    left: ERA_CARD_W / 2,
+    top: 8,
+    height: 0,
+    borderTopWidth: 1,
+    borderStyle: 'solid',
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  // gap must match hjEraRail's gap above — same fix as HannahJourneyYouAndOlivia.tsx's
+  // eraTimelineRow: without it, dots pack edge-to-edge while their cards above
+  // are spaced with the gap, so every dot past the first drifts left of its card.
+  hjEraTimelineRow: { flexDirection: 'row', alignItems: 'center', height: 16, gap: ERA_RAIL_GAP },
+  hjEraTimelineCell: { width: ERA_CARD_W, alignItems: 'center' },
+  hjEraTimelineDot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.85)' },
+  hjEraTimelineDotActive: { width: 12, height: 12, borderRadius: 6, borderWidth: 0, backgroundColor: '#fff' },
+  // Figma "Super Fan" pill — matches Olivia's superFanBtn exactly: transparent
+  // border reserved here (the visible pink→lavender→blue gradient stroke is
+  // painted by the SVG overlay in the JSX above), asymmetric pl-18/pr-16.
+  superFanBtn: { borderWidth: 2, borderColor: 'transparent', backgroundColor: 'transparent', paddingLeft: 18, paddingRight: 16 },
+  superFanHeartIcon: { width: 18, height: 18 },
+  followBtnTextEmber: { fontFamily: FONT_FAMILY_EMBER.regular },
+  controlRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  // Figma hero (node 2576-38587): follower count text is 14px.
+  heroFollowersHJ: { fontSize: 14 },
+  tabTextHJ: { fontFamily: FONT_FAMILY_EMBER.regular, fontSize: 12, fontWeight: '400' },
+  // Figma tab rail (node 447-1828): container is px-16 with an explicit 15px
+  // gap between items (additive to each item's own px-12 here) plus extra
+  // pb-12 beyond each item's own bottom padding — mirrors Olivia's tabRowHJ.
+  tabRowHJ: { paddingHorizontal: 16, gap: 15, paddingBottom: 12 },
+  playlistRail: { gap: 12, paddingVertical: 4 },
+  playlistCard: { width: 130 },
+  playlistArt: { width: 130, height: 130, borderRadius: 10 },
+  playlistTitle: { fontSize: 13, color: '#fff', fontWeight: '700', marginTop: 6 },
+  playlistMeta: { fontSize: 11, color: GREY, marginTop: 2 },
+  firstPlayEyebrow: { fontSize: 11, fontWeight: '700', color: C.cyan, letterSpacing: 0.5, marginBottom: 2 },
 })

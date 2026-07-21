@@ -47,7 +47,7 @@ export const MAESTRO_PROMPT_ROWS: string[][] = [
 ]
 
 export const MAESTRO_DISCLAIMER =
-  'Make Maestro your AI-powered playlist creator. Like any new technology, it might be a bit bumpy — it may have incorrect information or knowledge gaps on newly released music. Maestro currently supports English only.'
+  'Make Maestro your AI-powered playlist creator. Like any new technology, it might be a bit bumpy, it may have incorrect information or knowledge gaps on newly released music. Maestro currently supports English only.'
 
 // ── Mock generation ──────────────────────────────────────────────────────────
 
@@ -125,7 +125,7 @@ export function generatePlaylist(rawPrompt: string): MaestroResult {
 
   const name = titleCase(prompt.replace(/[?.!]+$/, ''))
   const description = anchorArtist
-    ? `${anchorArtist}'s biggest moments and the tracks around them — a Maestro mix of ${picked.length} songs.`
+    ? `${anchorArtist}'s biggest moments and the tracks around them, a Maestro mix of ${picked.length} songs.`
     : `A Maestro mix of ${picked.length} tracks tuned to "${prompt}".`
 
   return { name, description, songs: picked }
@@ -171,7 +171,7 @@ export function answerQuestion(rawPrompt: string): MaestroAnswer {
       body:
         `You and ${artist.name} go way back. You're in the top 1% of their fans on Amazon Music` +
         (topSong ? `, and "${topSong.title}" is one of your most-replayed tracks` : '') +
-        `. Lately you've been leaning back into their ${artist.genre} era — want me to build a mix around it?`,
+        `. Lately you've been leaning back into their ${artist.genre} era, want me to build a mix around it?`,
       followUps: [`Make me the ultimate ${artist.name} mix`, `${artist.name} deep cuts`, 'Recap my year in music'],
     }
   }
@@ -181,7 +181,7 @@ export function answerQuestion(rawPrompt: string): MaestroAnswer {
     return {
       title: 'Your listening, lately',
       body:
-        `Over the last month you've been in your feels — sad-pop and R&B lead your rotation, ` +
+        `Over the last month you've been in your feels, sad-pop and R&B lead your rotation, ` +
         `with a few late-night rap detours. You've streamed about ${user.totalStreams.toLocaleString()} tracks all-time. ` +
         `Your mornings skew upbeat and your nights wind down. Pop is edging ahead as your top genre.`,
       followUps: ['Who is my top artist?', 'A playlist for my current mood', 'Recap my year in music'],
@@ -193,7 +193,7 @@ export function answerQuestion(rawPrompt: string): MaestroAnswer {
     return {
       title: 'Your top artist',
       body:
-        `It's a tight race, but pop is winning your ears — Olivia Rodrigo and Taylor Swift keep climbing, ` +
+        `It's a tight race, but pop is winning your ears, Olivia Rodrigo and Taylor Swift keep climbing, ` +
         `and Olivia edges ahead this month. Want a mix built around her?`,
       followUps: ['Make me an Olivia Rodrigo playlist', 'Songs like my most played', 'What are my listening stats?'],
     }
@@ -214,7 +214,7 @@ export function answerQuestion(rawPrompt: string): MaestroAnswer {
   return {
     title: 'Ask me anything',
     body:
-      `I can talk through your taste, your top artists, your listening stats, or your year in review — ` +
+      `I can talk through your taste, your top artists, your listening stats, or your year in review, ` +
       `and turn any of it into a playlist. Ask me a question, or tell me a vibe and I'll build it.`,
     followUps: ['Tell me about my top artist', 'What are my listening stats?', 'A playlist for my current mood'],
   }

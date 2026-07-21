@@ -6,10 +6,20 @@ export const OLIVIA_TOP_TRACK = {
 }
 
 export const OLIVIA_EXCLUSIVE_TRACK = {
-  songId: 's-or-exclusive-acoustic',
-  title: 'Pretty Isn\'t Pretty (Acoustic)',
+  songId: 's-or4',
+  title: 'vampire (Early Studio Demo)',
   subtitle: 'Only top 1% fans can access this',
   artKey: 'olivia-rodrigo-guts',
+}
+
+// ── Exclusive fan stats shown in the "You & Olivia" header — mirrors the
+//    shape of taylorSuperFanContent.ts's TAYLOR_SUPERFAN_STATS.
+export const OLIVIA_SUPERFAN_STATS = {
+  topPercentLabel: 'Top 1% listener',
+  totalPlays: 2_840,
+  streakDays: 62,
+  firstListenYear: 2020,
+  erasBadgeLabel: '4 Eras Unlocked',
 }
 
 export const OLIVIA_PODCASTS = [
@@ -30,7 +40,7 @@ export const OLIVIA_PODCASTS = [
 ]
 
 export const OLIVIA_NEWS = {
-  headline: 'GUTS World Tour — dates announced',
+  headline: 'GUTS World Tour, dates announced',
   body: 'New music teased on Instagram · 12 cities added this week',
   date: 'Jun 24, 2026',
 }
