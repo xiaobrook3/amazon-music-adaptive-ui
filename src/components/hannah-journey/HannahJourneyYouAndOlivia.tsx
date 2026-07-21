@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, ScrollView, StyleSheet, Dimensions } from 'react-native'
+import { View, TouchableOpacity, ScrollView, StyleSheet, Dimensions, Platform } from 'react-native'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg'
@@ -24,7 +24,7 @@ const ERA_CARD_W = 120
 const ERA_CARD_H = 166
 const ERA_RAIL_GAP = 12
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 
 /** Figma era carousel card backgrounds (per-era asset sets). */
 const ERA_CAROUSEL_ART: Record<HannahJourneyEraId, number> = {

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg'
@@ -34,7 +35,7 @@ const HERO_NL = require('../../../assets/hannah-journey/landing-newlistener-hero
 const HERO_ENGAGED = require('../../../assets/hannah-journey/landing-engaged-asset-01.jpeg')
 const HERO_SUPERFAN = require('../../../assets/hannah-journey/landing-superfan-hero.png')
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 
 type SongRow = { title: string; artist: string; plays: string; artKey: string; songId?: string; artistId?: string }
 type ContinueItem = { title: string; meta: string; artKey: string; href?: string; songId?: string }

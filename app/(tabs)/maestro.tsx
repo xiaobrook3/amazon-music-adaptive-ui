@@ -178,7 +178,10 @@ export default function MaestroScreen() {
   const handleSave = () => {
     if (!result) return
     saveCurrentSession(result.songs, result.name)
-    Alert.alert('Saved', `“${result.name}” was saved to your library.`)
+    const saved = `“${result.name}” was saved to your library.`
+    // Web: Alert.alert is a no-op in react-native-web — fall back to the browser dialog.
+    if (Platform.OS === 'web') return window.alert(saved)
+    Alert.alert('Saved', saved)
   }
 
   const handlePlay = () => {
@@ -214,7 +217,13 @@ export default function MaestroScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={s.headerBtn}
-          onPress={() => (mode === 'result' ? Alert.alert('Report', 'Thanks, we\'ll take a look at this playlist.') : setShowIntro(true))}
+          onPress={() => {
+            if (mode !== 'result') return setShowIntro(true)
+            const report = 'Thanks, we\'ll take a look at this playlist.'
+            // Web: Alert.alert is a no-op in react-native-web — fall back to the browser dialog.
+            if (Platform.OS === 'web') return window.alert(report)
+            Alert.alert('Report', report)
+          }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {mode === 'result' ? (

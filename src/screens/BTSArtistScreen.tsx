@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ImageBackground,
   Dimensions,
+  Platform,
 } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -47,7 +48,7 @@ import { ArtistEventsCard, ArtistMerchGrid } from '../components/artist/ArtistCo
 import LyricCardStack from '../components/artist/LyricCardStack'
 import SuperfanGoldGlow from '../components/SuperfanGoldGlow'
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 /** You & BTS sits right beside Music for every persona. */
 const TABS = ['Music', 'You & BTS', 'Events', 'Merch', 'About'] as const
 const ERA_CARD_W = 120

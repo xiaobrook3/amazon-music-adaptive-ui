@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Image, StyleSheet, Dimensions, View } from 'react-native'
+import { Image, StyleSheet, Dimensions, View, Platform } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   useSharedValue,
@@ -11,7 +11,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { logoAssets } from '../data/assetMap'
 const ALEXA_ICON_TINT = '#25D1DA'
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window')
+// Web: the app renders inside a fixed 402×(max 874) phone frame, so the default
+// draggable position must derive from the frame, not the full browser window —
+// otherwise the button lands off-frame and gets clipped invisible.
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
+const SCREEN_H = Platform.OS === 'web' ? Math.min(Dimensions.get('window').height, 874) : Dimensions.get('window').height
 const BTN = 52
 const TAB_BAR_EST = 130
 

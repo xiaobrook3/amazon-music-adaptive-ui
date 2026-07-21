@@ -48,6 +48,16 @@ const CASES = [
   ['/artist/bruno-mars?tab=merch', 200, APP_SHELL, 'journey-screen tab deep link'],
   ['/search', 200, APP_SHELL, 'find route'],
   ['/library', 200, APP_SHELL, 'library route'],
+  // client routes added post-PR#12 (deep links carry real ids so the page isn't empty)
+  ['/insights', 200, APP_SHELL, 'listening insights route'],
+  ['/create-fan-card', 200, APP_SHELL, 'super fan card composer route'],
+  ['/frequent-plays', 200, APP_SHELL, 'frequent plays route'],
+  ['/fan-group/fg1', 200, APP_SHELL, 'fan group deep link'],
+  ['/audible-book/ab-atomic-habits', 200, APP_SHELL, 'audible book deep link'],
+  ['/audible-category/Biographies', 200, APP_SHELL, 'audible category deep link'],
+  ['/exclusive-offer/offer-or-merch', 200, APP_SHELL, 'exclusive offer deep link'],
+  ['/artist-liked/olivia-rodrigo', 200, APP_SHELL, 'artist liked-songs deep link'],
+  ['/artist-lyrics/olivia-rodrigo', 200, APP_SHELL, 'artist lyrics deep link'],
   // real-world mangled share links must land IN the app, not on a host error page
   ['/Artist/olivia-rodrigo', 200, APP_SHELL, 'auto-capitalized path'],
   ['/some/route/that/does/not/exist', 200, APP_SHELL, 'unknown route falls back to the app'],

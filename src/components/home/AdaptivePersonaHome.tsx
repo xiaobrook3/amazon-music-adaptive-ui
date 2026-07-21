@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, ImageBackground } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, ImageBackground, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -56,7 +56,7 @@ import SuperfanGoldGlow, { SUPERFAN_GOLD } from '../SuperfanGoldGlow'
 import * as Sharing from 'expo-sharing'
 import { captureRef } from 'react-native-view-shot'
 
-const { width: SCREEN_W } = Dimensions.get('window')
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 // Love Island Villa/Cast cards page at near-full width (same as the baseline home).
 const LI_CARD_W = SCREEN_W - 48
 

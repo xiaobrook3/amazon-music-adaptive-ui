@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -21,7 +21,7 @@ import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import { useHannahJourney } from '../../context/HannahJourneyContext'
 import { C, typeHeadline } from '../../theme'
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 const GREY = '#a6a6a6'
 const POP_SONGS_PER_PAGE = 3
 const POP_PAGE_PEEK = Math.round(SCREEN_W * 0.3)

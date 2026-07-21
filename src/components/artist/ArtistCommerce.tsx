@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { View, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import { Ionicons } from '@expo/vector-icons'
@@ -9,7 +9,7 @@ import type { PastArtistEvent } from '../../data/oliviaRodrigoAbout'
 // Shared Events + Merch presentation so the dedicated Events / Merch tabs and
 // the About tab render the exact same cards throughout an artist page.
 
-const MERCH_CARD_W = (Dimensions.get('window').width - 44) / 2
+const MERCH_CARD_W = ((Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width) - 44) / 2
 
 export interface ArtistEvent {
   month: string

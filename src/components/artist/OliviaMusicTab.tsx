@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -27,7 +27,7 @@ import DiscographySection from './DiscographySection'
 // → Music Videos → Discography → playlist rails → Related Playlists
 // → Podcasts about Olivia → Related Artists.
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 const GREY = '#a6a6a6'
 
 // Kept in sync with OliviaRodrigoArtistScreen: a "new to Olivia" listener

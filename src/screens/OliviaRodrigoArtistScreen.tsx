@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ImageBackground,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { Text } from '../components/AppText'
 import { AppImage as Image } from '../components/AppImage'
@@ -62,7 +63,7 @@ const TABS = ['Music', 'You & Olivia', 'Events', 'Merch', 'About'] as const
 const ERA_CARD_W = 120
 const ERA_CARD_H_TALL = 166
 const ERA_CARD_H_SHORT = 122
-const MERCH_CARD_W = (Dimensions.get('window').width - 44) / 2
+const MERCH_CARD_W = ((Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width) - 44) / 2
 
 // How many of her songs get pre-liked per listener tier, so "You & Olivia"
 // reads as a real relationship at a glance: a brand-new listener starts with

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg'
@@ -41,7 +42,7 @@ import {
 import { SHOWS_YOU_WATCH } from '../../data/showsYouWatch'
 import { C, FONT_FAMILY_DISPLAY, FONT_FAMILY_EMBER } from '../../theme'
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 
 // Same summer-session picks the classic baseline home surfaces.
 const SUMMER_SESSION_PLAYLIST_IDS = ['pl-summer-turned-pretty', 'pl-love-island', 'pl-love-island-cast', 'pl5']

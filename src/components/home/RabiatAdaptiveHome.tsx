@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   RefreshControl,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
@@ -59,7 +60,7 @@ import { C, R, typeHeadline } from '../../theme'
  * Scoped strictly to the `rabiat` profile.
  */
 
-const { width: SCREEN_W } = Dimensions.get('window')
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 const QUICK_GAP = 10
 const QUICK_W = (SCREEN_W - 32 - QUICK_GAP) / 2
 const TOGGLE_H = 38

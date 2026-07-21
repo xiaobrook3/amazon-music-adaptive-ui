@@ -14,9 +14,13 @@ import { ProfilesProvider } from '../src/context/ProfilesContext'
 import { HannahJourneyProvider } from '../src/context/HannahJourneyContext'
 import { AdaptiveMenuProvider } from '../src/components/AdaptiveContextMenu'
 import AdaptiveToast from '../src/components/AdaptiveToast'
+import { installWebHorizontalDrag } from '../src/utils/webHorizontalDrag'
 import { C } from '../src/theme'
 
 SplashScreen.preventAutoHideAsync()
+
+// Web: horizontal rails must drag with a finger or mouse, not just a wheel.
+installWebHorizontalDrag()
 
 const EMBER_FONTS: Record<string, number> = {}
 try {
