@@ -90,6 +90,9 @@ export default function CreateProfileScreen() {
   }
 
   const choosePhoto = () => {
+    // Web: Alert.alert renders no buttons in react-native-web, so go straight
+    // to the library picker (no camera capture path in the browser build).
+    if (Platform.OS === 'web') return pickFromLibrary()
     Alert.alert('Add a photo', undefined, [
       { text: 'Take Photo', onPress: takePhoto },
       { text: 'Choose from Library', onPress: pickFromLibrary },

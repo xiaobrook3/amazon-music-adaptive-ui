@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
@@ -35,7 +35,7 @@ import { C, R, typeHeadline } from '../../theme'
 // domain drill-down would just duplicate it. Only Podcast/Audible get one.
 const DOMAIN_LABELS = ['Podcast', 'Audible'] as const
 
-const { width: SCREEN_W } = Dimensions.get('window')
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 // "Songs for You" — same horizontally-paged, 3-rows-per-page pattern as the
 // baseline (Derbc Studios) home.
 const SONGS_PER_PAGE = 3

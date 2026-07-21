@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ImageBackground,
   Dimensions,
+  Platform,
 } from 'react-native'
 import Animated, {
   useSharedValue,
@@ -43,7 +44,7 @@ function fmtStreams(n: number) { return n.toLocaleString('en-US') }
 // Top Songs pagination — same "Songs for You" 3-per-page snap pattern used on
 // Olivia's New-listener Music tab, ported here so every generic artist page
 // matches it.
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 const POP_SONGS_PER_PAGE = 3
 const POP_PAGE_PEEK = Math.round(SCREEN_W * 0.3)
 const POP_PAGE_WIDTH = SCREEN_W - POP_PAGE_PEEK

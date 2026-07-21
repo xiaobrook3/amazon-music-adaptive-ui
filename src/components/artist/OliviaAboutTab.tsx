@@ -6,6 +6,7 @@ import {
   TextInput,
   StyleSheet,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
@@ -29,7 +30,7 @@ import {
 } from '../../data/oliviaRodrigoAbout'
 import { C, FONT_FAMILY, typeHeadline } from '../../theme'
 
-const SCREEN_W = Dimensions.get('window').width
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 const CARD_W = (SCREEN_W - 44) / 2
 
 function resolveAboutArt(key: string) {
