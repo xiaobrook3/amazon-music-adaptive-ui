@@ -1,31 +1,40 @@
 import { useLocalSearchParams } from 'expo-router'
 import OliviaRodrigoArtistScreen from '../../src/screens/OliviaRodrigoArtistScreen'
 import TaylorSwiftArtistScreen from '../../src/screens/TaylorSwiftArtistScreen'
+import BTSArtistScreen from '../../src/screens/BTSArtistScreen'
 import ArtistJourneyScreen from '../../src/screens/ArtistJourneyScreen'
-import NotFound from '../+not-found'
-import { artists } from '../../src/data/mockData'
+import HannahJourneyGenericArtistScreen from '../../src/components/hannah-journey/HannahJourneyGenericArtistScreen'
+import { useHannahJourney } from '../../src/context/HannahJourneyContext'
+import { isHannahJourneyGenericArtist } from '../../src/data/hannahJourneyGenericArtists'
 
-// One React artist page everywhere — the same screens render on web and on
-// Expo Go. Olivia and Taylor keep their hand-tuned screens; every other
-// artist gets the adaptive journey screen, which stages itself to the
-// listener's relationship with that artist.
 export default function ArtistScreen() {
-  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>()
-  const deepTab = typeof tab === 'string' ? tab : undefined
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const { isHannahJourney } = useHannahJourney()
 
+  // Olivia Rodrigo, Taylor Swift, and BTS have fully hand-tuned reference
+  // pages. Every other artist gets the same Olivia-style layout (hero top
+  // bar, exclusives, journey eras, stats, lyrics, playlists), tailored from
+  // their own data — lighter for artists we don't have much on.
   if (id === 'olivia-rodrigo') {
-    return <OliviaRodrigoArtistScreen initialTab={deepTab} />
+    return <OliviaRodrigoArtistScreen />
   }
 
   if (id === 'tswift') {
-    return <TaylorSwiftArtistScreen initialTab={deepTab} />
+    return <TaylorSwiftArtistScreen />
   }
 
-  // A mistyped or stale artist link gets the honest dead-end screen — not
-  // another artist's page wearing the wrong name.
-  if (!artists.some(a => a.id === id)) {
-    return <NotFound />
+  if (id === 'bts') {
+    return <BTSArtistScreen />
   }
 
-  return <ArtistJourneyScreen id={id ?? ''} initialTab={deepTab} />
+  // Hannah Journey only: every other artist her own content (Landing rails,
+  // Olivia's "Fans also like") can navigate to gets the same Olivia-template
+  // layout — hero/tabs/Music-tab structure — tailored with that artist's own
+  // real photos/songs/albums, instead of falling through to the generic
+  // ArtistJourneyScreen every other persona still sees for these ids.
+  if (isHannahJourney && isHannahJourneyGenericArtist(id)) {
+    return <HannahJourneyGenericArtistScreen artistId={id as string} />
+  }
+
+  return <ArtistJourneyScreen id={id} />
 }

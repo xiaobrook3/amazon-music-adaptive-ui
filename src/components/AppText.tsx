@@ -1,5 +1,5 @@
-import { Text as RNText, TextInput as RNTextInput, TextProps, TextInputProps, StyleSheet } from 'react-native'
-import { FONT_FAMILY, FONT_FAMILY_DISPLAY } from '../theme'
+import { Text as RNText, TextInput as RNTextInput, TextProps, TextInputProps, StyleSheet, Platform } from 'react-native'
+import { FONT_FAMILY, FONT_FAMILY_DISPLAY, FONT_FAMILY_EMBER } from '../theme'
 
 const WEIGHT_TO_FAMILY: Record<string, string> = {
   '100': FONT_FAMILY.light,
@@ -14,6 +14,9 @@ const WEIGHT_TO_FAMILY: Record<string, string> = {
   normal: FONT_FAMILY.regular,
   bold: FONT_FAMILY.bold,
 }
+
+/** Explicit Amazon Ember body mapping for Hannah Journey Figma fidelity. */
+export const EMBER_BODY = FONT_FAMILY_EMBER
 
 const DISPLAY_WEIGHT_TO_FAMILY: Record<string, string> = {
   '400': FONT_FAMILY_DISPLAY.regular,
@@ -37,10 +40,16 @@ function resolveFontFamily(style: TextProps['style'], variant: 'body' | 'display
 type AppTextProps = TextProps & { variant?: 'body' | 'display' }
 type AppTextInputProps = TextInputProps & { variant?: 'body' | 'display' }
 
+// On web, the browser applies CSS font-weight on top of our weight-specific
+// font files (registered at default weight 400), synthesizing faux bold/light
+// and making Ember render wrong. The family already encodes the weight, so
+// neutralize fontWeight after the style on web only.
+const WEB_WEIGHT_RESET = Platform.OS === 'web' ? ({ fontWeight: 'normal' } as const) : null
+
 export function Text({ style, variant = 'body', ...props }: AppTextProps) {
-  return <RNText style={[{ fontFamily: resolveFontFamily(style, variant) }, style]} {...props} />
+  return <RNText style={[{ fontFamily: resolveFontFamily(style, variant) }, style, WEB_WEIGHT_RESET]} {...props} />
 }
 
 export function TextInput({ style, variant = 'body', ...props }: AppTextInputProps) {
-  return <RNTextInput style={[{ fontFamily: resolveFontFamily(style, variant) }, style]} {...props} />
+  return <RNTextInput style={[{ fontFamily: resolveFontFamily(style, variant) }, style, WEB_WEIGHT_RESET]} {...props} />
 }

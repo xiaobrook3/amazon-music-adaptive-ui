@@ -16,13 +16,11 @@ function LikesMosaic({ likedSongs, size = 156 }: { likedSongs: Song[]; size?: nu
   const cellSize = size / 2
 
   if (cells.length === 0) {
+    // Amazon Music's own Liked Songs cover — same branded art as the Library tile.
     return (
-      <LinearGradient
-        colors={[C.cyan + '55', C.cyanDim + '99']}
-        style={[s.mosaic, { width: size, height: size, alignItems: 'center', justifyContent: 'center' }]}
-      >
-        <Ionicons name="heart" size={size * 0.34} color="#fff" />
-      </LinearGradient>
+      <View style={[s.mosaic, { width: size, height: size }]}>
+        <Image source={albumArtAssets['my-likes-cover']} style={{ width: size, height: size }} resizeMode="cover" />
+      </View>
     )
   }
 

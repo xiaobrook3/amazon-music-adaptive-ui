@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 
 type LikedSongsContextValue = {
   likedSongIds: ReadonlySet<string>
@@ -6,6 +6,8 @@ type LikedSongsContextValue = {
   /** Idempotent add — used to auto-like a song on play without ever un-liking it. */
   addLike: (songId: string) => void
   isLiked: (songId: string) => boolean
+  /** Clear all likes — used when switching to the KSM new-user persona. */
+  resetLikes: () => void
 }
 
 const LikedSongsContext = createContext<LikedSongsContextValue | null>(null)
@@ -34,6 +36,10 @@ export function LikedSongsProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  const resetLikes = useCallback(() => {
+    setLikedIds(new Set())
+  }, [])
+
   return (
     <LikedSongsContext.Provider
       value={{
@@ -41,6 +47,7 @@ export function LikedSongsProvider({ children }: { children: ReactNode }) {
         toggleLike,
         addLike,
         isLiked: (id: string) => likedIds.has(id),
+        resetLikes,
       }}
     >
       {children}

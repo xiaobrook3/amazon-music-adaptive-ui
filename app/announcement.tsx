@@ -82,7 +82,7 @@ export default function AnnouncementScreen() {
             <TouchableOpacity
               style={s.secondaryBtn}
               accessibilityLabel="Share"
-              onPress={() => Share.share({ message: `${ann.headline} — ${ann.body}` }).catch(() => {})}
+              onPress={() => Share.share({ message: `${ann.headline}, ${ann.body}` }).catch(() => {})}
             >
               <Image source={playerIconAssets.share} style={s.shareIcon} resizeMode="contain" />
               <Text style={s.secondaryBtnText}>Share</Text>

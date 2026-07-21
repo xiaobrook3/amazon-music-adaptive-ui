@@ -44,7 +44,6 @@ export interface AboutEvent {
 }
 
 export interface ArtistAboutData {
-  bannerText?: string
   eraLabel: string
   storyArtKey: string
   storyBody: string
@@ -61,11 +60,10 @@ export interface ArtistAboutData {
 
 const ABOUT: Record<string, ArtistAboutData> = {
   bts: {
-    bannerText: "Deeper because you've followed since 2019 — new fans see a shorter version.",
     eraLabel: 'THE ERA · 2013 – NOW',
     storyArtKey: 'bts-group',
     storyBody:
-      'From a small Seoul label to sold-out stadiums on every continent, BTS turned genre-blending pop and a fiercely devoted ARMY into a global movement — here is how seven members rewrote what a group could be.',
+      'From a small Seoul label to sold-out stadiums on every continent, BTS turned genre-blending pop and a fiercely devoted ARMY into a global movement, here is how seven members rewrote what a group could be.',
     releasesTitle: 'Albums that defined the era',
     releases: [
       { title: 'Map of the Soul: 7', subtitle: '2020', artKey: 'bts-map-of-soul-7' },
@@ -92,11 +90,10 @@ const ABOUT: Record<string, ArtistAboutData> = {
   },
 
   tswift: {
-    bannerText: "Deeper because you've listened for years — new fans see a shorter version.",
     eraLabel: 'THE ERA · 2006 – NOW',
     storyArtKey: 'ts-1989-polaroid',
     storyBody:
-      'From a Nashville country debut to genre-hopping pop dominance and the record-shattering re-recordings, Taylor turned diary-entry songwriting into the defining catalogue of a generation — eleven studio albums, four genre pivots, and a decade of Eras that made her the best-selling artist of the 21st century.',
+      'From a Nashville country debut to genre-hopping pop dominance and the record-shattering re-recordings, Taylor turned diary-entry songwriting into the defining catalogue of a generation, eleven studio albums, four genre pivots, and a decade of Eras that made her the best-selling artist of the 21st century.',
     releasesTitle: 'Albums that defined the era',
     releases: [
       { title: 'Taylor Swift', subtitle: '2006', artKey: 'tswift-1' },
@@ -146,7 +143,6 @@ const ABOUT: Record<string, ArtistAboutData> = {
   },
 
   lorde: {
-    bannerText: "Deeper because you've followed since Pure Heroine — new fans see a shorter version.",
     eraLabel: 'THE ERA · 2013 – NOW',
     storyArtKey: 'lorde-melodrama',
     storyBody:
@@ -179,19 +175,112 @@ const ABOUT: Record<string, ArtistAboutData> = {
       { name: 'Olivia Rodrigo', artKey: 'olivia-rodrigo' },
       { name: 'Billie Eilish', artKey: 'billie-eilish' },
     ],
+    events: [
+      { month: 'NOV', day: '02', title: 'Virgin World Tour', venue: 'Kia Forum · Los Angeles', time: 'Sun, Nov 2 · 8:00 PM' },
+    ],
+  },
+
+  mitski: {
+    eraLabel: 'THE ERA · 2012 – NOW',
+    storyArtKey: 'mitski-be-the-cowboy',
+    storyBody:
+      'From self-released bedroom records to Be the Cowboy\'s cult breakout, Mitski turned raw, unguarded songwriting into some of the most quietly devastating indie music of the decade, every album a little more exposed than the last.',
+    releasesTitle: 'Albums that defined the era',
+    releases: [
+      { title: 'Bury Me at Makeout Creek', subtitle: '2014', artKey: 'mitski-be-the-cowboy' },
+      { title: 'Puberty 2', subtitle: '2016', artKey: 'mitski-puberty-2' },
+      { title: 'Be the Cowboy', subtitle: '2018', artKey: 'mitski-be-the-cowboy' },
+    ],
+    videos: [
+      { id: 'v1', title: 'Mitski on writing Be the Cowboy', duration: '6:14', artKey: 'mitski-be-the-cowboy' },
+      { id: 'v2', title: 'Your Best American Girl, deconstructed', duration: '4:47', artKey: 'mitski-puberty-2' },
+    ],
+    fanPost: {
+      group: 'Quiet Storm',
+      handle: '@bestamericangirl',
+      time: '2 days ago',
+      body: 'Two Slow Dancers destroys me every single time. No one writes an ending like she does.',
+      artKey: 'mitski-be-the-cowboy',
+      likes: '1.8k',
+      comments: '96',
+    },
+    askChips: ['What is Be the Cowboy about?', 'Best song to start with?', 'Who inspired her sound?'],
+  },
+
+  'ariana-grande': {
+    eraLabel: 'THE ERA · 2013 – NOW',
+    storyArtKey: 'ariana-sweetener',
+    storyBody:
+      'From Nickelodeon star to a four-octave pop powerhouse, Ariana Grande went from Dangerous Woman\'s sultry reinvention to Sweetener\'s tender, genre-blurring turn, a run built on vocal range, vulnerability, and hit after hit.',
+    releasesTitle: 'Albums that defined the era',
+    releases: [
+      { title: 'Dangerous Woman', subtitle: '2016', artKey: 'ariana-dangerous-woman' },
+      { title: 'Sweetener', subtitle: '2018', artKey: 'ariana-sweetener' },
+    ],
+    videos: [
+      { id: 'v1', title: 'Ariana on the making of Sweetener', duration: '7:02', artKey: 'ariana-sweetener' },
+      { id: 'v2', title: 'That whistle note, explained', duration: '4:18', artKey: 'ariana-dangerous-woman' },
+    ],
+    fanPost: {
+      group: 'Arianators',
+      handle: '@breathin4ever',
+      time: '3 days ago',
+      body: 'no tears left to cry is the ultimate turn-it-around song. Sweetener doesn\'t get enough credit.',
+      artKey: 'ariana-sweetener',
+      likes: '4.6k',
+      comments: '302',
+    },
+    askChips: ['What makes Sweetener different?', 'Best vocal moment?', 'Who inspired her sound?'],
+    influencedBy: [{ name: 'Whitney Houston', artKey: 'whitney-self-titled' }],
+    inspires: [{ name: 'Doja Cat', artKey: 'doja-cat' }],
+  },
+
+  'sabrina-carpenter': {
+    eraLabel: 'THE ERA · 2022 – NOW',
+    storyArtKey: 'sabrina-short-n-sweet',
+    storyBody:
+      'From Disney Channel and Broadway to pop\'s sharpest new voice, Sabrina Carpenter turned witty, vintage-leaning songwriting into Short n\' Sweet\'s breakout run, then followed it with Man\'s Best Friend without missing a step.',
+    releasesTitle: 'Albums that defined the era',
+    releases: [
+      { title: 'Short n\' Sweet', subtitle: '2024', artKey: 'sabrina-short-n-sweet' },
+      { title: 'Man\'s Best Friend', subtitle: '2025', artKey: 'sabrina-mans-best-friend' },
+    ],
+    videos: [
+      { id: 'v1', title: 'Sabrina on writing Espresso', duration: '5:26', artKey: 'sabrina-espresso' },
+      { id: 'v2', title: 'Short n\' Sweet, track by track', duration: '8:03', artKey: 'sabrina-short-n-sweet' },
+    ],
+    fanPost: {
+      group: 'Sabrina\'s Sweethearts',
+      handle: '@shortnsweetera',
+      time: '1 day ago',
+      body: 'Espresso lived in my head all summer and I am not even mad about it. She is exactly that girl.',
+      artKey: 'sabrina-espresso',
+      likes: '2.9k',
+      comments: '184',
+    },
+    askChips: ['What is Man\'s Best Friend about?', 'Best deep cut?', 'How did she get here?'],
+    influencedBy: [{ name: 'Taylor Swift', artKey: 'tswift' }],
   },
 
   beyonce: {
-    bannerText: "Deeper because you've streamed her for years — new fans see a shorter version.",
     eraLabel: 'THE ERA · 2003 – NOW',
     storyArtKey: 'beyonce-lemonade',
     storyBody:
-      'From Destiny\'s Child breakout to a solo run that reinvented the visual album and turned every release into a cultural event, Beyoncé built a body of work — Lemonade, Renaissance, and beyond — that keeps redefining what a pop icon can be.',
+      'From Destiny\'s Child breakout to a solo run that reinvented the visual album and turned every release into a cultural event, Beyoncé built a body of work, Lemonade, Renaissance, and beyond, that keeps redefining what a pop icon can be.',
+    releasesTitle: 'Albums that defined the era',
+    releases: [
+      { title: 'Beyoncé', subtitle: '2013', artKey: 'beyonce-self-titled' },
+      { title: 'Lemonade', subtitle: '2016', artKey: 'beyonce-lemonade' },
+    ],
+    videos: [
+      { id: 'v1', title: 'The visual album that changed everything', duration: '7:40', artKey: 'beyonce-self-titled' },
+      { id: 'v2', title: 'Inside the making of Lemonade', duration: '9:12', artKey: 'beyonce-lemonade' },
+    ],
     askChips: ['What makes Lemonade so loved?', 'Best era to start with?', 'Who has she inspired?'],
     influencedBy: [
-      { name: 'Whitney Houston', artKey: 'whitney-houston' },
-      { name: 'Janet Jackson', artKey: 'janet-jackson' },
-      { name: 'Prince', artKey: 'prince' },
+      { name: 'Whitney Houston', artKey: 'whitney-self-titled' },
+      { name: 'Janet Jackson', artKey: 'janet-rhythm-nation' },
+      { name: 'Prince', artKey: 'prince-dirty-mind' },
     ],
     inspires: [
       { name: 'SZA', artKey: 'sza' },
@@ -216,7 +305,7 @@ const ABOUT: Record<string, ArtistAboutData> = {
     eraLabel: 'THE ERA · 2016 – NOW',
     storyArtKey: 'bad-bunny-verano',
     storyBody:
-      'Bad Bunny took reggaeton and Latin trap from the clubs of Puerto Rico to the top of global charts without ever switching to English — Un Verano Sin Ti made a whole summer feel like one endless beach playlist.',
+      'Bad Bunny took reggaeton and Latin trap from the clubs of Puerto Rico to the top of global charts without ever switching to English, Un Verano Sin Ti made a whole summer feel like one endless beach playlist.',
     askChips: ['Why is Un Verano so big?', 'Best track to start with?', 'What genre is this?'],
     influencedBy: [{ name: 'Daddy Yankee', artKey: 'bad-bunny-verano' }],
     inspires: [{ name: 'Rosalía', artKey: 'rosalia' }],
@@ -235,7 +324,7 @@ const ABOUT: Record<string, ArtistAboutData> = {
     eraLabel: 'THE ERA · 2017 – NOW',
     storyArtKey: 'sza-sos',
     storyBody:
-      'SZA turned diaristic, genre-blurring R&B into some of the most quietly influential music of the decade — Ctrl and SOS made vulnerability sound effortless and made her the voice a whole generation reaches for after midnight.',
+      'SZA turned diaristic, genre-blurring R&B into some of the most quietly influential music of the decade, Ctrl and SOS made vulnerability sound effortless and made her the voice a whole generation reaches for after midnight.',
     askChips: ['What makes SOS special?', 'Best late-night track?', 'Who inspired her sound?'],
     influencedBy: [
       { name: 'Lauryn Hill', artKey: 'sza-sos' },
@@ -254,11 +343,10 @@ const ABOUT: Record<string, ArtistAboutData> = {
   },
 
   'justin-bieber': {
-    bannerText: "Deeper because you've been a Belieber — new fans see a shorter version.",
     eraLabel: 'THE ERA · 2009 – NOW',
     storyArtKey: 'justin-bieber-believe',
     storyBody:
-      'Discovered on YouTube at 13, signed by Usher, and turned into a global phenomenon before he finished high school — Justin Bieber grew up in public, broke streaming records, found faith, and built a catalog that spans bubblegum pop, R&B, and gospel across seven albums.',
+      'Discovered on YouTube at 13, signed by Usher, and turned into a global phenomenon before he finished high school, Justin Bieber grew up in public, broke streaming records, found faith, and built a catalog that spans bubblegum pop, R&B, and gospel across seven albums.',
     releasesTitle: 'Albums that defined the era',
     releases: [
       { title: 'My World', subtitle: '2009', artKey: 'justin-bieber-my-worlds' },
@@ -318,9 +406,9 @@ const ABOUT: Record<string, ArtistAboutData> = {
     eraLabel: 'THE ERA · 2017 – NOW',
     storyArtKey: 'dua-lipa',
     storyBody:
-      'Dua Lipa made disco cool again — Future Nostalgia arrived exactly when the world needed a dancefloor, turning tight, retro-leaning pop into one of the defining sounds of the era.',
+      'Dua Lipa made disco cool again, Future Nostalgia arrived exactly when the world needed a dancefloor, turning tight, retro-leaning pop into one of the defining sounds of the era.',
     askChips: ['Why did Future Nostalgia hit?', 'Best song to dance to?', 'Who inspired her?'],
-    influencedBy: [{ name: 'Madonna', artKey: 'madonna' }],
+    influencedBy: [{ name: 'Madonna', artKey: 'madonna-true-blue' }],
     inspires: [{ name: 'Zara Larsson', artKey: 'zara-larsson' }],
     fanPost: {
       group: 'Future Nostalgia',
@@ -337,7 +425,7 @@ const ABOUT: Record<string, ArtistAboutData> = {
     eraLabel: 'THE ERA · 2005 – NOW',
     storyArtKey: 'rihanna-anti',
     storyBody:
-      'Across eight albums Rihanna moved from radio hit-maker to genre-fluid icon, and ANTI — patient, moody, and completely her own — proved she could walk away from the pop formula and still own the whole conversation.',
+      'Across eight albums Rihanna moved from radio hit-maker to genre-fluid icon, and ANTI, patient, moody, and completely her own, proved she could walk away from the pop formula and still own the whole conversation.',
     askChips: ['Why is ANTI so beloved?', 'Best deep cut?', 'Who has she inspired?'],
     influencedBy: [{ name: 'Beyoncé', artKey: 'beyonce' }],
     inspires: [{ name: 'Doja Cat', artKey: 'doja-cat' }],

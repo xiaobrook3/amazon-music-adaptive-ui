@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { View, Image, StyleSheet, Animated, Platform } from 'react-native'
+import { View, Image, StyleSheet, Animated } from 'react-native'
 import { useRouter } from 'expo-router'
 import { logoAssets } from '../src/data/assetMap'
 import { C } from '../src/theme'
@@ -17,12 +17,6 @@ export default function LandingScreen() {
 
     const leave = setTimeout(() => {
       Animated.timing(opacity, { toValue: 0, duration: 350, useNativeDriver: true }).start(() => {
-        // On web, a query string on the entry URL (utm tags, cache busters)
-        // makes this replace fail silently — after the fade-out that leaves a
-        // black screen. Strip the query before navigating.
-        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.search) {
-          window.history.replaceState(null, '', window.location.pathname)
-        }
         router.replace('/(tabs)')
       })
     }, 1800)

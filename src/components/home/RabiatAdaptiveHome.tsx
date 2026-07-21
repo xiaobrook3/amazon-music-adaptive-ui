@@ -16,6 +16,7 @@ import { AppImage as Image } from '../AppImage'
 import { EdgeFadeRow } from '../EdgeFadeRow'
 import { HRail } from '../HRail'
 import EqualizerBars from '../EqualizerBars'
+import { PlaylistMoodCard } from './HomeSessionWidgets'
 import StickyHomeHeader, { useStickyHomeHeaderHeight, useStickyHomeScroll } from '../StickyHomeHeader'
 import { useProfiles } from '../../context/ProfilesContext'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
@@ -330,6 +331,13 @@ export default function RabiatAdaptiveHome() {
     router.push('/now-playing')
   })
 
+  // "Latin albums on rotation" cards are one representative song standing in
+  // for its whole album — tapping one should open that album's page (with
+  // its real tracklist), not immediately start playing the stand-in song.
+  const openAlbum = act((song: Song) => {
+    router.push(`/album/song-album-${song.id}` as any)
+  })
+
   const handlePillChange = useCallback((idx: number) => {
     if (idx === 0) router.push('/music')
     else if (idx === 1) router.push('/podcast')
@@ -341,7 +349,10 @@ export default function RabiatAdaptiveHome() {
   const washOpacity = scrollY.interpolate({ inputRange: [0, 220, 440], outputRange: [1, 0.55, 0], extrapolate: 'clamp' })
 
   // ── Reusable cover rail (persona-home card design) ────────────────────────
-  const coverRail = (title: string, list: Song[], sub?: string) => (
+  // `onItemPress` defaults to playing the song — the right behavior for every
+  // rail here except "Latin albums on rotation" below, which stands in one
+  // song per album and needs to open that album's page instead (see openAlbum).
+  const coverRail = (title: string, list: Song[], sub?: string, onItemPress: (sg: Song) => void = sg => openSong(sg.id)) => (
     <View style={s.block}>
       <SectionHeader title={title} sub={sub} />
       <EdgeFadeRow>
@@ -354,7 +365,7 @@ export default function RabiatAdaptiveHome() {
           renderItem={({ item: sg }: { item: Song }) => {
             const art = sg.albumArtPath ? albumArtAssets[sg.albumArtPath] : null
             return (
-              <TouchableOpacity style={s.coverCard} activeOpacity={0.85} onPress={() => openSong(sg.id)}>
+              <TouchableOpacity style={s.coverCard} activeOpacity={0.85} onPress={() => onItemPress(sg)}>
                 <View style={s.coverArtWrap}>
                   {art ? (
                     <Image source={art} style={s.coverArt} resizeMode="cover" />
@@ -618,7 +629,7 @@ export default function RabiatAdaptiveHome() {
         {!leanedBack && coverRail('Something different', somethingDifferent, 'A few steps outside your usual')}
 
         {/* 9 — Albums */}
-        {coverRail(getSectionLabel('albumsForYou', 'Latin albums on rotation'), albumsForYou)}
+        {coverRail(getSectionLabel('albumsForYou', 'Latin albums on rotation'), albumsForYou, undefined, openAlbum)}
 
         {/* 10 — Mood playlists (gradient cards, genre destinations) */}
         {(
@@ -692,29 +703,14 @@ export default function RabiatAdaptiveHome() {
           <SectionHeader title={getSectionLabel('myMixes', 'My Mixes')} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
-              {myMixes.map(mix => {
-                const art = mix.coverArtPath ? albumArtAssets[mix.coverArtPath] : null
-                return (
-                  <TouchableOpacity
-                    key={mix.id}
-                    style={s.coverCard}
-                    activeOpacity={0.85}
-                    onPress={act(() => router.push(`/playlist/${mix.id}` as any))}
-                  >
-                    <View style={s.coverArtWrap}>
-                      {art ? (
-                        <Image source={art} style={s.coverArt} resizeMode="cover" />
-                      ) : (
-                        <View style={[s.coverArt, { backgroundColor: C.surface }]}>
-                          <Ionicons name="musical-notes" size={26} color="rgba(255,255,255,0.15)" />
-                        </View>
-                      )}
-                      <View style={s.coverPlayPos}><PlayBadge size={28} /></View>
-                    </View>
-                    <Text style={s.coverTitle} numberOfLines={1}>{mix.name}</Text>
-                  </TouchableOpacity>
-                )
-              })}
+              {myMixes.map(mix => (
+                <PlaylistMoodCard
+                  key={mix.id}
+                  name={mix.name}
+                  artKey={mix.coverArtPath ?? ''}
+                  onPress={act(() => router.push(`/playlist/${mix.id}` as any))}
+                />
+              ))}
             </ScrollView>
           </EdgeFadeRow>
         </View>

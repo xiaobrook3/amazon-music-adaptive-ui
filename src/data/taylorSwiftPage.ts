@@ -70,7 +70,7 @@ export const TAYLOR_ERAS: TaylorEra[] = [
     season: 'Summer 2020',
     title: 'Folklore Era',
     badge: 'Top 5% listener',
-    description: 'Indie and introspective — you were in\nthe woods, in the cabin, in the feeling.',
+    description: 'Indie and introspective, you were in\nthe woods, in the cabin, in the feeling.',
     eraImageKey: 'ts-1989-polaroid',
     topTrack: { title: 'cardigan', plays: 28, artKey: 'ts-1989-polaroid' },
     playedThen: [
@@ -154,6 +154,18 @@ export const TAYLOR_FAVORITE_LYRICS = [
     lyric: "It's me, hi\nI'm the problem, it's me",
     gradient: ['rgba(10,10,46,0.18)', 'rgba(5,5,30,0.7)'] as [string, string],
   },
+  {
+    song: 'Shake It Off',
+    artKey: 'ts-1989',
+    lyric: "I never miss a beat, I'm lightning on my feet",
+    gradient: ['rgba(200,216,232,0.14)', 'rgba(120,150,190,0.6)'] as [string, string],
+  },
+  {
+    song: 'Look What You Made Me Do',
+    artKey: 'ts-reputation',
+    lyric: "I don't like your little games\nDon't like your tilted stage",
+    gradient: ['rgba(10,10,20,0.2)', 'rgba(5,5,10,0.72)'] as [string, string],
+  },
 ]
 
 export const TAYLOR_ERA_PLAYLISTS = [
@@ -171,12 +183,12 @@ export const TAYLOR_TOP_ALBUMS = [
   { id: 'ts-evermore-2020',    title: 'evermore',                           subtitle: 'Album • 2020',           artKey: 'ts-1989-polaroid' },
   { id: 'ts-folklore-2020',    title: 'folklore',                           subtitle: 'Album • 2020',           artKey: 'ts-1989-polaroid' },
   { id: 'ts-lover-2019',       title: 'Lover',                              subtitle: 'Album • 2019',           artKey: 'ts-lover' },
-  { id: 'ts-rep-2017',         title: 'reputation',                         subtitle: 'Album • 2017',           artKey: 'ts-reputation' },
+  { id: 'ts-reputation-2017',  title: 'reputation',                         subtitle: 'Album • 2017',           artKey: 'ts-reputation' },
   { id: 'ts-1989-2014',        title: '1989',                               subtitle: 'Album • 2014',           artKey: 'ts-1989' },
-  { id: 'ts-1989tv-2023',      title: "1989 (Taylor's Version)",            subtitle: "Taylor's Version • 2023", artKey: 'ts-1989' },
-  { id: 'ts-red-tv-2021',      title: "Red (Taylor's Version)",             subtitle: "Taylor's Version • 2021", artKey: 'tswift-1' },
+  { id: 'ts-1989-tv-2023',     title: "1989 (Taylor's Version)",            subtitle: "Taylor's Version • 2023", artKey: 'ts-1989' },
+  { id: 'ts-red-tv-2021',      title: "Red (Taylor's Version)",             subtitle: "Taylor's Version • 2021", artKey: 'ts-red' },
   { id: 'ts-fearless-tv-2021', title: "Fearless (Taylor's Version)",        subtitle: "Taylor's Version • 2021", artKey: 'tswift-1' },
-  { id: 'ts-eras-tour',        title: 'The Eras Tour',                      subtitle: 'Concert Film • 2023',    artKey: 'ts-showgirl' },
+  { id: 'ts-eras-tour-2023',   title: 'The Eras Tour',                      subtitle: 'Concert Film • 2023',    artKey: 'ts-showgirl' },
 ]
 
 export const TAYLOR_RELATED_PLAYLISTS = [

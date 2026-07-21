@@ -63,6 +63,31 @@ export function filterSongsForTheme(songsList: Song[], theme: AdaptiveTheme | nu
   return songsList.filter(s => songMatchesTheme(s, theme))
 }
 
+/** Broader discovery filter for superfan personas who still want a fandom hero
+ *  but mixed recommendations everywhere else (e.g. Hannah). */
+export function getDiscoveryTheme(
+  theme: AdaptiveTheme | null,
+  diverseRecommendations?: boolean,
+): AdaptiveTheme | null {
+  if (!theme || !diverseRecommendations) return theme
+  return {
+    ...theme,
+    filterArtistIds: undefined,
+    filterGenres: ['Pop', 'Indie Pop', 'Pop Punk', 'Singer-Songwriter', 'R&B / Pop', 'Pop / R&B', 'R&B / Soul', 'Pop / Dance'],
+    featuredArtistIds: [
+      'tswift', 'olivia-rodrigo', 'sabrina-carpenter', 'tate-mcrae',
+      'lorde', 'billie-eilish', 'ariana-grande', 'sza', 'dua-lipa', 'the-weeknd',
+    ],
+    sectionLabels: {
+      ...theme.sectionLabels,
+      songsForYou: 'Songs for You',
+      frequentPlays: 'On repeat this month',
+      popularInCity: 'Popular in your city',
+      myMixes: 'Mixes made for you',
+    },
+  }
+}
+
 export function filterContinueListening(
   items: ContinueListeningItem[],
   theme: AdaptiveTheme | null,

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Text } from './AppText'
 import { AppImage } from './AppImage'
 import { useAdaptiveUI, type AdaptiveTarget } from '../context/AdaptiveUIContext'
+import { useHannahJourney } from '../context/HannahJourneyContext'
 import { albumArtAssets, resolveArtistAvatar } from '../data/assetMap'
 import { C, R, typeHeadline, typeSubhead } from '../theme'
 
@@ -72,6 +73,7 @@ const SHEET_OFFSET = 420
 
 export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
   const { makeAdaptiveAbout, removeArtistFromAdaptive, blockedArtistIds } = useAdaptiveUI()
+  const { isHannahJourney, stage: hannahJourneyStage, forceSuperfan } = useHannahJourney()
   const insets = useSafeAreaInsets()
   const [target, setTarget] = useState<AdaptiveTarget | null>(null)
 
@@ -117,6 +119,15 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
   const thumb = target ? resolveThumb(target) : null
   const removable = target ? removableArtist(target) : null
   const isBlocked = removable ? blockedArtistIds.includes(removable.id) : false
+  // Visible debug shortcut (not hidden, unlike the profile-switcher long-press) —
+  // only on Olivia's own three-dot menu, only for Hannah's Journey, only before
+  // she's already superfan.
+  const showJumpToSuperfan =
+    isHannahJourney &&
+    !!target &&
+    target.kind === 'artist' &&
+    target.artistId === 'olivia-rodrigo' &&
+    hannahJourneyStage !== 'superfan'
 
   const handleMakeAdaptive = useCallback(() => {
     if (!target) return
@@ -129,6 +140,10 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
     const id = removable.id
     dismiss(() => removeArtistFromAdaptive(id))
   }, [removable, dismiss, removeArtistFromAdaptive])
+
+  const handleJumpToSuperfan = useCallback(() => {
+    dismiss(() => forceSuperfan())
+  }, [dismiss, forceSuperfan])
 
   return (
     <MenuContext.Provider value={{ open }}>
@@ -202,6 +217,24 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
                     <Text style={[s.actionLabel, { color: C.cyan }]}>Remove from Adaptive UI</Text>
                     <Text style={s.actionSub} numberOfLines={1}>
                       Stop {removable.name} from shaping your home
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              {/* Hannah Journey debug shortcut — Olivia's menu only, pre-superfan only */}
+              {showJumpToSuperfan && (
+                <Pressable
+                  style={({ pressed }) => [s.action, pressed && s.actionPressed]}
+                  onPress={handleJumpToSuperfan}
+                >
+                  <View style={[s.actionIcon, s.actionIconAccent]}>
+                    <Ionicons name="star" size={17} color={C.cyan} />
+                  </View>
+                  <View style={s.actionText}>
+                    <Text style={s.actionLabel}>Jump to Super Fan</Text>
+                    <Text style={s.actionSub} numberOfLines={1}>
+                      Skip ahead to the superfan stage
                     </Text>
                   </View>
                 </Pressable>

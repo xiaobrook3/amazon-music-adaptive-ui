@@ -18,7 +18,7 @@ export default function AdaptiveToggle() {
       >
         <View style={[s.thumb, adaptiveEnabled && s.thumbOn]} />
       </TouchableOpacity>
-      <Text style={[s.label, adaptiveEnabled && s.labelOn]}>✦ Adaptive UI</Text>
+      <Text style={[s.label, adaptiveEnabled && s.labelOn]}>Adaptive UI</Text>
     </View>
   )
 }

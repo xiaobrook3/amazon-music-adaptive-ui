@@ -3,7 +3,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Text } from './AppText'
+import { AppImage as Image } from './AppImage'
 import { useProfiles } from '../context/ProfilesContext'
+import { useHannahJourney } from '../context/HannahJourneyContext'
 import { hexWithAlpha } from '../utils/color'
 import { C, typeHeadline, typeSubhead } from '../theme'
 
@@ -21,6 +23,7 @@ export default function ProfileSwitcherSheet({
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { profiles, activeProfile, setActiveProfileId, deleteCustomProfile } = useProfiles()
+  const { isHannahJourney, restartJourney, forceSuperfan, stage: hannahJourneyStage } = useHannahJourney()
 
   return (
     <Modal
@@ -58,7 +61,11 @@ export default function ProfileSwitcherSheet({
                       { backgroundColor: hexWithAlpha(p.color, 0.16), borderColor: p.color },
                     ]}
                   >
-                    <Text style={[s.avatarText, { color: p.color }]}>{p.initial}</Text>
+                    {p.image ? (
+                      <Image source={p.image} style={s.avatarImg} resizeMode="cover" />
+                    ) : (
+                      <Text style={[s.avatarText, { color: p.color }]}>{p.initial}</Text>
+                    )}
                   </View>
 
                   <View style={s.rowInfo}>
@@ -93,6 +100,35 @@ export default function ProfileSwitcherSheet({
             })}
           </View>
           </ScrollView>
+
+          {isHannahJourney && (
+            // Hidden escape hatch: long-press jumps straight to superfan
+            // (skips follow -> engaged -> reveal-popup) for testing/demo —
+            // no visible hint, same as a normal tap otherwise resetting.
+            <TouchableOpacity
+              style={s.restartRow}
+              activeOpacity={0.8}
+              delayLongPress={600}
+              onPress={() => {
+                restartJourney()
+                onClose()
+              }}
+              onLongPress={() => {
+                forceSuperfan()
+                onClose()
+              }}
+            >
+              <View style={s.restartIcon}>
+                <Ionicons name="refresh" size={18} color="#fff" />
+              </View>
+              <View style={s.rowInfo}>
+                <Text style={s.name}>Restart Journey</Text>
+                <Text style={s.tag}>
+                  Reset to new listener · now {hannahJourneyStage.replace('-', ' ')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* Build your own */}
           <TouchableOpacity
@@ -143,6 +179,24 @@ const s = StyleSheet.create({
   subtitle: { fontSize: 13, color: C.textSecondary, marginTop: 4, marginBottom: 14 },
   list: { gap: 4 },
   listScroll: { maxHeight: Math.round(Dimensions.get('window').height * 0.52) },
+  restartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    marginTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  restartIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(217,160,91,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   deleteBtn: {
     width: 34,
@@ -192,9 +246,11 @@ const s = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 1.5,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImg: { width: '100%', height: '100%' },
   avatarText: { fontSize: 17, fontWeight: '700' },
   rowInfo: { flex: 1 },
   name: { ...typeSubhead(15), color: C.textPrimary },

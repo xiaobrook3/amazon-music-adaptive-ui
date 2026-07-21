@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { ScrollView, View, TouchableOpacity, StyleSheet } from 'react-native'
+import { ScrollView, View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
 import { AppImage as Image } from '../../src/components/AppImage'
 import { Text } from '../../src/components/AppText'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { songs, playlists, fanGroups, podcasts, artists, user } from '../../src/data/mockData'
+import { songs, playlists, fanGroups, podcasts, artists, frequentPlaySongIds } from '../../src/data/mockData'
+import { getLibraryAudiobooks } from '../../src/data/audibleBooks'
 import { albumArtAssets, artistAssets, resolveArtistAvatar } from '../../src/data/assetMap'
 import { usePlaybackState } from '../../src/hooks/usePlaybackState'
 import { C, R, typeHeadline } from '../../src/theme'
@@ -12,6 +13,7 @@ import StickyLibraryHeader from '../../src/components/StickyLibraryHeader'
 import { EdgeFadeRow } from '../../src/components/EdgeFadeRow'
 import { useSavedSessions } from '../../src/context/SavedSessionsContext'
 import { useLikedSongs } from '../../src/context/LikedSongsContext'
+import { useProfiles } from '../../src/context/ProfilesContext'
 
 function relativeTime(date: Date): string {
   const diffMs = Date.now() - date.getTime()
@@ -30,10 +32,15 @@ const MY_LIKES = {
   id: 'my-likes',
   name: 'My Likes',
   songCount: 142,
-  coverArtPath: songs[2]?.albumArtPath,
+  // Amazon Music's own Liked Songs tile art — shown regardless of like count,
+  // same as the real app (it's a branded cover, not a stand-in song's art).
+  coverArtPath: 'my-likes-cover',
 }
 
 const RECENTLY_PLAYED = songs.slice(0, 8)
+
+// 16px side padding + 12px column gap — same 2-up grid math used on artist merch grids
+const PLAYLIST_GRID_CARD_W = (Dimensions.get('window').width - 44) / 2
 
 function PlayOverlay({ size = 30 }: { size?: number }) {
   return (
@@ -48,8 +55,9 @@ export default function LibraryScreen() {
   const { playSongAt } = usePlaybackState()
   const { sessions, playSavedSession, deleteSavedSession } = useSavedSessions()
   const { likedSongIds } = useLikedSongs()
+  const { activeProfile } = useProfiles()
   const [activeFilter, setActiveFilter] = useState<FilterKey>('Playlists')
-  const firstName = user.name.split(' ')[0]
+  const firstName = activeProfile.name.split(' ')[0]
   const likedCount = likedSongIds.size
 
   // 'Playlists' is the default landing filter and keeps the full library view;
@@ -68,10 +76,6 @@ export default function LibraryScreen() {
     playSongAt(songId)
     router.push('/now-playing')
   }
-
-  // Fan groups without an artistId still deep-link somewhere sensible.
-  const fanGroupArtistId = (group: (typeof fanGroups)[0]): string | null =>
-    group.artistId ?? (group.name.includes('BTS') ? 'bts' : null)
 
   return (
     <View style={s.screen}>
@@ -128,7 +132,7 @@ export default function LibraryScreen() {
             onPress={() => router.push('/liked')}
           >
             <View style={s.playlistGridArt}>
-              {likedCount === 0 && MY_LIKES.coverArtPath && albumArtAssets[MY_LIKES.coverArtPath] ? (
+              {albumArtAssets[MY_LIKES.coverArtPath] ? (
                 <Image
                   source={albumArtAssets[MY_LIKES.coverArtPath]}
                   style={{ width: '100%', height: '100%' }}
@@ -143,6 +147,30 @@ export default function LibraryScreen() {
             <Text style={s.playlistGridName} numberOfLines={1}>Liked Songs</Text>
             <Text style={s.playlistGridSub}>
               {likedCount} {likedCount === 1 ? 'song' : 'songs'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.playlistGridCard}
+            activeOpacity={0.8}
+            onPress={() => router.push('/frequent-plays')}
+          >
+            <View style={s.playlistGridArt}>
+              {albumArtAssets['my-frequent-plays-cover'] ? (
+                <Image
+                  source={albumArtAssets['my-frequent-plays-cover']}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={s.playlistGridArtFallback}>
+                  <Ionicons name="repeat" size={32} color={C.gold} />
+                </View>
+              )}
+            </View>
+            <Text style={s.playlistGridName} numberOfLines={1}>My Frequent Plays</Text>
+            <Text style={s.playlistGridSub}>
+              {frequentPlaySongIds.length} songs
             </Text>
           </TouchableOpacity>
 
@@ -165,7 +193,9 @@ export default function LibraryScreen() {
                   )}
                 </View>
                 <Text style={s.playlistGridName} numberOfLines={1}>{pl.name}</Text>
-                <Text style={s.playlistGridSub}>{pl.songIds?.length ?? pl.songCount} songs</Text>
+                <Text style={s.playlistGridSub} numberOfLines={1}>
+                  {(pl.songCount ?? 0)} {pl.songCount === 1 ? 'song' : 'songs'}
+                </Text>
               </TouchableOpacity>
             )
           })}
@@ -179,7 +209,7 @@ export default function LibraryScreen() {
               <Text style={s.sectionTitle}>Songs</Text>
             </View>
             {likedSongs.length === 0 ? (
-              <Text style={s.filterEmpty}>Songs you like will show up here — tap the heart anywhere in the app.</Text>
+              <Text style={s.filterEmpty}>Songs you like will show up here, tap the heart anywhere in the app.</Text>
             ) : (
               <View style={{ paddingHorizontal: 16 }}>
                 {likedSongs.map(song => {
@@ -271,7 +301,36 @@ export default function LibraryScreen() {
         )}
 
         {activeFilter === 'Audiobooks' && (
-          <Text style={s.filterEmpty}>Your Audible library lives in the Audible app.</Text>
+          <>
+            <View style={[s.sectionHeader, { marginTop: 0 }]}>
+              <Text style={s.sectionTitle}>Your audiobooks</Text>
+            </View>
+            <View style={s.playlistGrid}>
+              {getLibraryAudiobooks().map(book => {
+                const art = book.coverArtPath ? albumArtAssets[book.coverArtPath] : null
+                return (
+                  <TouchableOpacity
+                    key={book.id}
+                    style={s.playlistGridCard}
+                    activeOpacity={0.8}
+                    onPress={() => router.push(`/audible-book/${book.id}` as any)}
+                  >
+                    <View style={s.playlistGridArt}>
+                      {art ? (
+                        <Image source={art} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.playlistGridArtFallback, { backgroundColor: book.coverColor }]}>
+                          <Ionicons name="book" size={32} color="rgba(255,255,255,0.3)" />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={s.playlistGridName} numberOfLines={1}>{book.title}</Text>
+                    <Text style={s.playlistGridSub} numberOfLines={1}>{book.author}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          </>
         )}
 
         {(showFull || activeFilter === 'Album') && (
@@ -389,13 +448,12 @@ export default function LibraryScreen() {
                 : group.coverArtPath
                   ? albumArtAssets[group.coverArtPath]
                   : null
-              const targetArtist = fanGroupArtistId(group)
               return (
                 <TouchableOpacity
                   key={group.id}
                   style={s.fanGroupCard}
                   activeOpacity={0.85}
-                  onPress={() => targetArtist && router.push(`/artist/${targetArtist}` as any)}
+                  onPress={() => router.push(`/fan-group/${group.id}` as any)}
                 >
                   <View style={s.fanGroupArtWrap}>
                     {art ? (
@@ -460,7 +518,7 @@ const s = StyleSheet.create({
   newPlaylistText: { fontSize: 11, fontWeight: '700', color: '#000000', letterSpacing: 0.5 },
 
   playlistGrid:       { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12, marginBottom: 12 },
-  playlistGridCard:   { width: '47%', gap: 6 },
+  playlistGridCard:   { width: PLAYLIST_GRID_CARD_W, gap: 6 },
   playlistGridArt:    { width: '100%', aspectRatio: 1, borderRadius: R.sm, overflow: 'hidden', backgroundColor: C.surface },
   playlistGridArtFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   playlistGridName:   { fontSize: 14, fontWeight: '600', color: C.textPrimary },

@@ -1,20 +1,22 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, Platform } from 'react-native'
+import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions, ImageBackground } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import { EdgeFadeRow } from '../EdgeFadeRow'
 import { HRail } from '../HRail'
 import StickyHomeHeader, { useStickyHomeHeaderHeight, useStickyHomeScroll } from '../StickyHomeHeader'
 import AdaptiveThemePills from '../AdaptiveThemePills'
+import { ListeningHeatmap, PlaylistMoodCard, ShowsYouWatchRail, MixCard } from './HomeSessionWidgets'
 import { useSharedValue } from 'react-native-reanimated'
 import { useProfiles } from '../../context/ProfilesContext'
-import { useAdaptiveUI, isOliviaSuperFanTheme } from '../../context/AdaptiveUIContext'
+import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import { usePlaybackState } from '../../hooks/usePlaybackState'
 import {
   songs,
+  artists,
   podcasts,
   playlists,
   continueListeningItems,
@@ -25,32 +27,50 @@ import {
   myMixPlaylistIds,
   homeFeaturedArtistIds,
   hiddenGemsArtistIds,
+  newForYouSongIds,
+  recentlyPlayedIds,
+  hannahSongsForYouIds,
+  hannahFeaturedArtistIds,
+  hannahFrequentPlaySongIds,
   type Song,
 } from '../../data/mockData'
-import { albumArtAssets, artistAssets, oliviaAboutAssets, resolveArtistAvatar, logoAssets } from '../../data/assetMap'
+import { albumArtAssets, artistAssets, oliviaAboutAssets, resolveArtistAvatar } from '../../data/assetMap'
 import {
   filterSongsForTheme,
   filterContinueListening,
   uniqueAlbumsFromSongs,
   getFeaturedArtists,
   getHiddenGemArtists,
+  getDiscoveryTheme,
 } from '../../data/themeFilters'
-import {
-  OLIVIA_TOP_TRACK,
-  OLIVIA_EXCLUSIVE_TRACK,
-  OLIVIA_NEWS,
-  OLIVIA_MERCH,
-} from '../../data/oliviaSuperFanContent'
+import { getSuperFanContent } from '../../data/superFanContent'
 import { KPOP_BORAHAE_PLAYLIST } from '../../data/kpopContent'
 import { LOVE_ISLAND_VILLA_PLAYLIST, LOVE_ISLAND_CAST_PLAYLIST } from '../../data/loveIslandContent'
 import { artistShowTitle, artistShowEpisodeCount } from '../../data/podcastEpisodes'
+import { audiobooks, AUDIBLE_CATEGORIES, formatAudiobookDuration } from '../../data/audibleBooks'
+import { showYouWatchPlaylistIds } from '../../data/showsYouWatch'
+import { tintFromHue } from '../../utils/color'
 import { C, R, typeHeadline } from '../../theme'
+import ShareFanCard from './ShareFanCard'
+import SuperfanGoldGlow, { SUPERFAN_GOLD } from '../SuperfanGoldGlow'
+import * as Sharing from 'expo-sharing'
+import { captureRef } from 'react-native-view-shot'
 
 const { width: SCREEN_W } = Dimensions.get('window')
-const QUICK_GAP = 10
-const QUICK_W = (SCREEN_W - 32 - QUICK_GAP) / 2
 // Love Island Villa/Cast cards page at near-full width (same as the baseline home).
 const LI_CARD_W = SCREEN_W - 48
+
+// "Songs for You" — same horizontally-paged, 3-rows-per-page pattern as the
+// baseline (Derbc Studios) home, not a single flat vertical list.
+const SONGS_PER_PAGE = 3
+const SONG_PAGE_PEEK = Math.round(SCREEN_W * 0.32)
+const SONG_PAGE_WIDTH = SCREEN_W - SONG_PAGE_PEEK
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
 
 // Secondary focus toggle (persona-gated): a two-option segmented pill that
 // slides an accent indicator left/right — the active domain vs a narrowed
@@ -68,20 +88,39 @@ const POD_GRADIENTS = [
   ['#2C4468', '#3A3068'],  // blue → indigo
 ] as const
 
-// Generic editorial playlists — text-on-gradient cards (no artwork needed).
-// `genre` names the /genre/[id] browse destination each card opens.
-const RELATED_PLAYLISTS = [
-  { name: 'Relaxing Piano',       genre: 'Relax',    colors: ['#2E4A6E', '#3A6E7A'] as const },
-  { name: 'Classical for Sleep',  genre: 'Sleep',    colors: ['#33285E', '#2E4668'] as const },
-  { name: 'All-Time Hits',        genre: 'Charts',   colors: ['#B03A2E', '#B06A1E'] as const },
-  { name: 'Deep Focus',           genre: 'Focus',    colors: ['#1E3E33', '#204048'] as const },
-  { name: 'Feel-Good Throwbacks', genre: 'Party',    colors: ['#B06A1E', '#B03A6E'] as const },
-  { name: 'Rainy Day Jazz',       genre: 'Jazz',     colors: ['#3A3068', '#28485A'] as const },
-  { name: 'Top 100 Global',       genre: 'Charts',   colors: ['#2C4468', '#5A3BC4'] as const },
-  { name: 'Late Night Lo-Fi',     genre: 'Relax',    colors: ['#4A3468', '#2E4A6E'] as const },
-  { name: 'Acoustic Mornings',    genre: 'Commute',  colors: ['#5A4020', '#2E8A5E'] as const },
-  { name: 'Workout Energy',       genre: 'Workout',  colors: ['#B03A2E', '#5A3BC4'] as const },
+// Editorial playlist rail cards. Real curated `playlistId` wins when present
+// (lands on an actual playlist); otherwise `genre` opens the matching browse
+// page. Every card always resolves to real content — never Explore Music.
+type RelatedPlaylistCard = {
+  name: string
+  artKey: string
+  genre?: string
+  playlistId?: string
+}
+
+// Generic editorial cards, tagged with a representative real cover so the
+// rail always shows art instead of flat color. `genre` names the /genre/[id]
+// browse destination each card opens.
+const RELATED_PLAYLISTS: RelatedPlaylistCard[] = [
+  { name: 'Relaxing Piano',       genre: 'Relax',    artKey: 'carole-king-tapestry' },
+  { name: 'Classical for Sleep',  genre: 'Sleep',    artKey: 'roberta-flack-first-take' },
+  { name: 'All-Time Hits',        genre: 'Charts',   artKey: 'madonna-true-blue' },
+  { name: 'Deep Focus',           genre: 'Focus',    artKey: 'fka-twigs-lp1' },
+  { name: 'Feel-Good Throwbacks', genre: 'Party',    artKey: 'whitney-self-titled' },
+  { name: 'Rainy Day Jazz',       genre: 'Jazz',     artKey: 'billie-holiday-satin' },
+  { name: 'Top 100 Global',       genre: 'Charts',   artKey: 'beyonce-lemonade' },
+  { name: 'Late Night Lo-Fi',     genre: 'Relax',    artKey: 'lorde-melodrama' },
+  { name: 'Acoustic Mornings',    genre: 'Commute',  artKey: 'noah-kahan-great-divide' },
+  { name: 'Workout Energy',       genre: 'Workout',  artKey: 'lizzo-cuz-i-love-you' },
 ]
+
+// Real curated playlists behind the fandom-tailored "{f} Essentials" /
+// "Best of {f}" cards below, keyed by the active theme's label.
+const THEME_PLAYLISTS: Record<string, { essentials: string; bestOf: string; artKey: string }> = {
+  'Olivia Rodrigo': { essentials: 'pl-olivia-essentials', bestOf: 'pl3',              artKey: 'olivia-rodrigo-sour' },
+  'Taylor Swift':   { essentials: 'pl-taylor-essentials', bestOf: 'pl-taylor-bestof', artKey: 'ts-1989' },
+  'BTS':            { essentials: 'pl2',                  bestOf: 'pl-bts-bestof',    artKey: 'bts-proof-door' },
+}
 
 // Full Amazon-style podcast taxonomy for the "Top Podcasts by Category" browse.
 const PODCAST_CATEGORIES = [
@@ -94,114 +133,27 @@ const TOGGLE_H = 38
 const TOGGLE_PAD = 4
 const TOGGLE_SEG_W = (SCREEN_W - 32 - TOGGLE_PAD * 2) / 2
 
-// Amazon-signature "Songs for you" — 3 rows per page, swiped horizontally with
-// the next page peeking in from the right.
-const SONGS_PER_PAGE = 3
-const SONG_PAGE_PEEK = Math.round(SCREEN_W * 0.3)
-const SONG_PAGE_WIDTH = SCREEN_W - SONG_PAGE_PEEK
-
-// Module-level so the artist-page coach mark shows once per app session,
-// not once per Home re-mount.
-let artistPageHintSeen = false
-
-// Featured-favorite pager (Figma 114:6101) — one page per favorite artist.
-// Olivia's page deep-links into her adaptive profile tabs; the others open
-// their artist pages.
-const FEATURED_PAGES: {
-  id: string
-  name: string
-  tier: string
-  since: string
-  tierTab?: 'you' | 'events'
-  newsTab?: 'you' | 'events'
-  newsTitle: string
-  newsCta: string
-}[] = [
-  {
-    id: 'olivia-rodrigo', name: 'Olivia Rodrigo', tier: 'Top 1% listener', since: 'Since Mar 2020',
-    tierTab: 'you', newsTab: 'events', newsTitle: 'Guts world tour announced', newsCta: 'Find tickets',
-  },
-  {
-    id: 'bts', name: 'BTS', tier: 'In rotation', since: 'Since Jun 2021',
-    newsTitle: 'Anthology album announced', newsCta: 'Explore',
-  },
-  {
-    id: 'sza', name: 'SZA', tier: 'New crush', since: 'Since May 2026',
-    newsTitle: 'SOS Deluxe — LANA out now', newsCta: 'Play it',
-  },
-]
-
-// "New in this session" — artists this session surfaced (Figma 1055:13474).
-const NEW_IN_SESSION_IDS = ['noah-kahan', 'sombr', 'lorde', 'tate-mcrae', 'olivia-dean']
-
-// "You and your favorites" — monthly listening-trend cards (Figma 114:6189).
-// Each dots row is 19 slots: 0 = quiet, 1-9 = listening intensity, T = today (cyan).
-const FAVORITE_TRENDS = [
-  {
-    artistId: 'olivia-rodrigo',
-    name: 'Olivia Rodrigo',
-    tier: 'Superfan',
-    insight: 'Your morning starter. 3 days running.',
-    dots: [
-      '6700000000000000000',
-      '9600078979937977777',
-      '3799000000037979777',
-    ],
-  },
-  {
-    artistId: 'bts',
-    name: 'BTS',
-    tier: 'In rotation',
-    insight: 'You came back this week.',
-    dots: [
-      '0000000000000000056',
-      '4534667786767777777',
-      '5677000004500007890',
-    ],
-  },
-  {
-    artistId: 'sza',
-    name: 'SZA',
-    tier: 'New crush',
-    insight: 'Three songs, on repeat.',
-    dots: [
-      '0000000000000000000',
-      '0000000789987789977',
-      '0000000899987909780',
-    ],
-  },
-].map(f => ({ ...f, dots: [f.dots[0], f.dots[1], f.dots[2].slice(0, 18) + 'T'] }))
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = []
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
-  return out
-}
-
-const BASE_SONGS_FOR_YOU = songsForYouIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null)
-const BASE_FREQUENT_PLAYS = frequentPlaySongIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null)
 const BASE_RISING = popularInCitySongIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null)
 const MY_MIXES = myMixPlaylistIds.map(id => playlists.find(p => p.id === id)).filter((p): p is typeof playlists[0] => p != null)
 
+// "Endless scroll" filler content, after My Mixes — deliberately generic (not
+// theme-filtered), so the feed keeps producing new rails from the wider
+// catalog the further you scroll. Same pool as the baseline home.
+const RADIO_STATIONS = [
+  { id: 'radio-bad-bunny', name: 'Bad Bunny Radio',    artKey: 'bad-bunny-verano',      songId: 's-bb1' },
+  { id: 'radio-sza',       name: 'SZA Radio',           artKey: 'sza-sos',               songId: 's-sza1' },
+  { id: 'radio-weeknd',    name: 'The Weeknd Radio',    artKey: 'the-weeknd',            songId: 's-weeknd1' },
+  { id: 'radio-dua',       name: 'Dua Lipa Radio',      artKey: 'dua-lipa',              songId: 's-dua1' },
+  { id: 'radio-rihanna',   name: 'Rihanna Radio',       artKey: 'rihanna-anti',          songId: 's-rihanna1' },
+  { id: 'radio-doja',      name: 'Doja Cat Radio',      artKey: 'doja-cat',              songId: 's-doja1' },
+  { id: 'radio-beyonce',   name: 'Beyoncé Radio',       artKey: 'beyonce-lemonade',      songId: 's-beyonce5' },
+  { id: 'radio-ariana',    name: 'Ariana Grande Radio', artKey: 'ariana-sweetener',      songId: 's-ariana1' },
+]
+const DEEP_DIVE_ARTIST_POOL = ['lorde', 'mitski', 'beyonce', 'ariana-grande', 'sabrina-carpenter', 'rihanna', 'sza', 'dua-lipa', 'the-weeknd', 'doja-cat']
+const SUMMER_SESSION_PLAYLIST_IDS = ['pl-summer-turned-pretty', 'pl-love-island', 'pl-love-island-cast', 'pl5']
+
 function resolveBannerArt(key: string) {
   return albumArtAssets[key] ?? artistAssets[key] ?? oliviaAboutAssets[key] ?? null
-}
-
-function tintFromHue(hue: string, alpha: number): string {
-  if (hue.startsWith('#')) {
-    const h = hue.replace('#', '')
-    return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${alpha})`
-  }
-  const m = hue.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-  if (m) return `rgba(${m[1]},${m[2]},${m[3]},${alpha})`
-  return `rgba(38,22,32,${alpha})`
-}
-
-function greetingForHour(hour: number): string {
-  if (hour >= 5 && hour < 12) return 'Good morning'
-  if (hour >= 12 && hour < 17) return 'Good afternoon'
-  if (hour >= 17 && hour < 21) return 'Good evening'
-  return 'Late night'
 }
 
 function slotForHour(hour: number): string {
@@ -272,6 +224,9 @@ function FocusToggle({
   )
 }
 
+const FAVORITE_TAGS = ['Superfan', 'In rotation', 'New crush'] as const
+const FAVORITE_CAPTIONS = ['Your go-to lately.', 'You keep coming back.', 'Fresh into the rotation.']
+
 export default function AdaptivePersonaHome() {
   const router = useRouter()
   const { playSongAt } = usePlaybackState()
@@ -281,30 +236,45 @@ export default function AdaptivePersonaHome() {
   const stickyHeaderHeight = useStickyHomeHeaderHeight()
 
   // Top-bar domain drill-down. null = nothing selected (regular home + all three
-  // pills). Pick a domain and the header collapses to [← | domain | For You].
+  // pills). Pick a domain and the header collapses to [← | domain name].
   // 1 = Podcasts-forward, 2 = Audible/spoken-forward.
   const [domain, setDomain] = useState<number | null>(null)
-  const podcastFirst = domain === 1 || domain === 2
+  const podcastDomain = domain === 1
+  const audibleDomain = domain === 2
+  const spokenDomain = podcastDomain || audibleDomain
 
-  // Brooke, Rabiat, Celine & the custom profile get the dynamic drill-down + a
-  // tailored "For You" cut of the active domain (focus 0 = domain browse, 1 = For You).
-  const hasFocusToggle =
+  // Brooke, Rabiat, Celine & the custom profile get the dynamic domain
+  // drill-down (back arrow + picked domain, no personalized "For You" cut).
+  const hasDomainNav =
     activeTheme?.id !== 'olivia-rodrigo-superfan' &&
     (activeProfile.id === 'rabiat' ||
      activeProfile.id === 'brooke' ||
      activeProfile.id === 'celine' ||
      activeProfile.id === 'custom')
-  const [focus, setFocus] = useState(0)
-  const followingFocus = hasFocusToggle && domain !== null && focus === 1
-  // On the Music sub-tab, drop "Jump back in" so the "Your world" card leads.
-  const musicFocus = hasFocusToggle && domain === 0 && focus === 0
+
+  // Rabiat is Prototype V2 — the "different adaptive UI" build where the vibe
+  // pills sit at the very top of the page (an explicit, up-front way to
+  // reshape the whole home) instead of mid-scroll like the other personas.
+  const pillsAtTop = activeProfile.id === 'rabiat'
 
   const hour = new Date().getHours()
-  const greeting = greetingForHour(hour)
   const slot = slotForHour(hour)
   const fandomLabel = activeTheme?.label ?? 'your music'
+  const diverseHome = !!activeProfile.diverseRecommendations
+  const discoveryTheme = useMemo(
+    () => getDiscoveryTheme(activeTheme, diverseHome),
+    [activeTheme, diverseHome],
+  )
+  const recTheme = discoveryTheme ?? activeTheme
+  const recSectionLabel = (key: keyof NonNullable<typeof recTheme>['sectionLabels'], fallback: string) =>
+    recTheme?.sectionLabels[key] ?? getSectionLabel(key, fallback)
 
-  const isOlivia = isOliviaSuperFanTheme(activeTheme)
+  const superfan = getSuperFanContent(activeTheme?.id)
+  // Real curated content (Olivia/Taylor/BTS) OR a custom profile built at
+  // prototype V3/V4 (see Profile.forceSuperfan) both earn the superfan hero
+  // treatment — the latter has no curated `superfan` object, so every
+  // consumer below already falls back gracefully when it's undefined.
+  const isSuperfan = !!superfan || !!activeProfile.forceSuperfan
   const isKpop = activeTheme?.id === 'kpop'
   const isLoveIsland = activeTheme?.id === 'love-island'
 
@@ -313,32 +283,42 @@ export default function AdaptivePersonaHome() {
     router.push('/now-playing')
   }
 
-  // Current-session module (Olivia): collapsible, with a paged featured-favorite
-  // carousel whose dots track the visible page.
-  const [sessionCollapsed, setSessionCollapsed] = useState(false)
-  const [ffPage, setFfPage] = useState(0)
-  const [pagerW, setPagerW] = useState(0)
-  const pagerRef = useRef<ScrollView>(null)
-  const newInSession = useMemo(() => getHiddenGemArtists(NEW_IN_SESSION_IDS), [])
-
-  // One-time coach mark on the artist-page entry card; stays dismissed for the
-  // rest of the session once tapped away or once the page has been visited.
-  const [showArtistHint, setShowArtistHint] = useState(!artistPageHintSeen)
-  const dismissArtistHint = () => {
-    artistPageHintSeen = true
-    setShowArtistHint(false)
+  // "Albums in your rotation" cards are one representative song standing in
+  // for its whole album — tapping one should open that album's page (with
+  // its real tracklist), not immediately start playing the stand-in song.
+  const openAlbum = (song: Song) => {
+    router.push(`/album/song-album-${song.id}` as any)
   }
-  const openOliviaPage = (tab?: 'you' | 'events' | 'about' | 'merch') => {
-    dismissArtistHint()
-    router.push((tab ? `/artist/olivia-rodrigo?tab=${tab}` : '/artist/olivia-rodrigo') as any)
+
+  // Long-pressing the "TOP 1% FAN" badge captures an off-screen shareable
+  // card (branded, colored from the active theme's hue) and hands it to the
+  // native share sheet — a personalized flex card the listener can post
+  // outside the app.
+  const shareCardRef = useRef<View>(null)
+  const handleShareFanCard = async () => {
+    try {
+      const uri = await captureRef(shareCardRef, { format: 'png', quality: 0.92 })
+      const canShare = await Sharing.isAvailableAsync()
+      if (!canShare) {
+        showConfirmation('Sharing is not available on this device')
+        return
+      }
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your fan card' })
+    } catch {
+      showConfirmation('Could not create your fan card — try again')
+    }
   }
 
   const jumpBackIn = useMemo(
-    () => filterContinueListening(continueListeningItems, activeTheme, songs).slice(0, 4),
-    [activeTheme],
+    () => filterContinueListening(continueListeningItems, recTheme, songs).slice(0, 4),
+    [recTheme],
   )
-  const songsForYou = useMemo(() => filterSongsForTheme(BASE_SONGS_FOR_YOU, activeTheme), [activeTheme])
-  const albumsForYou = useMemo(() => uniqueAlbumsFromSongs(filterSongsForTheme(songs, activeTheme), 10), [activeTheme])
+  const songsForYouSource = useMemo(() => {
+    const pool = diverseHome ? hannahSongsForYouIds : songsForYouIds
+    return pool.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null)
+  }, [diverseHome])
+  const songsForYou = useMemo(() => filterSongsForTheme(songsForYouSource, recTheme), [songsForYouSource, recTheme])
+  const albumsForYou = useMemo(() => uniqueAlbumsFromSongs(filterSongsForTheme(songs, recTheme), 10), [recTheme])
   const radioStationsForYou = useMemo(
     () =>
       albumsForYou.slice(0, 8).map(song => ({
@@ -351,25 +331,77 @@ export default function AdaptivePersonaHome() {
       })),
     [albumsForYou],
   )
-  const featuredArtists = useMemo(() => getFeaturedArtists(activeTheme, homeFeaturedArtistIds, 16), [activeTheme])
-  // "More like Olivia Rodrigo" suggests artists LIKE her — never Olivia herself;
-  // her page gets its own entry card in the fandom world block instead.
-  const moreLikeArtists = useMemo(
-    () => (isOlivia ? featuredArtists.filter(a => a.id !== activeTheme?.heroArtistId) : featuredArtists),
-    [featuredArtists, isOlivia, activeTheme],
-  )
-  const onRepeat = useMemo(() => filterSongsForTheme(BASE_FREQUENT_PLAYS, activeTheme), [activeTheme])
-  const rising = useMemo(() => filterSongsForTheme(BASE_RISING, activeTheme), [activeTheme])
+  const featuredArtistPool = diverseHome ? hannahFeaturedArtistIds : homeFeaturedArtistIds
+  const featuredArtists = useMemo(() => getFeaturedArtists(recTheme, featuredArtistPool, 16), [recTheme, featuredArtistPool])
+  const frequentPlaySource = useMemo(() => {
+    const pool = diverseHome ? hannahFrequentPlaySongIds : frequentPlaySongIds
+    return pool.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null)
+  }, [diverseHome])
+  const onRepeat = useMemo(() => filterSongsForTheme(frequentPlaySource, recTheme), [frequentPlaySource, recTheme])
+  const rising = useMemo(() => filterSongsForTheme(BASE_RISING, recTheme), [recTheme])
   const hiddenGems = useMemo(() => getHiddenGemArtists(hiddenGemsArtistIds), [])
-  const songStack = useMemo(() => filterSongsForTheme(songs, activeTheme).slice(0, 15), [activeTheme])
-  const songPages = useMemo(() => chunk(songStack, SONGS_PER_PAGE), [songStack])
-  const songSnapOffsets = useMemo(() => songPages.map((_, i) => i * SONG_PAGE_WIDTH), [songPages])
+
+  // ── "Endless scroll" filler, after My Mixes — generic, catalog-wide, not theme-filtered ──
+  const newReleases = useMemo(
+    () => newForYouSongIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null),
+    [],
+  )
+  const recentlyPlayedFiller = useMemo(
+    () => recentlyPlayedIds.map(id => songs.find(s => s.id === id)).filter((s): s is Song => s != null),
+    [],
+  )
+  const deepDiveArtist = useMemo(() => {
+    const id = DEEP_DIVE_ARTIST_POOL[Math.floor(Math.random() * DEEP_DIVE_ARTIST_POOL.length)]
+    return artists.find(a => a.id === id) ?? artists[0]
+  }, [])
+  const deepDiveSongs = useMemo(
+    () => songs.filter(s => s.artistId === deepDiveArtist.id),
+    [deepDiveArtist],
+  )
+  const specialAudioSongs = useMemo(
+    () => songs.filter(s => s.audioBadge && s.audioBadge !== 'SD').slice(0, 14),
+    [],
+  )
+  const summerSessionPlaylists = useMemo(
+    () => SUMMER_SESSION_PLAYLIST_IDS.map(id => playlists.find(p => p.id === id)).filter((p): p is typeof playlists[0] => p != null),
+    [],
+  )
+  const morePlaylistsForYou = useMemo(() => {
+    const used = new Set([
+      ...myMixPlaylistIds,
+      ...showYouWatchPlaylistIds,
+      KPOP_BORAHAE_PLAYLIST.playlistId,
+      LOVE_ISLAND_VILLA_PLAYLIST.playlistId,
+      LOVE_ISLAND_CAST_PLAYLIST.playlistId,
+      ...SUMMER_SESSION_PLAYLIST_IDS,
+    ])
+    return playlists.filter(p => !used.has(p.id))
+  }, [])
+  const trueCrimePodcasts = useMemo(() => podcasts.filter(p => p.category === 'True Crime'), [])
+  const podcastsForYouFiller = useMemo(() => podcasts.slice(0, 10), [])
+  const oliviaFeaturedFiller = useMemo(() => songs.filter(s => s.artistId === 'olivia-rodrigo').slice(0, 10), [])
+
+  // Two-column "Songs for You" grid (Figma landing redesign).
+  const songsForYouPages = useMemo(() => chunk(songsForYou.slice(0, 9), SONGS_PER_PAGE), [songsForYou])
+  const songsForYouSnapOffsets = useMemo(() => songsForYouPages.map((_, i) => i * SONG_PAGE_WIDTH), [songsForYouPages])
+
+  // "You and your favorites" listening-insight cards (Figma landing redesign).
+  const favoriteInsights = useMemo(
+    () =>
+      featuredArtists.slice(0, 6).map((artist, i) => ({
+        artist,
+        tag: FAVORITE_TAGS[i % FAVORITE_TAGS.length],
+        caption: FAVORITE_CAPTIONS[i % FAVORITE_CAPTIONS.length],
+        seed: i,
+      })),
+    [featuredArtists],
+  )
 
   // Fandom-adaptive pool of podcast shows — only a few real podcasts exist in the
   // mock data, so we top up with artist-led shows (real avatars as covers) biased
   // to the active persona's taste, giving the podcast domain enough to scroll.
   const podcastShows = useMemo(() => {
-    const artistShows = getFeaturedArtists(activeTheme, homeFeaturedArtistIds, 14).map((a, i) => ({
+    const artistShows = getFeaturedArtists(recTheme, featuredArtistPool, 14).map((a, i) => ({
       id: `podshow-${a.id}`,
       // Title/count hash off the artist id (shared with findPodcast) so the
       // tile and the show page it opens always agree.
@@ -387,22 +419,50 @@ export default function AdaptivePersonaHome() {
       art: (p.coverArtPath ? resolveBannerArt(p.coverArtPath) : null) as any,
     }))
     return [...realShows, ...artistShows]
-  }, [activeTheme])
+  }, [recTheme, featuredArtistPool])
+
+  const bookCards = useMemo(
+    () =>
+      audiobooks.map((b, i) => ({
+        id: b.id,
+        title: b.title,
+        sub: `${b.author} · ${formatAudiobookDuration(b)}`,
+        colors: POD_GRADIENTS[(i + 2) % POD_GRADIENTS.length],
+        art: (b.coverArtPath ? resolveBannerArt(b.coverArtPath) : null) as any,
+      })),
+    [],
+  )
+
+  const openExclusivePodcast = () => {
+    const id = activeTheme?.heroArtistId
+      ? `podshow-${activeTheme.heroArtistId}`
+      : (podcastShows[0]?.id ?? podcasts[0].id)
+    router.push(`/podcast-show/${id}` as any)
+  }
 
   // Editorial playlists — a few tailored to the active persona's fandom, then the
   // generic ones. Baseline / no-theme keeps the generic list only.
-  const relatedPlaylists = useMemo(() => {
+  const relatedPlaylists = useMemo((): RelatedPlaylistCard[] => {
     if (!activeTheme) return RELATED_PLAYLISTS
     const f = activeTheme.label
     // Genre-style themes (K-pop, Jazz, Latin…) can deep-link their tailored
-    // cards into the genre browse; artist themes fall back to Explore Music.
+    // cards into the genre browse. Known superfan artist themes (Olivia,
+    // Taylor, BTS) get real curated playlists instead. Anything else (a
+    // custom "Build Your Own" fandom, a dynamic song/artist theme) falls
+    // back to the Top 100 Global browse — never Explore Music.
     const genreThemes = ['K-pop', 'Jazz', 'Pop', 'Latin', 'Rock', 'Hip-Hop']
     const themeGenre = genreThemes.includes(f) ? f : undefined
-    const tailored = [
-      { name: `${f} Essentials`, genre: themeGenre, colors: ['#6D3BC4', '#C43B7A'] as const },
-      { name: `Best of ${f}`,    genre: themeGenre, colors: ['#2E6E8A', '#3B5BC4'] as const },
-      { name: `${f} for Focus`,  genre: 'Focus',    colors: ['#2E8A5E', '#2E7A8A'] as const },
-    ]
+    const themePlaylists = THEME_PLAYLISTS[f]
+    const tailored: RelatedPlaylistCard[] = themePlaylists
+      ? [
+          { name: `${f} Essentials`, playlistId: themePlaylists.essentials, artKey: themePlaylists.artKey },
+          { name: `Best of ${f}`,    playlistId: themePlaylists.bestOf,     artKey: themePlaylists.artKey },
+        ]
+      : [
+          { name: `${f} Essentials`, genre: themeGenre ?? 'Charts', artKey: 'beyonce-lemonade' },
+          { name: `Best of ${f}`,    genre: themeGenre ?? 'Charts', artKey: 'beyonce-lemonade' },
+        ]
+    tailored.push({ name: `${f} for Focus`, genre: 'Focus', artKey: 'fka-twigs-lp1' })
     return [...tailored, ...RELATED_PLAYLISTS]
   }, [activeTheme])
 
@@ -417,7 +477,10 @@ export default function AdaptivePersonaHome() {
   const noop = () => {}
 
   // ---- reusable rails -------------------------------------------------------
-  const coverRail = (title: string, list: Song[], sub?: string) => (
+  // `onItemPress` defaults to playing the song — the right behavior for every
+  // rail here except "Albums in your rotation" below, which stands in one
+  // song per album and needs to open that album's page instead (see openAlbum).
+  const coverRail = (title: string, list: Song[], sub?: string, onItemPress: (song: Song) => void = song => openSong(song.id)) => (
     <View style={s.block}>
       <SectionHeader title={title} sub={sub} />
       <EdgeFadeRow>
@@ -430,7 +493,7 @@ export default function AdaptivePersonaHome() {
           renderItem={({ item: song }: { item: Song }) => {
             const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
             return (
-              <TouchableOpacity style={s.coverCard} activeOpacity={0.85} onPress={() => openSong(song.id)}>
+              <TouchableOpacity style={s.coverCard} activeOpacity={0.85} onPress={() => onItemPress(song)}>
                 <View style={s.coverArtWrap}>
                   {art ? (
                     <Image source={art} style={s.coverArt} resizeMode="cover" />
@@ -453,7 +516,7 @@ export default function AdaptivePersonaHome() {
 
   const podcastsRail = (
     <View style={s.block} key="podcasts">
-      <SectionHeader title={isOlivia ? `Podcasts in the ${fandomLabel} world` : 'Podcasts for you'} />
+      <SectionHeader title={isSuperfan ? `Podcasts in the ${fandomLabel} world` : 'Podcasts for you'} />
       <EdgeFadeRow>
         <HRail
           data={podcasts}
@@ -506,12 +569,7 @@ export default function AdaptivePersonaHome() {
                 ) : (
                   <LinearGradient colors={show.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
                 )}
-                {/* Mic always centered — the podcast marker, over gradient or photo */}
-                <View style={s.podMicCenter}>
-                  <View style={s.micCircle}>
-                    <Ionicons name="mic" size={26} color="rgba(255,255,255,0.92)" />
-                  </View>
-                </View>
+                {/* Podcast marker — bottom-right badge, over gradient or photo */}
                 <View style={s.micBadge}>
                   <Ionicons name="mic-outline" size={13} color="#fff" />
                 </View>
@@ -530,13 +588,60 @@ export default function AdaptivePersonaHome() {
     <>
       {podcastShowRail('Jump back into podcasts', 'Pick up where you left off', podcastShows.slice(0, 8))}
       {podcastShowRail(
-        isOlivia ? `Podcasts in your ${fandomLabel} world` : `Podcasts for your ${slot}`,
+        isSuperfan ? `Podcasts in your ${fandomLabel} world` : `Podcasts for your ${slot}`,
         'Handpicked shows for a superfan',
         podcastShows.slice(2, 12),
       )}
       {podcastShowRail('New episodes this week', 'Fresh drops from shows you follow', [...podcastShows].reverse().slice(0, 10))}
       {podcastShowRail(`Trending in ${fandomLabel}`, 'What every fan is playing right now', podcastShows.slice(3, 13))}
       {podcastShowRail(`Because you love ${fandomLabel}`, 'More talk, deep dives & interviews', podcastShows.slice(5, 15))}
+    </>
+  )
+
+  const bookShowRail = (title: string, sub: string, list: typeof bookCards) => (
+    <View style={s.block}>
+      <SectionHeader title={title} sub={sub} />
+      <EdgeFadeRow>
+        <HRail
+          data={list}
+          keyExtractor={book => book.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.rail}
+          nestedScrollEnabled
+          renderItem={({ item: book }) => (
+            <TouchableOpacity style={s.podCard} activeOpacity={0.85} onPress={() => router.push(`/audible-book/${book.id}` as any)}>
+              <View style={s.podArt}>
+                {book.art ? (
+                  <>
+                    <Image source={book.art} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.5)']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  </>
+                ) : (
+                  <LinearGradient colors={book.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                )}
+                <View style={s.micBadge}>
+                  <Ionicons name="book-outline" size={13} color="#fff" />
+                </View>
+              </View>
+              <Text style={s.coverTitle} numberOfLines={2}>{book.title}</Text>
+              <Text style={s.coverSub} numberOfLines={1}>{book.sub}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </EdgeFadeRow>
+    </View>
+  )
+
+  const audibleFeed = (
+    <>
+      {bookShowRail('Jump back into audiobooks', 'Pick up where you left off', bookCards.slice(0, 8))}
+      {bookShowRail('Audiobooks for you', 'Handpicked titles based on your taste', bookCards.slice(2, 12))}
+      {bookShowRail('New releases this week', 'Fresh narrations just added', [...bookCards].reverse().slice(0, 10))}
+      {bookShowRail('Bestsellers', 'The books everyone is listening to', bookCards.slice(3, 13))}
+      {bookShowRail('Because you love great stories', 'More books you might enjoy', bookCards.slice(5, 15))}
     </>
   )
 
@@ -547,22 +652,16 @@ export default function AdaptivePersonaHome() {
       <EdgeFadeRow>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
           {relatedPlaylists.map((pl, idx) => (
-            <TouchableOpacity
+            <PlaylistMoodCard
               key={`${pl.name}-${idx}`}
-              style={s.coverCard}
-              activeOpacity={0.85}
+              name={pl.name}
+              artKey={pl.artKey}
               onPress={() =>
-                pl.genre
-                  ? router.push(`/genre/${encodeURIComponent(pl.genre)}` as any)
-                  : router.push('/music')
+                pl.playlistId
+                  ? router.push(`/playlist/${pl.playlistId}` as any)
+                  : router.push(`/genre/${encodeURIComponent(pl.genre ?? 'Charts')}` as any)
               }
-            >
-              <View style={s.relatedArt}>
-                <LinearGradient colors={pl.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-                <Image source={logoAssets.amIcon} style={s.relatedLogo} resizeMode="contain" />
-                <Text style={s.relatedName} numberOfLines={3}>{pl.name}</Text>
-              </View>
-            </TouchableOpacity>
+            />
           ))}
         </ScrollView>
       </EdgeFadeRow>
@@ -590,17 +689,37 @@ export default function AdaptivePersonaHome() {
     </View>
   )
 
+  const audibleCategoryGrid = (
+    <View style={s.block} key="audible-categories">
+      <SectionHeader title="Browse audiobooks by category" />
+      <View style={s.catGrid}>
+        {AUDIBLE_CATEGORIES.map(cat => (
+          <TouchableOpacity
+            key={cat}
+            style={s.catPill}
+            activeOpacity={0.8}
+            onPress={() => router.push(`/audible-category/${encodeURIComponent(cat)}` as any)}
+          >
+            <Text style={s.catPillText}>{cat}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  )
+
   return (
     <View style={s.screen}>
-      {/* Top-of-page gradient wash — same static accent as Forgotten Favorites */}
-      <View style={s.topGradientWash} pointerEvents="none">
-        <LinearGradient
-          colors={['rgba(80,76,118,0.48)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
+      {/* Off-screen — mounted only so handleShareFanCard can capture it */}
+      <View style={s.shareCardOffscreen} pointerEvents="none">
+        <ShareFanCard
+          ref={shareCardRef}
+          artistName={activeTheme?.label ?? fandomLabel}
+          fanLabel={activeTheme?.heroEyebrow ?? 'TOP 1% FAN'}
+          hue={hue}
+          heroArt={activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null}
         />
       </View>
+
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 28 }}
@@ -610,359 +729,366 @@ export default function AdaptivePersonaHome() {
       >
         <View style={{ height: stickyHeaderHeight + 22 }} />
 
-        {/* 1 — Contextual greeting (recognition + situational) */}
-        <View style={s.greetWrap}>
-          <View style={s.greetRow}>
-            <Text style={s.greetHello}>{greeting},</Text>
-            <Ionicons name="sparkles" size={14} color={accent} style={{ marginLeft: 6 }} />
+        {/* Full-bleed adaptive hero — image + headline swap with the active
+            theme, restoring the "hero that changes with you" read the old
+            standalone Rabiat home had before it moved onto this shared
+            persona-home layout. The fandom name inside the subtitle is
+            picked out in the adaptive accent color ("blue words") so the
+            copy visibly reacts to the theme, not just the artwork.
+            Scoped to Rabiat only — every other persona on this shared
+            component (Celine, custom v1–v3 profiles) keeps its existing
+            layout untouched. */}
+        {activeProfile.id === 'rabiat' && activeTheme && (
+          <TouchableOpacity
+            style={s.adaptiveHeroWrap}
+            activeOpacity={0.92}
+            onPress={() => activeTheme.heroArtistId && router.push(`/artist/${activeTheme.heroArtistId}` as any)}
+          >
+            <ImageBackground
+              source={
+                (activeTheme.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null) ??
+                artistAssets[activeTheme.heroArtistId ?? '']
+              }
+              style={s.adaptiveHeroBg}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={['rgba(0,0,0,0.15)', 'transparent', tintFromHue(hue, 0.35), 'rgba(10,10,10,0.94)']}
+                locations={[0, 0.35, 0.7, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={s.adaptiveHeroContent}>
+                <Text style={s.adaptiveHeroEyebrow}>{activeTheme.heroEyebrow}</Text>
+                <Text style={s.adaptiveHeroTitle}>{activeTheme.heroTitle}</Text>
+                <Text style={s.adaptiveHeroSub} numberOfLines={2}>
+                  {activeTheme.heroSubtitle.split(new RegExp(`(${activeTheme.label})`, 'i')).map((chunkText, i) =>
+                    chunkText.toLowerCase() === activeTheme.label.toLowerCase() ? (
+                      <Text key={i} style={s.adaptiveHeroSubAccent}>{chunkText}</Text>
+                    ) : (
+                      chunkText
+                    ),
+                  )}
+                </Text>
+              </View>
+            </ImageBackground>
+          </TouchableOpacity>
+        )}
+
+        {/* Prototype V2 (Rabiat): the vibe pills lead the page, not mid-scroll. */}
+        {pillsAtTop && !spokenDomain && (
+          <View style={s.block}>
+            <SectionHeader title="Switch your vibe" sub="Tap a theme to reshape your home" />
+            <AdaptiveThemePills
+              onDragStart={noop}
+              onDragMove={noop}
+              onDragDrop={noop}
+              onDragCancel={noop}
+              dragX={pillDragX}
+              dragY={pillDragY}
+              heroHue={hue}
+            />
           </View>
-          <Text style={s.greetName}>{activeProfile.name.split(' ')[0]}</Text>
+        )}
+
+        {/* Podcast domain: podcasts rise to the top; the category browse moves to
+            the very bottom (rendered after My Mixes). */}
+        {podcastDomain && podcastFeed}
+        {audibleDomain && audibleFeed}
+
+        {/* Sections 3–8 (music discovery) — hidden entirely in podcast/audible domain */}
+        {!spokenDomain && (
+        <>
+        {/* NEW — Featured favorite carousel + new-in-session artist rail, on a
+            dark tinted gradient (Figma landing redesign). The old "Current
+            session / Playing from" header + waveform icon was dropped, the
+            mini player at the bottom of the screen already owns "what's
+            playing right now" with a real (not decorative) equalizer, so
+            duplicating that up here just fought it for attention. */}
+        <View style={s.sessionWrap}>
+          <View style={s.sessionCard}>
+            <LinearGradient
+              colors={['#000', '#000', tintFromHue(hue, 0.16), 'rgba(0,0,0,0.9)', '#000']}
+              locations={[0, 0.14, 0.42, 0.75, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <>
+                <View style={s.favoriteBlock}>
+                  <Text style={s.favoriteHeading}>{activeTheme?.heroSectionLabel ?? 'Your featured favorite'}</Text>
+                  <View style={s.favoriteRow}>
+                    <TouchableOpacity
+                      style={s.favoriteHero}
+                      activeOpacity={0.88}
+                      onPress={() => activeTheme?.heroArtistId && router.push(`/artist/${activeTheme.heroArtistId}` as any)}
+                    >
+                      {(() => {
+                        const art = activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null
+                        return art ? (
+                          <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                        ) : (
+                          <View style={[StyleSheet.absoluteFill, { backgroundColor: tintFromHue(hue, 0.9) }]} />
+                        )
+                      })()}
+                      {(isSuperfan || isKpop) && (
+                        <LinearGradient
+                          colors={['rgba(37,209,218,0.16)', 'rgba(240,199,68,0.10)']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={StyleSheet.absoluteFill}
+                        />
+                      )}
+                      <LinearGradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.78)']} style={StyleSheet.absoluteFill} />
+                      {(isSuperfan || isKpop) && <SuperfanGoldGlow />}
+                      {(isSuperfan || isKpop) && (
+                        <TouchableOpacity
+                          style={s.favoriteBadge}
+                          activeOpacity={0.75}
+                          onLongPress={handleShareFanCard}
+                          delayLongPress={400}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Ionicons name="star" size={11} color={SUPERFAN_GOLD} />
+                          <Text style={s.favoriteBadgeText} numberOfLines={1}>{activeTheme?.heroEyebrow ?? 'TOP 1% FAN'}</Text>
+                        </TouchableOpacity>
+                      )}
+                      <View style={s.favoriteHeroText}>
+                        <Text style={s.favoriteEyebrow}>{isSuperfan ? 'Top 1% listener' : (activeTheme?.heroEyebrow ?? 'FOR YOU')}</Text>
+                        <Text style={s.favoriteName} numberOfLines={2}>{activeTheme?.heroTitle ?? fandomLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={s.favoriteSideCol}>
+                      <TouchableOpacity
+                        style={s.unlockCard}
+                        activeOpacity={0.85}
+                        onPress={openExclusivePodcast}
+                      >
+                        <Text style={s.unlockEyebrow}>WHAT YOU UNLOCKED</Text>
+                        <Text style={s.unlockTitle} numberOfLines={2}>Exclusive for you</Text>
+                        <Ionicons name="arrow-forward" size={16} color="#fff" style={{ alignSelf: 'flex-end' }} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={s.newsCard}
+                        activeOpacity={0.85}
+                        onPress={() => activeTheme?.heroArtistId && router.push(`/artist/${activeTheme.heroArtistId}` as any)}
+                      >
+                        <View style={s.newsAccentBar} />
+                        <View style={s.newsBody}>
+                          <Text style={s.newsHeadline} numberOfLines={2}>{superfan?.news.headline ?? `More from ${fandomLabel}`}</Text>
+                          <View style={s.newsPill}>
+                            <Text style={s.newsPillText}>See more</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                {featuredArtists.length > 0 && (
+                  <View style={s.newInSessionBlock}>
+                    <Text style={s.newInSessionHeading}>New in this session</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.newInSessionRail} nestedScrollEnabled>
+                      {featuredArtists.slice(0, 8).map(artist => {
+                        const art = resolveArtistAvatar(artist.id, artist.imageUri)
+                        return (
+                          <TouchableOpacity key={artist.id} style={s.newInSessionCard} activeOpacity={0.85} onPress={() => router.push(`/artist/${artist.id}` as any)}>
+                            {art ? (
+                              <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                            ) : (
+                              <View style={[StyleSheet.absoluteFill, { backgroundColor: C.surface }]} />
+                            )}
+                            <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.72)']} style={StyleSheet.absoluteFill} />
+                            <Text style={s.newInSessionName} numberOfLines={1}>{artist.name}</Text>
+                          </TouchableOpacity>
+                        )
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* K-pop loyalty extra: Borahae daily playlist */}
+                {isKpop && (
+                  <TouchableOpacity
+                    style={s.rowCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push(`/playlist/${KPOP_BORAHAE_PLAYLIST.playlistId}` as any)}
+                  >
+                    <Image source={resolveBannerArt(KPOP_BORAHAE_PLAYLIST.artKey) ?? artistAssets.bts} style={s.rowArt} resizeMode="cover" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.rowEyebrow}>{KPOP_BORAHAE_PLAYLIST.eyebrow}</Text>
+                      <Text style={s.rowTitle} numberOfLines={1}>{KPOP_BORAHAE_PLAYLIST.title}</Text>
+                      <Text style={s.rowSub} numberOfLines={1}>{KPOP_BORAHAE_PLAYLIST.meta}</Text>
+                    </View>
+                    <PlayBadge size={30} />
+                  </TouchableOpacity>
+                )}
+              </>
+          </View>
         </View>
 
-        {/* 2 — Jump back in (fast return) — music domain only; podcasts have their own.
-            For Olivia superfan, Jump back in is repositioned after the featured-artists section. */}
-        {!podcastFirst && !musicFocus && !isOlivia && jumpBackIn.length > 0 && (
+        {/* Jump back in — same big-card "Continue Listening" pattern as the
+            baseline (Derbc Studios) home, not the small truncated row cards.
+            Sits right after the hero cards, before discovery rails. */}
+        {jumpBackIn.length > 0 && (
           <View style={s.block}>
             <SectionHeader title="Jump back in" />
-            <View style={s.quickGrid}>
-              {jumpBackIn.map(item => {
-                const art = item.artKey ? resolveBannerArt(item.artKey) : null
-                const kind = continueListeningKind(item.id)
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={s.quickCard}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      item.podcastId
-                        ? router.push(`/podcast-show/${item.podcastId}` as any)
-                        : item.songId && openSong(item.songId)
-                    }
-                  >
-                    <View style={s.quickArtWrap}>
-                      {art ? (
-                        <Image source={art} style={s.quickArt} resizeMode="cover" />
-                      ) : (
-                        <View style={[s.quickArt, { backgroundColor: C.surface }]} />
-                      )}
-                      <View style={s.artBorderOverlay} pointerEvents="none" />
-                    </View>
-                    <View style={s.quickText}>
-                      <Text style={s.quickTitle} numberOfLines={1}>{item.title}</Text>
+            <EdgeFadeRow>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+                {jumpBackIn.map(item => {
+                  const art = item.artKey ? resolveBannerArt(item.artKey) : null
+                  const kind = continueListeningKind(item.id)
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={s.continueCard}
+                      activeOpacity={0.85}
+                      onPress={() =>
+                        item.podcastId
+                          ? router.push(`/podcast-show/${item.podcastId}` as any)
+                          : item.songId && openSong(item.songId)
+                      }
+                    >
+                      <View style={s.continueArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.continueArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.continueArt, { backgroundColor: C.surface }]} />
+                        )}
+                        <View style={s.artBorderOverlay} pointerEvents="none" />
+                        <View style={s.continuePlayPos}><PlayBadge size={30} /></View>
+                      </View>
+                      <Text style={s.continueTitle} numberOfLines={2}>{item.title}</Text>
                       <View style={s.quickKindRow}>
                         <Ionicons name={kind.icon as any} size={10} color={C.textMuted} />
                         <Text style={s.quickKind}>{kind.label}</Text>
                       </View>
-                    </View>
-                    <PlayBadge size={26} />
-                  </TouchableOpacity>
-                )
-              })}
-            </View>
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            </EdgeFadeRow>
           </View>
         )}
 
+        <ShowsYouWatchRail />
 
-        {/* Podcast domain: podcasts rise to the top; the category browse moves to
-            the very bottom (rendered after My Mixes). */}
-        {podcastFirst && podcastFeed}
-
-        {/* Sections 3–8 (music discovery) — hidden entirely in the podcast domain */}
-        {!podcastFirst && (
-        <>
-        {/* 3 — Your <fandom> world — music loyalty group */}
-        <View style={[s.block, s.fandomShadow]}>
-          <View style={[s.fandomInner, { borderColor: tintFromHue(accent, 0.42) }]}>
-          {/* Top-right corner bloom — fades toward bottom-left */}
-          <LinearGradient
-            colors={[
-              tintFromHue(isOlivia ? '#DE909C' : hue, 0.55),
-              tintFromHue(isOlivia ? '#DE909C' : hue, 0.2),
-              'transparent',
-            ]}
-            start={{ x: 1, y: 0 }}
-            end={{ x: 0, y: 0.6 }}
-            locations={[0, 0.35, 1]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <LinearGradient
-            colors={[tintFromHue(accent, 0.20), 'transparent']}
-            style={s.fandomGlowTop}
-            pointerEvents="none"
-          />
-          {/* Olivia: the whole block is the "Current session" module (Figma 114:6104) —
-              header with live-wave + collapse, featured-favorite pager, session discoveries */}
-          {isOlivia ? (
-            <View style={s.csHead}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={s.csTitle}>Current session</Text>
-                  <View style={s.csWave} accessibilityLabel="Playing now">
-                    {[8, 14, 10, 16, 7].map((h, i) => (
-                      <View key={i} style={[s.csBar, { height: h }]} />
-                    ))}
-                  </View>
+        {/* NEW — Songs for You: horizontally-paged, 3 rows per page, same as
+            the baseline (Derbc Studios) home's signature song stack. */}
+        {songsForYouPages.length > 0 && (
+          <View style={s.block}>
+            <SectionHeader title={recSectionLabel('songsForYou', 'Songs for You')} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="normal"
+              snapToOffsets={songsForYouSnapOffsets}
+              snapToAlignment="start"
+              nestedScrollEnabled
+              contentContainerStyle={[s.songsScrollContent, { paddingRight: SONG_PAGE_PEEK }]}
+            >
+              {songsForYouPages.map((page, pageIdx) => (
+                <View key={`sfy-page-${pageIdx}`} style={[s.songsPage, { width: SONG_PAGE_WIDTH }]}>
+                  {page.map(song => {
+                    const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                    return (
+                      <TouchableOpacity key={song.id} style={s.gridSongRow} activeOpacity={0.8} onPress={() => openSong(song.id)}>
+                        {art ? (
+                          <Image source={art} style={s.gridSongArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.gridSongArt, { backgroundColor: song.albumArtColor }]} />
+                        )}
+                        <View style={s.gridSongInfo}>
+                          <View style={s.songTitleRow}>
+                            <Text style={[s.gridSongTitle, s.songTitleFlex]} numberOfLines={1}>{song.title}</Text>
+                            {song.isExclusive && <Text style={s.exclusiveBadgeText}>EXCLUSIVE</Text>}
+                          </View>
+                          <Text style={s.gridSongArtist} numberOfLines={1}>{song.artistName}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    )
+                  })}
                 </View>
-                <Text style={s.csSub}>Playing from: My Soundtrack</Text>
-              </View>
-              <TouchableOpacity
-                style={s.csCollapse}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                onPress={() => setSessionCollapsed(v => !v)}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: !sessionCollapsed }}
-                accessibilityLabel={sessionCollapsed ? 'Expand current session' : 'Collapse current session'}
-              >
-                <Ionicons name={sessionCollapsed ? 'chevron-down' : 'chevron-up'} size={20} color="#fff" />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* NEW — You and your favorites (listening-insight cards with a
+            deterministic "listening level" heatmap, Figma landing redesign) */}
+        {favoriteInsights.length > 0 && (
+          <View style={s.block}>
+            <View style={s.favoritesHeadRow}>
+              <Text style={s.fandomTitle}>You and your favorites</Text>
+              <TouchableOpacity onPress={() => router.push('/music')} activeOpacity={0.7}>
+                <Text style={s.seeMoreText}>SEE MORE</Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={s.fandomHead}>
-              <Ionicons name="heart" size={14} color={accent} />
-              <Text style={s.fandomTitle}>Your {fandomLabel} world</Text>
-            </View>
-          )}
-          {isKpop && (
-            <View style={s.fanTier}>
-              <Ionicons name="star" size={11} color={C.cyan} />
-              <Text style={[s.fanTierText, { color: C.cyan }]}>Top 1% of {fandomLabel} fans on Amazon Music</Text>
-            </View>
-          )}
-          {isOlivia && !sessionCollapsed && <Text style={s.csSection}>Your featured favorite</Text>}
-
-          {/* One-time coach mark: the featured photo below is the front door to
-              the adaptive artist profile */}
-          {isOlivia && !sessionCollapsed && showArtistHint && (
-            <>
-              <View style={s.artistHint}>
-                <Ionicons name="sparkles" size={12} color={C.cyan} />
-                <Text style={s.artistHintText}>New — Olivia&apos;s page adapts to you. Tap her photo to open it.</Text>
-                <TouchableOpacity
-                  onPress={dismissArtistHint}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel="Dismiss hint"
-                >
-                  <Ionicons name="close" size={14} color={C.textMuted} />
-                </TouchableOpacity>
-              </View>
-              <View style={s.artistHintCaret} />
-            </>
-          )}
-
-          {isOlivia ? (
-            !sessionCollapsed && (
-              <>
-                {/* Featured-favorite pager (Figma 114:6101 "newest update") — one page
-                    per favorite, dots below; every surface routes into an artist page */}
-                <View onLayout={e => setPagerW(e.nativeEvent.layout.width)}>
-                  {pagerW > 0 && (
-                    <ScrollView
-                      ref={pagerRef}
-                      horizontal
-                      pagingEnabled
-                      snapToInterval={pagerW}
-                      decelerationRate="fast"
-                      showsHorizontalScrollIndicator={false}
-                      onScroll={e => setFfPage(Math.round(e.nativeEvent.contentOffset.x / pagerW))}
-                      scrollEventThrottle={32}
-                      nestedScrollEnabled
-                    >
-                      {FEATURED_PAGES.map(pg => {
-                        const isOliviaPage = pg.id === 'olivia-rodrigo'
-                        const go = (tab?: 'you' | 'events') => {
-                          if (isOliviaPage) return openOliviaPage(tab)
-                          dismissArtistHint()
-                          router.push(`/artist/${pg.id}` as any)
-                        }
-                        const art = isOliviaPage
-                          ? (activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null)
-                          : resolveArtistAvatar(pg.id)
-                        return (
-                          <View key={pg.id} style={{ width: pagerW }}>
-                            <View style={s.ffRow}>
-                              <TouchableOpacity
-                                style={s.ffCard}
-                                activeOpacity={0.88}
-                                onPress={() => go()}
-                                accessibilityLabel={`Open ${pg.name}'s artist page`}
-                              >
-                                {art ? (
-                                  <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                                ) : (
-                                  <View style={[StyleSheet.absoluteFill, { backgroundColor: tintFromHue(hue, 0.9) }]} />
-                                )}
-                                <LinearGradient
-                                  colors={['rgba(102,102,102,0)', 'rgba(0,0,0,0.6)']}
-                                  locations={[0.59, 1]}
-                                  style={StyleSheet.absoluteFill}
-                                />
-                                {/* following bubble — heart pill with a thought-bubble tail */}
-                                <View style={s.ffBubbleWrap} pointerEvents="none">
-                                  <View style={s.ffBubble}>
-                                    <Ionicons name="heart" size={13} color="#fff" />
-                                    <Text style={s.ffBubbleText}>{pg.since}</Text>
-                                  </View>
-                                  <View style={s.ffBubbleDot1} />
-                                  <View style={s.ffBubbleDot2} />
-                                </View>
-                                <TouchableOpacity
-                                  onPress={() => go(pg.tierTab)}
-                                  activeOpacity={0.7}
-                                  hitSlop={{ top: 6, bottom: 2, left: 4, right: 12 }}
-                                  accessibilityLabel={`${pg.tier} — ${pg.name}`}
-                                >
-                                  <Text style={s.ffTier}>{pg.tier}</Text>
-                                </TouchableOpacity>
-                                <Text style={s.ffName} numberOfLines={1}>{pg.name}</Text>
-                              </TouchableOpacity>
-
-                              <View style={s.ffCol}>
-                                <TouchableOpacity
-                                  style={[s.ffUnlock, Platform.OS === 'web' ? ({ backdropFilter: 'blur(4.4px)' } as any) : null]}
-                                  activeOpacity={0.8}
-                                  onPress={() => go()}
-                                  accessibilityLabel={`What you unlocked — ${pg.name}`}
-                                >
-                                  <View style={{ flex: 1, justifyContent: 'center' }}>
-                                    <Text style={s.ffUnlockEyebrow}>WHAT YOU UNLOCKED</Text>
-                                    <Text style={s.ffUnlockTitle}>Exclusive for you</Text>
-                                  </View>
-                                  <Ionicons name="chevron-forward" size={16} color="#fff" style={{ alignSelf: 'flex-end' }} />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={s.ffTour}
-                                  activeOpacity={0.8}
-                                  onPress={() => go(pg.newsTab)}
-                                  accessibilityLabel={`${pg.newsTitle} — ${pg.newsCta}`}
-                                >
-                                  <Text style={s.ffTourTitle}>{pg.newsTitle}</Text>
-                                  <View style={s.ffTourPill}>
-                                    <Text style={s.ffTourPillText}>{pg.newsCta}</Text>
-                                  </View>
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          </View>
-                        )
-                      })}
-                    </ScrollView>
-                  )}
-                </View>
-                <View style={s.ffDots}>
-                  {FEATURED_PAGES.map((pg, i) => (
-                    <TouchableOpacity
-                      key={pg.id}
-                      hitSlop={{ top: 10, bottom: 10, left: 5, right: 5 }}
-                      onPress={() => {
-                        pagerRef.current?.scrollTo({ x: i * pagerW, animated: true })
-                        setFfPage(i)
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Featured favorite ${i + 1} of ${FEATURED_PAGES.length}: ${pg.name}`}
-                      accessibilityState={{ selected: i === ffPage }}
-                    >
-                      <View style={[s.ffDot, i === ffPage && s.ffDotActive]} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* New in this session — artists this session surfaced (Figma 1055:13474) */}
-                <Text style={[s.csSection, { marginTop: 20 }]}>New in this session</Text>
-                <EdgeFadeRow fadeColor={C.surface}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} nestedScrollEnabled>
-                    {newInSession.map(a => {
-                      const art = resolveArtistAvatar(a.id, a.imageUri)
-                      return (
-                        <TouchableOpacity
-                          key={a.id}
-                          style={s.nisCard}
-                          activeOpacity={0.85}
-                          onPress={() => router.push(`/artist/${a.id}` as any)}
-                          accessibilityLabel={`New in this session — ${a.name}`}
-                        >
-                          {art && <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />}
-                          <LinearGradient
-                            colors={['rgba(102,102,102,0)', 'rgba(0,0,0,0.72)']}
-                            locations={[0.59, 1]}
-                            style={StyleSheet.absoluteFill}
-                          />
-                          <Text style={s.nisName} numberOfLines={1}>{a.name}</Text>
-                        </TouchableOpacity>
-                      )
-                    })}
-                  </ScrollView>
-                </EdgeFadeRow>
-              </>
-            )
-          ) : (
-            <TouchableOpacity style={s.featureCard} activeOpacity={0.88} onPress={() => openSong(onRepeat[0]?.id ?? songs[0].id)}>
-              {(() => {
-                const art = activeTheme?.heroBannerKey ? resolveBannerArt(activeTheme.heroBannerKey) : null
-                return art ? (
-                  <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                ) : (
-                  <View style={[StyleSheet.absoluteFill, { backgroundColor: tintFromHue(hue, 0.9) }]} />
-                )
-              })()}
-              <LinearGradient
-                colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.78)']}
-                style={StyleSheet.absoluteFill}
-              />
-              <View style={s.featureText}>
-                <Text style={s.featureEyebrow}>{activeTheme?.heroEyebrow ?? 'FOR YOU'}</Text>
-                <Text style={s.featureTitle} numberOfLines={2}>{activeTheme?.heroTitle ?? fandomLabel}</Text>
-              </View>
-              <View style={s.featurePlay}><PlayBadge size={40} /></View>
-            </TouchableOpacity>
-          )}
-
-          {/* K-pop loyalty extra: Borahae daily playlist */}
-          {isKpop && (
-            <TouchableOpacity
-              style={s.rowCard}
-              activeOpacity={0.85}
-              onPress={() => router.push(`/playlist/${KPOP_BORAHAE_PLAYLIST.playlistId}` as any)}
-            >
-              <Image source={resolveBannerArt(KPOP_BORAHAE_PLAYLIST.artKey) ?? artistAssets.bts} style={s.rowArt} resizeMode="cover" />
-              <View style={{ flex: 1 }}>
-                <Text style={s.rowEyebrow}>{KPOP_BORAHAE_PLAYLIST.eyebrow}</Text>
-                <Text style={s.rowTitle} numberOfLines={1}>{KPOP_BORAHAE_PLAYLIST.title}</Text>
-                <Text style={s.rowSub} numberOfLines={1}>{KPOP_BORAHAE_PLAYLIST.meta}</Text>
-              </View>
-              <PlayBadge size={30} />
-            </TouchableOpacity>
-          )}
-
-          {/* On-repeat tracks for this fandom (Olivia's module ends with New in this
-              session instead — her top songs live in the rails below) */}
-          {!isOlivia && (
-          <EdgeFadeRow fadeColor={C.surface}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.merchRail} nestedScrollEnabled>
-              {onRepeat.slice(0, 12).map(song => {
-                const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
-                return (
-                  <TouchableOpacity key={song.id} style={s.miniCard} activeOpacity={0.85} onPress={() => openSong(song.id)}>
-                    <View style={s.miniArtWrap}>
+            <EdgeFadeRow>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+                {favoriteInsights.map(item => {
+                  const art = resolveArtistAvatar(item.artist.id, item.artist.imageUri)
+                  return (
+                    <TouchableOpacity key={item.artist.id} style={s.insightCard} activeOpacity={0.85} onPress={() => router.push(`/artist/${item.artist.id}` as any)}>
                       {art ? (
-                        <Image source={art} style={s.miniArt} resizeMode="cover" />
+                        <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />
                       ) : (
-                        <View style={[s.miniArt, { backgroundColor: song.albumArtColor }]} />
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: C.surface }]} />
                       )}
-                      <View style={s.artBorderOverlay} pointerEvents="none" />
-                    </View>
-                    <Text style={s.miniTitle} numberOfLines={1}>{song.title}</Text>
-                  </TouchableOpacity>
-                )
-              })}
-            </ScrollView>
-          </EdgeFadeRow>
-          )}
+                      <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)']} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
+                      <View style={s.insightHead}>
+                        <View style={s.insightAvatarWrap}>
+                          {art ? <Image source={art} style={s.insightAvatar} resizeMode="cover" /> : <View style={[s.insightAvatar, { backgroundColor: C.surface }]} />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.insightTag}>{item.tag}</Text>
+                          <Text style={s.insightName} numberOfLines={1}>{item.artist.name}</Text>
+                        </View>
+                      </View>
+                      <View style={s.insightBody}>
+                        <Text style={s.insightMonth}>THIS MONTH</Text>
+                        <Text style={s.insightCaption} numberOfLines={2}>{item.caption}</Text>
+                        <ListeningHeatmap seed={item.seed} />
+                      </View>
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            </EdgeFadeRow>
           </View>
-        </View>
+        )}
+
+        {/* On-repeat tracks for this fandom */}
+        {onRepeat.length > 0 && (
+          <View style={s.block}>
+            <SectionHeader title={diverseHome ? 'On repeat this month' : `On repeat in your ${fandomLabel} world`} />
+            <EdgeFadeRow fadeColor={C.surface}>
+              {/* merchRail has no side padding (it's normally nested in an
+                  already-padded panel), add the standard 16px inset here since
+                  this rail sits directly in the page, like every other section. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[s.merchRail, { paddingHorizontal: 16 }]} nestedScrollEnabled>
+                {onRepeat.slice(0, 12).map(song => {
+                  const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
+                  return (
+                    <TouchableOpacity key={song.id} style={s.miniCard} activeOpacity={0.85} onPress={() => openSong(song.id)}>
+                      <View style={s.miniArtWrap}>
+                        {art ? (
+                          <Image source={art} style={s.miniArt} resizeMode="cover" />
+                        ) : (
+                          <View style={[s.miniArt, { backgroundColor: song.albumArtColor }]} />
+                        )}
+                        <View style={s.artBorderOverlay} pointerEvents="none" />
+                      </View>
+                      <Text style={s.miniTitle} numberOfLines={1}>{song.title}</Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </ScrollView>
+            </EdgeFadeRow>
+          </View>
+        )}
 
         {/* Love Island world: the Villa + Cast cards (same design as the
-            official-playlist treatment) — shown only for the Love Island theme */}
+            official-playlist treatment), shown only for the Love Island theme */}
         {isLoveIsland && (
           <ScrollView
             horizontal
@@ -1034,18 +1160,12 @@ export default function AdaptivePersonaHome() {
           </ScrollView>
         )}
 
-        {/* (Olivia's "Jump back in" was folded into the Current session module as
-            "New in this session", matching the team Figma arrangement.) */}
-
-        {/* 4 — Made for you right now (situational picks) */}
-        {coverRail(getSectionLabel('songsForYou', `Made for your ${slot}`), songsForYou)}
-
         {/* 5 — More from your world (fandom-adjacent discovery) */}
         <View style={s.block}>
-          <SectionHeader title={followingFocus ? 'New from your artists' : `More like ${fandomLabel}`} />
+          <SectionHeader title={diverseHome ? 'Artists you might love' : `More like ${fandomLabel}`} />
           <EdgeFadeRow>
             <HRail
-              data={followingFocus ? featuredArtists : moreLikeArtists}
+              data={featuredArtists}
               keyExtractor={artist => artist.id}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.rail}
@@ -1069,7 +1189,7 @@ export default function AdaptivePersonaHome() {
           </EdgeFadeRow>
         </View>
 
-        {coverRail('Albums in your rotation', albumsForYou, 'Your most-played albums this month')}
+        {coverRail('Albums in your rotation', albumsForYou, 'Your most-played albums this month', openAlbum)}
 
         {/* Radio Stations — album-art cards with a radio badge, style-matched to the
             Related Radio Stations section on the artist music tab. */}
@@ -1085,7 +1205,7 @@ export default function AdaptivePersonaHome() {
                       key={st.id}
                       style={s.radioCard}
                       activeOpacity={0.85}
-                      onPress={() => router.push(`/radio/${st.id}` as any)}
+                      onPress={() => openSong(st.songId)}
                     >
                       <View style={s.radioArtWrap}>
                         {art ? (
@@ -1096,7 +1216,7 @@ export default function AdaptivePersonaHome() {
                           </View>
                         )}
                         <View style={s.radioBadge}>
-                          <Ionicons name="radio-outline" size={22} color="#fff" />
+                          <MaterialIcons name="sensors" size={22} color="#fff" />
                         </View>
                       </View>
                       <Text style={s.radioTitle} numberOfLines={1}>{st.name}</Text>
@@ -1111,82 +1231,140 @@ export default function AdaptivePersonaHome() {
 
         {relatedRail}
 
-        {/* Amazon-signature swipeable song stack — 3 rows per page, brought in
-            mid-feed to break up the cover rails with a denser list view. */}
-        {songPages.length > 0 && (
+        {/* Theme switcher — tap a pill to re-skin the whole home on the fly.
+            Rabiat (Prototype V2) already has this at the top of the page. */}
+        {!pillsAtTop && (
           <View style={s.block}>
-            <SectionHeader title="Songs for you" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="normal"
-              snapToOffsets={songSnapOffsets}
-              snapToAlignment="start"
-              nestedScrollEnabled
-              contentContainerStyle={[s.songsScrollContent, { paddingRight: SONG_PAGE_PEEK }]}
-            >
-              {songPages.map((page, pageIdx) => (
-                <View key={`spage-${pageIdx}`} style={[s.songsPage, { width: SONG_PAGE_WIDTH }]}>
-                  {page.map(song => {
-                    const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
-                    return (
-                      <TouchableOpacity key={song.id} style={s.songRow} activeOpacity={0.8} onPress={() => openSong(song.id)}>
-                        {art ? (
-                          <Image source={art} style={s.songRowArt} resizeMode="cover" />
-                        ) : (
-                          <View style={[s.songRowArt, { backgroundColor: song.albumArtColor }]}>
-                            <Ionicons name="musical-note" size={18} color="rgba(255,255,255,0.2)" />
-                          </View>
-                        )}
-                        <View style={s.songRowInfo}>
-                          <Text style={s.songRowTitle} numberOfLines={1}>{song.title}</Text>
-                          <Text style={s.songRowArtist} numberOfLines={1}>{song.artistName}</Text>
-                        </View>
-                        <PlayBadge size={28} />
-                      </TouchableOpacity>
-                    )
-                  })}
-                </View>
-              ))}
-            </ScrollView>
+            <SectionHeader title="Switch your vibe" sub="Tap a theme to reshape your home" />
+            <AdaptiveThemePills
+              onDragStart={noop}
+              onDragMove={noop}
+              onDragDrop={noop}
+              onDragCancel={noop}
+              dragX={pillDragX}
+              dragY={pillDragY}
+              heroHue={hue}
+            />
           </View>
         )}
 
-        {/* Theme switcher — tap a pill to re-skin the whole home on the fly. */}
+        {/* 6 — Recognition-led discovery: broad picks + rising artists */}
+        {coverRail('Popular in your city', rising)}
+
         <View style={s.block}>
-          <SectionHeader title="Switch your vibe" sub="Tap a theme to reshape your home" />
-          <AdaptiveThemePills
-            onDragStart={noop}
-            onDragMove={noop}
-            onDragDrop={noop}
-            onDragCancel={noop}
-            dragX={pillDragX}
-            dragY={pillDragY}
-            heroHue={hue}
-          />
+          <SectionHeader title="Artists on the rise" sub="Fresh finds near your taste" />
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {hiddenGems.map(artist => {
+                const art = resolveArtistAvatar(artist.id, artist.imageUri)
+                return (
+                  <TouchableOpacity key={artist.id} style={s.artistCard} activeOpacity={0.85} onPress={() => router.push(`/artist/${artist.id}` as any)}>
+                    {art ? (
+                      <Image source={art} style={s.artistAvatar} resizeMode="cover" />
+                    ) : (
+                      <View style={[s.artistAvatar, { backgroundColor: C.surface }]}>
+                        <Ionicons name="person" size={34} color="rgba(255,255,255,0.2)" />
+                      </View>
+                    )}
+                    <Text style={s.artistName} numberOfLines={1}>{artist.name}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </EdgeFadeRow>
         </View>
 
-        {/* 6 — Recognition-led discovery: broad picks + rising artists.
-            Hidden under the "Following" focus, which stays close to home. */}
-        {!followingFocus && coverRail('Popular in your city', rising)}
+        {/* 7 — Podcasts (unless already surfaced by the domain filter) */}
+        {!spokenDomain && podcastsRail}
 
-        {!followingFocus && (
+        {/* 8 — My Mixes (curated) */}
+        <View style={s.block}>
+          <SectionHeader title={recSectionLabel('myMixes', 'My Mixes')} sub="Updated at 6:00 AM" />
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {MY_MIXES.map(mix => (
+                <MixCard
+                  key={mix.id}
+                  name={mix.name}
+                  artKey={mix.coverArtPath}
+                  onPress={() => router.push(`/playlist/${mix.id}` as any)}
+                />
+              ))}
+            </ScrollView>
+          </EdgeFadeRow>
+        </View>
+
+        {/* ── Endless-scroll filler — the deeper you scroll, the more the wider
+            catalog surfaces. Deliberately generic / not theme-tailored. ── */}
+
+        {newReleases.length > 0 && coverRail('New Releases For You', newReleases)}
+        {recentlyPlayedFiller.length > 0 && coverRail('Recently Played', recentlyPlayedFiller)}
+        {deepDiveSongs.length > 0 && coverRail(`Deep Dive: ${deepDiveArtist.name}`, deepDiveSongs, 'More from an artist you follow')}
+        {specialAudioSongs.length > 0 && coverRail('Special Audio Albums', specialAudioSongs, 'Dolby Atmos & 360 Reality Audio')}
+
+        <View style={s.block}>
+          <SectionHeader title="Stations For You" sub="Hot picks, playing now" />
+          <EdgeFadeRow>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+              {RADIO_STATIONS.map(st => {
+                const art = albumArtAssets[st.artKey] ?? null
+                return (
+                  <TouchableOpacity key={st.id} style={s.radioCard} activeOpacity={0.85} onPress={() => openSong(st.songId)}>
+                    <View style={s.radioArtWrap}>
+                      {art ? (
+                        <Image source={art} style={s.radioArt} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.radioArt, { backgroundColor: C.surface }]} />
+                      )}
+                      <View style={s.radioBadge}>
+                        <MaterialIcons name="sensors" size={22} color="#fff" />
+                      </View>
+                    </View>
+                    <Text style={s.radioTitle} numberOfLines={1}>{st.name}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </EdgeFadeRow>
+        </View>
+
+        {summerSessionPlaylists.length > 0 && (
           <View style={s.block}>
-            <SectionHeader title="Artists on the rise" sub="Fresh finds near your taste" />
+            <SectionHeader title="Summer Sessions" />
             <EdgeFadeRow>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
-                {hiddenGems.map(artist => {
-                  const art = resolveArtistAvatar(artist.id, artist.imageUri)
+                {summerSessionPlaylists.map(pl => (
+                  <PlaylistMoodCard
+                    key={pl.id}
+                    name={pl.name}
+                    artKey={pl.coverArtPath ?? ''}
+                    onPress={() => router.push(`/playlist/${pl.id}` as any)}
+                  />
+                ))}
+              </ScrollView>
+            </EdgeFadeRow>
+          </View>
+        )}
+
+        {oliviaFeaturedFiller.length > 0 && coverRail('Featured This Week', oliviaFeaturedFiller, 'Because you listen to Olivia Rodrigo')}
+
+        {trueCrimePodcasts.length > 0 && (
+          <View style={s.block}>
+            <SectionHeader title="True Crime Picks" />
+            <EdgeFadeRow>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+                {trueCrimePodcasts.map(pod => {
+                  const art = pod.coverArtPath ? resolveBannerArt(pod.coverArtPath) : null
                   return (
-                    <TouchableOpacity key={artist.id} style={s.artistCard} activeOpacity={0.85} onPress={() => router.push(`/artist/${artist.id}` as any)}>
+                    <TouchableOpacity key={pod.id} style={s.podCard} activeOpacity={0.85} onPress={() => router.push(`/podcast-show/${pod.id}` as any)}>
                       {art ? (
-                        <Image source={art} style={s.artistAvatar} resizeMode="cover" />
+                        <Image source={art} style={s.podArt} resizeMode="cover" />
                       ) : (
-                        <View style={[s.artistAvatar, { backgroundColor: C.surface }]}>
-                          <Ionicons name="person" size={34} color="rgba(255,255,255,0.2)" />
+                        <View style={[s.podArt, { backgroundColor: C.surface }]}>
+                          <Ionicons name="mic" size={28} color="rgba(255,255,255,0.2)" />
                         </View>
                       )}
-                      <Text style={s.artistName} numberOfLines={1}>{artist.name}</Text>
+                      <Text style={s.coverTitle} numberOfLines={2}>{pod.title}</Text>
                     </TouchableOpacity>
                   )
                 })}
@@ -1195,30 +1373,22 @@ export default function AdaptivePersonaHome() {
           </View>
         )}
 
-        {/* 7 — Podcasts (unless already surfaced by the domain filter) */}
-        {!podcastFirst && podcastsRail}
-
-        {/* 8 — My Mixes (curated) */}
         <View style={s.block}>
-          <SectionHeader title={getSectionLabel('myMixes', 'My Mixes')} sub="Updated at 6:00 AM" />
+          <SectionHeader title="Podcasts For You" />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
-              {MY_MIXES.map(mix => {
-                const art = mix.coverArtPath ? albumArtAssets[mix.coverArtPath] : null
+              {podcastsForYouFiller.map(pod => {
+                const art = pod.coverArtPath ? resolveBannerArt(pod.coverArtPath) : null
                 return (
-                  <TouchableOpacity key={mix.id} style={s.coverCard} activeOpacity={0.85} onPress={() => router.push(`/playlist/${mix.id}` as any)}>
-                    <View style={s.coverArtWrap}>
-                      {art ? (
-                        <Image source={art} style={s.coverArt} resizeMode="cover" />
-                      ) : (
-                        <View style={[s.coverArt, { backgroundColor: C.surface }]}>
-                          <Ionicons name="musical-notes" size={26} color="rgba(255,255,255,0.15)" />
-                        </View>
-                      )}
-                      <View style={s.artBorderOverlay} pointerEvents="none" />
-                      <View style={s.coverPlayPos}><PlayBadge size={28} /></View>
-                    </View>
-                    <Text style={s.coverTitle} numberOfLines={1}>{mix.name}</Text>
+                  <TouchableOpacity key={pod.id} style={s.podCard} activeOpacity={0.85} onPress={() => router.push(`/podcast-show/${pod.id}` as any)}>
+                    {art ? (
+                      <Image source={art} style={s.podArt} resizeMode="cover" />
+                    ) : (
+                      <View style={[s.podArt, { backgroundColor: C.surface }]}>
+                        <Ionicons name="mic" size={28} color="rgba(255,255,255,0.2)" />
+                      </View>
+                    )}
+                    <Text style={s.coverTitle} numberOfLines={2}>{pod.title}</Text>
                   </TouchableOpacity>
                 )
               })}
@@ -1226,81 +1396,29 @@ export default function AdaptivePersonaHome() {
           </EdgeFadeRow>
         </View>
 
-        {/* 9 — You and your favorites: monthly listening-trend cards (Figma 114:6189).
-            Each dot is one listening slot this month; the cyan dot is today. */}
-        <View style={s.block}>
-          <View style={s.favHead}>
-            <Text style={s.sectionTitle}>You and your favorites</Text>
-            <Text style={s.favSeeMore}>SEE MORE</Text>
+        {morePlaylistsForYou.length > 0 && (
+          <View style={s.block}>
+            <SectionHeader title="Playlists You Might Like" sub="Fresh picks, updated every Sunday" />
+            <EdgeFadeRow>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
+                {morePlaylistsForYou.map(pl => (
+                  <PlaylistMoodCard
+                    key={pl.id}
+                    name={pl.name}
+                    artKey={pl.coverArtPath ?? ''}
+                    onPress={() => router.push(`/playlist/${pl.id}` as any)}
+                  />
+                ))}
+              </ScrollView>
+            </EdgeFadeRow>
           </View>
-          <EdgeFadeRow>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
-              {FAVORITE_TRENDS.map(fav => {
-                const art = resolveArtistAvatar(fav.artistId)
-                return (
-                  <TouchableOpacity
-                    key={fav.artistId}
-                    style={s.favCard}
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      fav.artistId === 'olivia-rodrigo'
-                        ? openOliviaPage('you')
-                        : router.push(`/artist/${fav.artistId}` as any)
-                    }
-                    accessibilityLabel={`${fav.tier} — ${fav.name}. ${fav.insight}`}
-                  >
-                    {art && <Image source={art} style={StyleSheet.absoluteFill} resizeMode="cover" />}
-                    <LinearGradient
-                      colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.5)']}
-                      locations={[0.19, 0.52, 0.81]}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    <View style={s.favTopRow}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                        {art && <Image source={art} style={s.favAvatar} resizeMode="cover" />}
-                        <View style={{ flex: 1 }}>
-                          <Text style={s.favTier}>{fav.tier}</Text>
-                          <Text style={s.favName} numberOfLines={1}>{fav.name}</Text>
-                        </View>
-                      </View>
-                      <Ionicons name="ellipsis-horizontal" size={20} color="rgba(255,255,255,0.8)" />
-                    </View>
-                    <View>
-                      <Text style={s.favMonth}>THIS MONTH</Text>
-                      <Text style={s.favInsight}>{fav.insight}</Text>
-                      <View style={s.favDots}>
-                        {fav.dots.map((row, ri) => (
-                          <View key={ri} style={s.favDotRow}>
-                            {row.split('').map((ch, ci) => (
-                              <View
-                                key={ci}
-                                style={[
-                                  s.favDot,
-                                  ch === 'T'
-                                    ? { backgroundColor: C.cyan }
-                                    : ch === '0'
-                                      // quiet days stay visible as dark dots — the
-                                      // month reads as a complete grid, not gaps
-                                      ? { backgroundColor: 'rgba(255,255,255,0.16)' }
-                                      : { backgroundColor: `rgba(255,255,255,${(0.32 + (Number(ch) / 9) * 0.58).toFixed(2)})` },
-                                ]}
-                              />
-                            ))}
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                )
-              })}
-            </ScrollView>
-          </EdgeFadeRow>
-        </View>
+        )}
         </>
         )}
 
         {/* Podcast domain: the "Top Podcasts by Category" browse lives at the very bottom */}
-        {podcastFirst && categoryGrid}
+        {podcastDomain && categoryGrid}
+        {audibleDomain && audibleCategoryGrid}
       </Animated.ScrollView>
 
       <StickyHomeHeader
@@ -1309,15 +1427,12 @@ export default function AdaptivePersonaHome() {
         onPillChange={setDomain}
         scrollY={scrollY}
         domainNav={
-          hasFocusToggle
+          hasDomainNav
             ? {
                 domains: DOMAIN_LABELS,
                 domain,
-                focus,
-                subLabel: 'For You',
-                onSelectDomain: (i: number) => { setDomain(i); setFocus(0) },
-                onBack: () => { setDomain(null); setFocus(0) },
-                onFocus: setFocus,
+                onSelectDomain: (i: number) => setDomain(i),
+                onBack: () => setDomain(null),
               }
             : undefined
         }
@@ -1327,14 +1442,17 @@ export default function AdaptivePersonaHome() {
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  topGradientWash: { position: 'absolute', top: 0, left: 0, right: 0, height: 340 },
+  screen: { flex: 1, backgroundColor: '#000' },
+  shareCardOffscreen: { position: 'absolute', top: -9999, left: -9999 },
 
-  greetWrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 26 },
-  greetRow: { flexDirection: 'row', alignItems: 'center' },
-  greetHello: { fontSize: 15, color: C.textSecondary, fontWeight: '600' },
-  greetName: { ...typeHeadline(30), color: '#fff', marginTop: 2 },
-  greetSub: { fontSize: 14, color: C.textSecondary, marginTop: 4 },
+  // Full-bleed adaptive hero
+  adaptiveHeroWrap: { marginBottom: 18 },
+  adaptiveHeroBg: { width: '100%', height: 280, justifyContent: 'flex-end' },
+  adaptiveHeroContent: { paddingHorizontal: 16, paddingBottom: 20 },
+  adaptiveHeroEyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2, color: 'rgba(255,255,255,0.75)' },
+  adaptiveHeroTitle: { ...typeHeadline(30), color: '#fff', marginTop: 4 },
+  adaptiveHeroSub: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6, lineHeight: 19 },
+  adaptiveHeroSubAccent: { color: C.blue, fontWeight: '700' },
 
   // Secondary focus toggle
   toggleTrack: {
@@ -1361,45 +1479,23 @@ const s = StyleSheet.create({
   toggleLabel: { fontSize: 14, fontWeight: '700', color: C.textSecondary },
   toggleLabelActive: { color: '#0a0a0a' },
 
-  block: { marginBottom: 34 },
+  block: { marginBottom: 42 },
   sectionHead: { paddingHorizontal: 16, marginBottom: 14 },
   sectionTitle: { ...typeHeadline(20), color: '#fff' },
   sectionSub: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
   rail: { paddingHorizontal: 16, gap: 16 },
 
-  // Swipeable 3-up "Songs for you" stack (Amazon-signature paged list)
-  songsScrollContent: { paddingLeft: 16 },
-  songsPage: { paddingRight: 14 },
-  songRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  songRowArt: { width: 54, height: 54, borderRadius: 6, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  songRowInfo: { flex: 1, marginLeft: 10, marginRight: 8 },
-  songRowTitle: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 2 },
-  songRowArtist: { fontSize: 13, color: C.textSecondary },
-
-  // Jump back in
-  quickGrid: { paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', gap: QUICK_GAP },
-  quickCard: {
-    width: QUICK_W,
-    height: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 8,
-    overflow: 'hidden',
-    paddingRight: 8,
-  },
-  quickArtWrap: { width: 64, height: 64 },
-  quickArt: { width: 64, height: 64 },
-  quickText: { flex: 1, marginLeft: 10, marginRight: 6 },
-  quickTitle: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  // Jump back in — big "Continue Listening" cards, matching the baseline home
+  continueCard: { width: 150 },
+  continueArtWrap: { position: 'relative', marginBottom: 8 },
+  continueArt: { width: 150, height: 150, borderRadius: 8, overflow: 'hidden' },
+  continuePlayPos: { position: 'absolute', bottom: 8, left: 8 },
+  continueTitle: { fontSize: 15, fontWeight: '600', color: '#fff', lineHeight: 19 },
   quickKindRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   quickKind: { fontSize: 10, color: C.textMuted, fontWeight: '600', letterSpacing: 0.3 },
 
   // Cover rails
   coverCard: { width: 150 },
-  relatedArt: { width: 150, height: 150, borderRadius: 12, overflow: 'hidden', padding: 12, justifyContent: 'flex-end' },
-  relatedName: { ...typeHeadline(20), color: '#fff' },
-  relatedLogo: { position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: 6 },
   coverArtWrap: { width: 150, height: 150, borderRadius: 8, overflow: 'hidden', position: 'relative' },
   coverArt: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center' },
   coverPlayPos: { position: 'absolute', right: 8, bottom: 8 },
@@ -1412,249 +1508,62 @@ const s = StyleSheet.create({
   coverTitle: { fontSize: 14, fontWeight: '600', color: '#fff', marginTop: 8 },
   coverSub: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 
-  // Fandom world group
-  fandomShadow: {
-    marginHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: C.elevated,
-    // Soft neutral depth only — the coloured glow now lives inside the panel.
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  fandomInner: {
-    borderRadius: 20,
-    borderWidth: 1.5,
-    overflow: 'hidden',
-    padding: 16,
-  },
-  fandomGlowTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 60 },
-  fandomGlowBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 },
-  fandomHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   fandomTitle: { ...typeHeadline(19), color: '#fff' },
-  fanTier: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -6, marginBottom: 12 },
-  fanTierText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
-  featureCard: { height: 168, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end' },
-  featureText: { padding: 14 },
-  featureEyebrow: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.85)', letterSpacing: 1 },
-  featureTitle: { ...typeHeadline(24), color: '#fff', marginTop: 4 },
-  featurePlay: { position: 'absolute', right: 12, bottom: 12 },
 
-  bentoRow: {
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 12,
-  },
-  bentoMedCard: {
-    flex: 2,
-    aspectRatio: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  bentoColRight: {
-    flex: 1,
-    gap: 4,
-  },
-  // Card 1: full-bleed art — no padding, image fills the card
-  bentoSmallArtBg: {
-    flex: 1,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  bentoSmallArtContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 7,
-  },
-  // Card 2: lock/exclusive — horizontal row with icon + text + chevron
-  bentoSmallCard: {
-    flex: 1,
-    backgroundColor: C.elevated,
-    borderRadius: 10,
-    overflow: 'hidden',
-    padding: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  // Card 3: accent bar + headline
-  bentoSmallNewsCard: {
-    flex: 1,
-    backgroundColor: C.elevated,
-    borderRadius: 10,
-    overflow: 'hidden',
-    flexDirection: 'row',
-  },
-  bentoSmallAccentBar: {
-    width: 3,
-    alignSelf: 'stretch',
-    backgroundColor: C.cyan,
-  },
-  bentoSmallNewsBody: {
-    flex: 1,
-    padding: 7,
-    justifyContent: 'space-between',
-  },
-  bentoSmallNewsText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#fff',
-    lineHeight: 15,
-  },
-  bentoSmallNewsChevron: {
-    alignSelf: 'flex-end',
-    marginTop: 2,
-  },
-  // Shared eyebrow + label used across all 3 small cards
-  bentoSmallEyebrow: {
-    fontSize: 9,
-    fontWeight: '700' as const,
-    color: C.cyan,
-    letterSpacing: 0.6,
-  },
-  bentoSmallLabel: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#fff',
-    marginTop: 1,
-  },
+  // NEW — Featured favorite / New in session (Figma landing redesign)
+  sessionWrap: { marginBottom: 34 },
+  sessionCard: { overflow: 'hidden', paddingTop: 20, paddingBottom: 18, paddingHorizontal: 16 },
 
-  // Current-session module header (Figma 114:6104)
-  csHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
-  csTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  csWave: { flexDirection: 'row', alignItems: 'center', gap: 2.5, height: 16 },
-  csBar: { width: 2.5, borderRadius: 1.25, backgroundColor: '#fff' },
-  csSub: { fontSize: 15, color: '#A6A6A6', marginTop: 4 },
-  csCollapse: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  csSection: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 14 },
-  ffDots: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
-  ffDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.28)' },
-  ffDotActive: { backgroundColor: C.cyan },
-  nisCard: { width: 114, height: 114, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end', padding: 10 },
-  nisName: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  favoriteBlock: { marginBottom: 20 },
+  favoriteHeading: { ...typeHeadline(18), color: '#fff', marginBottom: 12 },
+  favoriteRow: { flexDirection: 'row', gap: 10 },
+  favoriteHero: { flex: 1.7, height: 220, borderRadius: 14, overflow: 'hidden', justifyContent: 'flex-end', padding: 14 },
+  favoriteBadge: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, maxWidth: '70%' },
+  favoriteBadgeText: { fontSize: 10, fontWeight: '700', color: SUPERFAN_GOLD, letterSpacing: 0.4 },
+  favoriteHeroText: {},
+  favoriteEyebrow: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  favoriteName: { ...typeHeadline(26), color: '#fff', marginTop: 2 },
+  favoriteSideCol: { flex: 1, gap: 10 },
+  unlockCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 14, padding: 12, justifyContent: 'space-between' },
+  unlockEyebrow: { fontSize: 10, fontWeight: '700', color: C.cyan, letterSpacing: 0.5 },
+  unlockTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 4 },
+  newsCard: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', borderRadius: 14, overflow: 'hidden', flexDirection: 'row' },
+  newsAccentBar: { width: 3, backgroundColor: C.cyan },
+  newsBody: { flex: 1, padding: 10, justifyContent: 'space-between' },
+  newsHeadline: { fontSize: 12, fontWeight: '700', color: '#fff', lineHeight: 16 },
+  newsPill: { alignSelf: 'flex-start', borderWidth: 1, borderColor: '#fff', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 5, marginTop: 6 },
+  newsPillText: { fontSize: 11, fontWeight: '600', color: '#fff' },
 
-  // "Your featured favorite" module (Figma 114:6101) — photo card + right column
-  ffRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
-  ffCard: {
-    flex: 1,
-    height: 244,
-    borderRadius: 12,
-    overflow: 'hidden',
-    padding: 12,
-    justifyContent: 'flex-end',
-  },
-  ffBubbleWrap: { position: 'absolute', right: 6, top: 7, width: 110, height: 40 },
-  ffBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 27,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    backgroundColor: '#DE909C',
-    alignSelf: 'flex-start',
-  },
-  ffBubbleText: { fontSize: 12, color: '#fff' },
-  ffBubbleDot1: { position: 'absolute', left: 8, top: 22, width: 11, height: 11, borderRadius: 5.5, backgroundColor: '#DE909C' },
-  ffBubbleDot2: { position: 'absolute', left: 4, top: 33, width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#DE909C' },
-  ffTier: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  // Figma spec is 33px, but the flex-shrunk card gives the name ~187px of run —
-  // 29px is the largest size that never ellipsizes "Olivia Rodrigo".
-  ffName: { fontSize: 29, fontWeight: '700', color: '#fff', lineHeight: 32, marginTop: 2 },
-  ffCol: { width: 120, gap: 12 },
-  ffUnlock: {
-    height: 139,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    padding: 12,
-  },
-  ffUnlockEyebrow: { fontSize: 12, fontWeight: '700', color: C.cyan, letterSpacing: 0.3 },
-  ffUnlockTitle: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 4 },
-  ffTour: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    justifyContent: 'center',
-    gap: 12,
-  },
-  ffTourTitle: { fontSize: 14, fontWeight: '700', color: '#fff', lineHeight: 16 },
-  ffTourPill: {
-    borderWidth: 1,
-    borderColor: '#fff',
-    borderRadius: 100,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignSelf: 'flex-start',
-  },
-  ffTourPillText: { fontSize: 14, color: '#fff', lineHeight: 14 },
+  newInSessionBlock: { marginTop: 4 },
+  newInSessionHeading: { ...typeHeadline(18), color: '#fff', marginBottom: 12 },
+  newInSessionRail: { gap: 10 },
+  newInSessionCard: { width: 104, height: 104, borderRadius: 12, overflow: 'hidden', justifyContent: 'flex-end', padding: 10 },
+  newInSessionName: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  // "You and your favorites" trend cards
-  favHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 2 },
-  favSeeMore: { fontSize: 14, fontWeight: '700', color: '#757575' },
-  favCard: {
-    width: 212,
-    height: 212,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.24)',
-    overflow: 'hidden',
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  favTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  favAvatar: { width: 36, height: 36, borderRadius: 18 },
-  favTier: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  favName: { fontSize: 16, fontWeight: '700', color: '#fff', marginTop: 3 },
-  favMonth: { fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.3 },
-  favInsight: { fontSize: 20, fontWeight: '700', color: '#fff', lineHeight: 21, marginTop: 5 },
-  favDots: { marginTop: 8, gap: 2 },
-  favDotRow: { flexDirection: 'row', gap: 2 },
-  favDot: { width: 8, height: 8, borderRadius: 4 },
+  // NEW — Songs for You two-column grid
+  songsScrollContent: { paddingLeft: 16 },
+  songsPage: { paddingRight: 14, gap: 22 },
+  gridSongRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  gridSongArt: { width: 56, height: 56, borderRadius: 6 },
+  gridSongInfo: { flex: 1, marginRight: 8 },
+  gridSongTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  gridSongArtist: { fontSize: 13, color: C.textSecondary, marginTop: 3 },
+  songTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  songTitleFlex: { flex: 1 },
+  exclusiveBadgeText: { fontSize: 10, fontWeight: '700', color: C.cyan, letterSpacing: 0.5, flexShrink: 0 },
 
-  artistHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: 'rgba(37,209,218,0.12)',
-    borderColor: 'rgba(37,209,218,0.45)',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-  },
-  artistHintText: { flex: 1, fontSize: 12, lineHeight: 16, color: '#CFF6F8' },
-  artistHintCaret: {
-    width: 0,
-    height: 0,
-    marginLeft: 22,
-    marginBottom: 6,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: 'rgba(37,209,218,0.45)',
-  },
+  // NEW — You and your favorites (listening-insight cards)
+  favoritesHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 14 },
+  seeMoreText: { fontSize: 13, fontWeight: '700', color: C.textMuted },
+  insightCard: { width: 190, height: 190, borderRadius: 16, overflow: 'hidden', padding: 12, justifyContent: 'space-between', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)' },
+  insightHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  insightAvatarWrap: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden' },
+  insightAvatar: { width: 32, height: 32 },
+  insightTag: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  insightName: { fontSize: 14, fontWeight: '700', color: '#fff', marginTop: 2 },
+  insightBody: { gap: 4 },
+  insightMonth: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.75)', letterSpacing: 0.4 },
+  insightCaption: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 4 },
 
   rowCard: {
     flexDirection: 'row',
@@ -1725,7 +1634,6 @@ const s = StyleSheet.create({
   // Podcasts
   podCard: { width: 156 },
   podArt: { width: 156, height: 156, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface },
-  podMicCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
 
   // Top Podcasts by Category — wrapping pill grid
   catGrid: { paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -1769,22 +1677,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  micCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(0,0,0,0.80)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   radioTitle: { fontSize: 14, fontWeight: '600', color: '#fff', marginTop: 8 },
   radioMeta: { fontSize: 12, color: C.textSecondary, marginTop: 2 },
 
   // Artists
-  artistCard: { width: 120, alignItems: 'center' },
-  artistAvatar: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' },
+  artistCard: { width: 132, alignItems: 'center' },
+  artistAvatar: { width: 132, height: 132, borderRadius: 66, alignItems: 'center', justifyContent: 'center' },
   artistName: { fontSize: 13, fontWeight: '600', color: '#fff', marginTop: 8, textAlign: 'center' },
 
   playBadge: { backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },

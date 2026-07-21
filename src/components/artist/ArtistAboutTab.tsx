@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { albumArtAssets, artistAssets, logoAssets } from '../../data/assetMap'
 import { songs } from '../../data/mockData'
 import type { ArtistAboutData, AboutInfluence } from '../../data/artistAbout'
+import { findFanGroupForArtist } from '../../data/fanGroupContent'
 import { ArtistEventsCard, ArtistMerchGrid, type MerchItem } from './ArtistCommerce'
 import { usePlaybackState } from '../../hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
@@ -52,17 +53,23 @@ function InfluenceAvatar({ person, onPress }: { person: AboutInfluence; onPress:
 export default function ArtistAboutTab({
   data,
   artistName,
+  artistId,
   sinceYear,
   merch,
 }: {
   data: ArtistAboutData
   artistName?: string
+  artistId?: string
   sinceYear?: number
   merch?: MerchItem[]
 }) {
   const who = artistName ?? 'this artist'
   const firstName = who.split(' ')[0]
   const router = useRouter()
+  const fanGroup = artistId ? findFanGroupForArtist(artistId) : undefined
+  const openFanGroup = () => {
+    if (fanGroup) router.push(`/fan-group/${fanGroup.id}` as any)
+  }
   const { playSongAt } = usePlaybackState()
   const { showConfirmation } = useAdaptiveUI()
   const [query, setQuery] = useState('')
@@ -87,26 +94,37 @@ export default function ArtistAboutTab({
       showConfirmation('Full videos come with the real app')
     }
   }
-  // Tailor the era + banner to the listener's own journey so the "since" year
-  // matches the hero's "Since {year}" bubble instead of the artist's career span.
+  // Tailor the era to the listener's own journey so the "since" year matches
+  // the hero's "Since {year}" bubble instead of the artist's career span.
   const eraLabel = sinceYear ? `YOUR JOURNEY · SINCE ${sinceYear}` : data.eraLabel
-  const bannerText = sinceYear
-    ? `Deeper because you've been with ${firstName} since ${sinceYear} — new fans see a shorter version.`
-    : data.bannerText
 
   return (
     <View style={a.wrap}>
-      {bannerText ? (
-        <View style={a.banner}>
-          <Ionicons name="sparkles" size={14} color={C.cyan} />
-          <Text style={a.bannerText}>{bannerText}</Text>
+      {/* Story — always first */}
+      <View style={a.storyCard}>
+        <Text style={a.sectionTitle18}>The story so far</Text>
+        <View style={a.storyMediaWrap}>
+          <Image source={resolveArt(data.storyArtKey)} style={a.storyMedia} resizeMode="cover" />
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={StyleSheet.absoluteFill} />
+          <View style={a.eraPill}>
+            <Text style={a.eraPillText}>{eraLabel}</Text>
+          </View>
         </View>
-      ) : null}
+        <Text style={a.bodyText}>{data.storyBody}</Text>
+        <TouchableOpacity
+          style={a.linkRow}
+          activeOpacity={0.8}
+          onPress={() => askAlexa(`Tell me ${who}'s story`)}
+        >
+          <Text style={a.linkText}>Read the full story</Text>
+          <Ionicons name="arrow-forward" size={15} color={C.cyan} />
+        </TouchableOpacity>
+      </View>
 
       {/* Ask Alexa */}
       <View style={a.block}>
         <Text style={a.sectionTitle18}>Ask about {firstName}</Text>
-        <Text style={a.muted13}>Ask Alexa anything about {who} — the music, the eras, the story.</Text>
+        <Text style={a.muted13}>Ask Alexa anything about {who}, the music, the eras, the story.</Text>
         <View style={a.askBar}>
           <Image source={logoAssets.alexa} style={a.alexaLogo} resizeMode="contain" />
           <TextInput
@@ -129,27 +147,6 @@ export default function ArtistAboutTab({
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      {/* Story */}
-      <View style={a.storyCard}>
-        <Text style={a.sectionTitle18}>The story so far</Text>
-        <View style={a.storyMediaWrap}>
-          <Image source={resolveArt(data.storyArtKey)} style={a.storyMedia} resizeMode="cover" />
-          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.55)']} style={StyleSheet.absoluteFill} />
-          <View style={a.eraPill}>
-            <Text style={a.eraPillText}>{eraLabel}</Text>
-          </View>
-        </View>
-        <Text style={a.bodyText}>{data.storyBody}</Text>
-        <TouchableOpacity
-          style={a.linkRow}
-          activeOpacity={0.8}
-          onPress={() => askAlexa(`Tell me ${who}'s story`)}
-        >
-          <Text style={a.linkText}>Read the full story</Text>
-          <Ionicons name="arrow-forward" size={15} color={C.cyan} />
-        </TouchableOpacity>
       </View>
 
       {/* Key releases */}
@@ -250,9 +247,20 @@ export default function ArtistAboutTab({
         <>
           <View style={a.fanHeader}>
             <Text style={a.sectionTitle16}>Popular posts from fan groups</Text>
-            <Text style={a.seeMore}>See more</Text>
+            {fanGroup ? (
+              <TouchableOpacity onPress={openFanGroup} activeOpacity={0.8}>
+                <Text style={a.seeMore}>See more</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={a.seeMore}>See more</Text>
+            )}
           </View>
-          <View style={a.postCard}>
+          <TouchableOpacity
+            style={a.postCard}
+            activeOpacity={fanGroup ? 0.85 : 1}
+            onPress={fanGroup ? openFanGroup : undefined}
+            disabled={!fanGroup}
+          >
             <View style={a.groupPill}>
               <Text style={a.groupPillText}>{data.fanPost.group}</Text>
             </View>
@@ -277,7 +285,7 @@ export default function ArtistAboutTab({
                 <Text style={a.reactionText}>{data.fanPost.comments}</Text>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </>
       ) : null}
     </View>
@@ -287,18 +295,6 @@ export default function ArtistAboutTab({
 const a = StyleSheet.create({
   wrap: { paddingHorizontal: 16, paddingTop: 12, gap: 24, paddingBottom: 24 },
   block: { gap: 12 },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    backgroundColor: '#121a22',
-    borderWidth: 1,
-    borderColor: '#1c2a30',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  bannerText: { flex: 1, fontFamily: FONT_FAMILY.regular, fontSize: 13, lineHeight: 18, color: '#c2c9d1' },
   storyCard: {
     backgroundColor: '#000',
     borderWidth: 1,

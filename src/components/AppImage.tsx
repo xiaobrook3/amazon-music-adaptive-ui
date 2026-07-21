@@ -1,4 +1,5 @@
 import React from 'react'
+import { Platform } from 'react-native'
 import { Image as ExpoImage, ImageProps as ExpoImageProps } from 'expo-image'
 
 /**
@@ -26,12 +27,21 @@ export type AppImageProps = Omit<ExpoImageProps, 'contentFit'> & {
   contentFit?: ExpoImageProps['contentFit']
 }
 
-export function AppImage({ resizeMode, contentFit, transition, cachePolicy, ...rest }: AppImageProps) {
+export function AppImage({ resizeMode, contentFit, transition, cachePolicy, blurRadius, style, ...rest }: AppImageProps) {
+  // expo-image silently ignores blurRadius on web — translate it to a CSS
+  // filter there (with a slight scale so blurred edges don't vignette).
+  // Callers already clip via overflow:hidden containers.
+  const webBlurStyle =
+    Platform.OS === 'web' && blurRadius
+      ? ({ filter: `blur(${Math.min(blurRadius, 40)}px)`, transform: [{ scale: 1.15 }] } as any)
+      : null
   return (
     <ExpoImage
       contentFit={contentFit ?? (resizeMode ? RESIZE_TO_FIT[resizeMode] : 'cover')}
       transition={transition ?? 150}
       cachePolicy={cachePolicy ?? 'memory-disk'}
+      blurRadius={webBlurStyle ? undefined : blurRadius}
+      style={webBlurStyle ? [style, webBlurStyle] : style}
       {...rest}
     />
   )

@@ -177,7 +177,7 @@ export default function GenreScreen() {
         <View style={s.section}>
           <Text style={s.sectionTitle}>Songs</Text>
           {genreSongs.length === 0 ? (
-            <Text style={s.empty}>Nothing here yet — check back soon.</Text>
+            <Text style={s.empty}>Nothing here yet, check back soon.</Text>
           ) : (
             genreSongs.slice(0, 25).map((song, i) => {
               const art = song.albumArtPath ? albumArtAssets[song.albumArtPath] : null
