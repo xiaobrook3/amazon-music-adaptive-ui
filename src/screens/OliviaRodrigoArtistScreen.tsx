@@ -360,7 +360,14 @@ export default function OliviaRodrigoArtistScreen() {
       >
         {/* Hero */}
         <View style={s.heroWrap}>
-          <ImageBackground source={oliviaPageAssets.hero} style={s.heroBg} resizeMode="cover">
+          <ImageBackground
+            source={oliviaPageAssets.hero}
+            style={s.heroBg}
+            resizeMode="cover"
+            // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
+            // it inline or the natural-size image spills under the page content.
+            imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
+          >
             {/* Fade the hero photo down through its ambient slate-blue and into the
                 page black, so the follow/play controls below sit on a gradient
                 rather than a flat black band. */}
@@ -1055,7 +1062,7 @@ export default function OliviaRodrigoArtistScreen() {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  heroWrap: { height: 406, backgroundColor: '#000' },
+  heroWrap: { height: 406, backgroundColor: '#000', overflow: 'hidden' },
   heroBg: { flex: 1, justifyContent: 'flex-end' },
   heroTopNav: {
     position: 'absolute',
