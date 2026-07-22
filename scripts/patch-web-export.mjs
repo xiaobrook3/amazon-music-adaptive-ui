@@ -64,6 +64,22 @@ const FRAME_CSS = `
     }
     body > div:not(#root) > *{pointer-events:auto;}
   }
+
+  /* Keyboard-only visible focus (brand cyan on dark). Mouse/touch users are
+     unaffected — :focus-visible only matches keyboard/AT focus. */
+  :focus-visible { outline: 2px solid #25D1DA; outline-offset: 2px; }
+  :focus:not(:focus-visible) { outline: none; }
+
+  /* Honor prefers-reduced-motion: damp CSS-driven animation/transition/scroll.
+     JS-driven RN Animated loops are out of scope for a stylesheet. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
   `
 const idx = join(dist, 'index.html')
 let html = readFileSync(idx, 'utf8')

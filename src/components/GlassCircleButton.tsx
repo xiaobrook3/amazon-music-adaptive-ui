@@ -27,7 +27,7 @@ export default function GlassCircleButton({
       style={[s.btn, { width: size, height: size, borderRadius: size / 2 }]}
     >
       {icon ? (
-        <Image source={icon} style={{ width: iconSize, height: iconSize }} resizeMode="contain" />
+        <Image source={icon} style={{ width: iconSize, height: iconSize }} resizeMode="contain" alt="" />
       ) : (
         children
       )}

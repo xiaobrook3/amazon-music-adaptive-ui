@@ -81,12 +81,14 @@ export default function AmazonTabBar({ state, navigation }: BottomTabBarProps) {
                   style={s.icon}
                   resizeMode="contain"
                   tintColor={isFocused ? C.navActive : C.navInactive}
+                  alt=""
                 />
               ) : (
                 <Image
                   source={isFocused ? tab.activeIcon : tab.inactiveIcon}
                   style={s.icon}
                   resizeMode="contain"
+                  alt=""
                 />
               )}
               <Text

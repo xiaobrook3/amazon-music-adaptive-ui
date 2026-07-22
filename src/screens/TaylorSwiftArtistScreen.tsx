@@ -179,6 +179,7 @@ export default function TaylorSwiftArtistScreen() {
             source={artistAssets['tswift-1']}
             style={s.heroBg}
             resizeMode="cover"
+            alt=""
             // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
             // it inline or the natural-size image spills under the page content.
             imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
@@ -334,7 +335,7 @@ export default function TaylorSwiftArtistScreen() {
                     <Ionicons name="shuffle" size={20} color="#fff" />
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={s.roundIconBtn} onPress={showMenu} hitSlop={8}>
+                <TouchableOpacity style={s.roundIconBtn} onPress={showMenu} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
                   <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -363,6 +364,8 @@ export default function TaylorSwiftArtistScreen() {
                   pageScrollRef.current?.scrollTo({ y: 0, animated: false })
                 }}
                 style={s.tabItem}
+                accessibilityRole="button"
+                accessibilityState={{ selected: tab === t }}
               >
                 <Text style={[s.tabText, tab === t && s.tabTextActive, isHannahJourney && s.tabTextHJ]}>{t}</Text>
                 {tab === t && <View style={s.tabUnderline} />}
@@ -431,7 +434,7 @@ export default function TaylorSwiftArtistScreen() {
                   style={s.hjHeroPlate}
                 />
                 <View style={s.hjHeroGlass}>
-                  <ImageBackground source={heroBgTaylor} style={s.hjHeroInner} imageStyle={{ borderRadius: 16 }} resizeMode="cover">
+                  <ImageBackground source={heroBgTaylor} style={s.hjHeroInner} imageStyle={{ borderRadius: 16 }} resizeMode="cover" alt="">
                     <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.32)']} style={StyleSheet.absoluteFill} />
                     <View style={s.hjHeroTop}>
                       <View style={s.hjHeroBadgeRow}>
@@ -499,6 +502,7 @@ export default function TaylorSwiftArtistScreen() {
                     style={s.exclusiveImg}
                     imageStyle={s.exclusiveImgRadius}
                     resizeMode="cover"
+                    alt=""
                   >
                     <LinearGradient
                       colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.94)']}

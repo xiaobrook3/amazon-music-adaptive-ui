@@ -37,6 +37,8 @@ export default function MiniPlayer({ embedded = false }: Props) {
           onPress={() => router.push('/now-playing')}
           activeOpacity={0.85}
           style={s.songRow}
+          accessibilityRole="button"
+          accessibilityLabel={`Now playing: ${song.title} by ${song.artistName} — open player`}
         >
           <View style={s.artWrap}>
             {art ? (
@@ -55,6 +57,7 @@ export default function MiniPlayer({ embedded = false }: Props) {
           <TouchableOpacity
             style={s.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
             accessibilityLabel="Cast"
             onPress={() => showConfirmation('No Cast devices found nearby')}
           >
@@ -65,6 +68,7 @@ export default function MiniPlayer({ embedded = false }: Props) {
             onPress={() => setIsPlaying(!isPlaying)}
             style={s.iconBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
             accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
           >
             <Image

@@ -172,6 +172,7 @@ export function PlaylistMoodCard({
             }
             resizeMode="cover"
             blurRadius={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 24 : 14}
+            alt=""
           >
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.42)' }]} />
           </ImageBackground>

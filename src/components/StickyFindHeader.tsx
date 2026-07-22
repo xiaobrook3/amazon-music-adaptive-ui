@@ -34,6 +34,7 @@ export function FindSearchBar({
       <Ionicons name="search" size={18} color={focused ? C.cyanBright : '#666666'} />
       <TextInput
         style={s.searchInput}
+        accessibilityLabel="Search"
         placeholder="What do you want to listen to?"
         placeholderTextColor="#555555"
         value={query}
