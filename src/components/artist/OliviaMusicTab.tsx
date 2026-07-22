@@ -113,14 +113,14 @@ function RowIcons({ song, light, size = 22 }: { song: Song; light?: boolean; siz
   const liked = isLiked(song.id)
   return (
     <View style={s.rowIcons}>
-      <TouchableOpacity onPress={() => toggleLike(song.id)} hitSlop={8}>
+      <TouchableOpacity onPress={() => toggleLike(song.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Like ${song.title}`}>
         <Ionicons
           name={liked ? 'heart' : 'heart-outline'}
           size={size}
           color={liked ? (light ? '#fff' : C.cyan) : '#fff'}
         />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => open({ kind: 'song', song })} hitSlop={8}>
+      <TouchableOpacity onPress={() => open({ kind: 'song', song })} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
         <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
       </TouchableOpacity>
     </View>

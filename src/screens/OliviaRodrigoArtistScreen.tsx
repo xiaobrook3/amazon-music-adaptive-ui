@@ -364,6 +364,7 @@ export default function OliviaRodrigoArtistScreen() {
             source={oliviaPageAssets.hero}
             style={s.heroBg}
             resizeMode="cover"
+            alt=""
             // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
             // it inline or the natural-size image spills under the page content.
             imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
@@ -537,7 +538,7 @@ export default function OliviaRodrigoArtistScreen() {
                 {/* Figma HJ order: Follow/Super Fan + more | shuffle + play */}
                 {isHannahJourney ? (
                   <>
-                    <TouchableOpacity style={s.roundIconBtn} onPress={showOliviaMenu} hitSlop={8}>
+                    <TouchableOpacity style={s.roundIconBtn} onPress={showOliviaMenu} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
                       <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                     </TouchableOpacity>
                   </>
@@ -548,7 +549,7 @@ export default function OliviaRodrigoArtistScreen() {
                         <Ionicons name="shuffle" size={20} color="#fff" />
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={s.roundIconBtn} onPress={showOliviaMenu} hitSlop={8}>
+                    <TouchableOpacity style={s.roundIconBtn} onPress={showOliviaMenu} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
                       <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                     </TouchableOpacity>
                     {isJourneySuperfan && (
@@ -589,6 +590,8 @@ export default function OliviaRodrigoArtistScreen() {
                   if (t === 'You & Olivia') dismissUnlockDot()
                 }}
                 style={s.tabItem}
+                accessibilityRole="button"
+                accessibilityState={{ selected: tab === t }}
               >
                 {t === 'You & Olivia' && showUnlockTrace && (
                   <UnlockTraceBorder onComplete={() => setShowUnlockTrace(false)} />
@@ -696,6 +699,7 @@ export default function OliviaRodrigoArtistScreen() {
                             style={s.perkImg}
                             imageStyle={s.perkImgRadius}
                             resizeMode="cover"
+                            alt=""
                           >
                             {inner}
                           </ImageBackground>
@@ -823,6 +827,7 @@ export default function OliviaRodrigoArtistScreen() {
                           style={StyleSheet.absoluteFill}
                           imageStyle={{ borderRadius: 8 }}
                           resizeMode="cover"
+                          alt=""
                         >
                           <LinearGradient
                             colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.75)']}
@@ -882,6 +887,7 @@ export default function OliviaRodrigoArtistScreen() {
                 style={s.statsCard}
                 imageStyle={{ borderRadius: 12 }}
                 resizeMode="cover"
+                alt=""
               >
                 <View style={s.statsOverlay} />
                 <View style={s.statsTop}>

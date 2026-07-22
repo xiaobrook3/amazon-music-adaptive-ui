@@ -27,7 +27,7 @@ export type AppImageProps = Omit<ExpoImageProps, 'contentFit'> & {
   contentFit?: ExpoImageProps['contentFit']
 }
 
-export function AppImage({ resizeMode, contentFit, transition, cachePolicy, blurRadius, style, ...rest }: AppImageProps) {
+export function AppImage({ resizeMode, contentFit, transition, cachePolicy, blurRadius, style, alt, accessibilityLabel, ...rest }: AppImageProps) {
   // expo-image silently ignores blurRadius on web — translate it to a CSS
   // filter there (with a slight scale so blurred edges don't vignette).
   // Callers already clip via overflow:hidden containers.
@@ -42,6 +42,10 @@ export function AppImage({ resizeMode, contentFit, transition, cachePolicy, blur
       cachePolicy={cachePolicy ?? 'memory-disk'}
       blurRadius={webBlurStyle ? undefined : blurRadius}
       style={webBlurStyle ? [style, webBlurStyle] : style}
+      // Web a11y: expo-image derives the <img> alt from accessibilityLabel
+      // (src/web/ImageWrapper.tsx), not from `alt`. Art always sits beside
+      // visible text, so default to decorative (empty alt) unless labeled.
+      accessibilityLabel={alt ?? accessibilityLabel ?? ''}
       {...rest}
     />
   )

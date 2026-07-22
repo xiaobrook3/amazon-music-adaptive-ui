@@ -161,6 +161,7 @@ export default function BTSArtistScreen() {
             source={artistAssets['bts-group']}
             style={s.heroBg}
             resizeMode="cover"
+            alt=""
             // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
             // it inline or the natural-size image spills under the page content.
             imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
@@ -222,7 +223,7 @@ export default function BTSArtistScreen() {
                 <TouchableOpacity style={s.roundIconBtn} onPress={shuffleBts} hitSlop={8}>
                   <Ionicons name="shuffle" size={20} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity style={s.roundIconBtn} onPress={showMenu} hitSlop={8}>
+                <TouchableOpacity style={s.roundIconBtn} onPress={showMenu} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
                   <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -237,7 +238,7 @@ export default function BTSArtistScreen() {
         <View style={s.tabBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
             {TABS.map(t => (
-              <TouchableOpacity key={t} onPress={() => setTab(t)} style={s.tabItem}>
+              <TouchableOpacity key={t} onPress={() => setTab(t)} style={s.tabItem} accessibilityRole="button" accessibilityState={{ selected: tab === t }}>
                 <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
                 {tab === t && <View style={s.tabUnderline} />}
               </TouchableOpacity>
@@ -378,6 +379,7 @@ export default function BTSArtistScreen() {
                   style={s.exclusiveImg}
                   imageStyle={s.exclusiveImgRadius}
                   resizeMode="cover"
+                  alt=""
                 >
                   <LinearGradient
                     colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.94)']}

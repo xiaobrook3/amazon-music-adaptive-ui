@@ -54,12 +54,14 @@ export default function StandaloneTabBar() {
                   style={s.icon}
                   resizeMode="contain"
                   tintColor={isFocused ? C.navActive : C.navInactive}
+                  alt=""
                 />
               ) : (
                 <Image
                   source={isFocused ? tab.activeIcon : tab.inactiveIcon}
                   style={s.icon}
                   resizeMode="contain"
+                  alt=""
                 />
               )}
               <Text style={[s.label, isFocused && s.labelActive]} numberOfLines={1}>

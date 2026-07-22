@@ -73,7 +73,7 @@ export default function SuperfanRevealPopup() {
 
   return (
     <Modal visible={revealVisible} transparent animationType="fade" onRequestClose={dismissReveal}>
-      <Pressable style={s.scrim} onPress={dismissReveal}>
+      <Pressable style={s.scrim} onPress={dismissReveal} accessibilityRole="button" accessibilityLabel="Dismiss">
         <Pressable style={[s.cardScale, { transform: [{ scale }] }]} onPress={() => {}}>
           <View ref={cardRef} style={s.card} collapsable={false}>
             {/* Figma "superfan card / Property 1=full" (node 2604:17729, 340x528)
@@ -128,8 +128,8 @@ export default function SuperfanRevealPopup() {
                       <Text style={s.subline}>of Olivia’s listeners</Text>
                     </View>
                     {!sharing && (
-                      <TouchableOpacity style={s.shareBtn} onPress={handleShare} activeOpacity={0.8}>
-                        <Image source={shareGlyph} style={s.shareGlyph} resizeMode="contain" tintColor="#fff" />
+                      <TouchableOpacity style={s.shareBtn} onPress={handleShare} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel="Share">
+                        <Image source={shareGlyph} style={s.shareGlyph} resizeMode="contain" tintColor="#fff" alt="" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -154,7 +154,7 @@ export default function SuperfanRevealPopup() {
                 </View>
 
                 <View style={s.ctaWrap}>
-                  <TouchableOpacity style={s.cta} onPress={handleOpen} activeOpacity={0.85}>
+                  <TouchableOpacity style={s.cta} onPress={handleOpen} activeOpacity={0.85} accessibilityRole="button">
                     <Text style={s.ctaText}>Open You & Olivia</Text>
                   </TouchableOpacity>
                 </View>

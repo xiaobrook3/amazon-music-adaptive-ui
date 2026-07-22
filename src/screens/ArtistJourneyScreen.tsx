@@ -320,6 +320,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
               source={heroSource}
               style={s.heroBg}
               resizeMode="cover"
+              alt=""
               // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
               // it inline or the natural-size image spills under the page content.
               imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
@@ -399,6 +400,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                     style={s.exclusiveImg}
                     imageStyle={s.exclusiveImgRadius}
                     resizeMode="cover"
+                    alt=""
                   >
                     <LinearGradient
                       colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.95)']}
@@ -449,6 +451,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                             style={StyleSheet.absoluteFill}
                             imageStyle={{ borderRadius: 8 }}
                             resizeMode="cover"
+                            alt=""
                           >
                             <LinearGradient
                               colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.75)']}
@@ -491,6 +494,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                   style={s.statsCard}
                   imageStyle={{ borderRadius: 12 }}
                   resizeMode="cover"
+                  alt=""
                 >
                   <View style={s.statsOverlay} />
                   <View style={s.statsTop}>
@@ -595,6 +599,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                   style={s.firstPlayCard}
                   imageStyle={{ borderRadius: 12 }}
                   resizeMode="cover"
+                  alt=""
                 >
                   <LinearGradient
                     colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.35)']}

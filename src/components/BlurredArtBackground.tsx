@@ -36,6 +36,7 @@ export default function BlurredArtBackground({
           }
           resizeMode="cover"
           blurRadius={Platform.OS === 'web' ? undefined : Platform.OS === 'ios' ? 56 : 32}
+          alt=""
         >
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.12)' }]} />
         </ImageBackground>

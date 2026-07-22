@@ -50,6 +50,8 @@ export default function ProfileSwitcherSheet({
                   key={p.id}
                   style={[s.row, active && s.rowActive]}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                   onPress={() => {
                     setActiveProfileId(p.id)
                     onClose()
@@ -89,6 +91,7 @@ export default function ProfileSwitcherSheet({
                         onPress={deleteCustomProfile}
                         style={s.deleteBtn}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityRole="button"
                         accessibilityLabel="Delete profile"
                       >
                         <Ionicons name="trash-outline" size={18} color={C.textMuted} />
@@ -108,6 +111,7 @@ export default function ProfileSwitcherSheet({
             <TouchableOpacity
               style={s.restartRow}
               activeOpacity={0.8}
+              accessibilityRole="button"
               delayLongPress={600}
               onPress={() => {
                 restartJourney()
@@ -134,6 +138,7 @@ export default function ProfileSwitcherSheet({
           <TouchableOpacity
             style={s.createRow}
             activeOpacity={0.8}
+            accessibilityRole="button"
             onPress={() => {
               onClose()
               router.push('/create-profile' as any)

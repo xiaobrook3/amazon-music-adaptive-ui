@@ -79,13 +79,14 @@ export default function AlexaFloatingButton() {
 
   return (
     <GestureDetector gesture={pan}>
-      <Animated.View style={[s.btn, style]} accessibilityLabel="Alexa" accessibilityRole="none">
+      <Animated.View style={[s.btn, style]} accessibilityLabel="Alexa" accessibilityRole="button">
         <View style={s.btnInner}>
           <Image
             source={logoAssets.alexa}
             style={s.logo}
             resizeMode="contain"
             tintColor={ALEXA_ICON_TINT}
+            alt=""
           />
         </View>
       </Animated.View>

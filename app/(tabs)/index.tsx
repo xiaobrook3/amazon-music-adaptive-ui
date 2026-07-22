@@ -664,6 +664,7 @@ export default function HomeScreen() {
             source={heroArt}
             style={s.heroBg}
             resizeMode="cover"
+            alt=""
           >
             <LinearGradient
               colors={heroInnerGradient as [string, string, ...string[]]}

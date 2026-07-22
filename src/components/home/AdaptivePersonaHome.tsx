@@ -751,6 +751,7 @@ export default function AdaptivePersonaHome() {
               }
               style={s.adaptiveHeroBg}
               resizeMode="cover"
+              alt=""
             >
               <LinearGradient
                 colors={['rgba(0,0,0,0.15)', 'transparent', tintFromHue(hue, 0.35), 'rgba(10,10,10,0.94)']}

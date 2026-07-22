@@ -312,7 +312,7 @@ export default function NowPlayingScreen() {
           <ScrubberSection song={song} audioBadge={audioBadge} audioLabel={audioLabel} />
 
           <View style={s.controls}>
-            <TouchableOpacity onPress={prev} style={s.skipBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={prev} style={s.skipBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Previous">
               <Ionicons name="play-skip-back" size={26} color="#fff" />
             </TouchableOpacity>
 
@@ -322,7 +322,7 @@ export default function NowPlayingScreen() {
               onPress={() => setIsPlaying(!isPlaying)}
             />
 
-            <TouchableOpacity onPress={next} style={s.skipBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={next} style={s.skipBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Next">
               <Ionicons name="play-skip-forward" size={26} color="#fff" />
             </TouchableOpacity>
           </View>
