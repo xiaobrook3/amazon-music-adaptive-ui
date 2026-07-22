@@ -179,6 +179,9 @@ export default function TaylorSwiftArtistScreen() {
             source={artistAssets['tswift-1']}
             style={s.heroBg}
             resizeMode="cover"
+            // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
+            // it inline or the natural-size image spills under the page content.
+            imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
           >
             <LinearGradient
               colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(30,60,25,0.7)', 'rgba(10,26,8,0.96)', '#000']}
@@ -761,7 +764,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
 
   // Hero
-  heroWrap: { height: 420 },
+  heroWrap: { height: 420, overflow: 'hidden' },
   heroBg: { flex: 1, justifyContent: 'flex-end' },
   heroTopGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 100 },
   heroTopNav: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16 },

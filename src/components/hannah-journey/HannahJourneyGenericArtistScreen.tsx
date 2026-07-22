@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ScrollView, View, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native'
+import { ScrollView, View, TouchableOpacity, StyleSheet, ImageBackground, Platform } from 'react-native'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -128,7 +128,14 @@ export default function HannahJourneyGenericArtistScreen({ artistId }: { artistI
       >
         {/* Hero — same structure/spacing as Olivia's Hannah Journey hero */}
         <View style={s.heroWrap}>
-          <ImageBackground source={heroArt ?? undefined} style={s.heroBg} resizeMode="cover">
+          <ImageBackground
+            source={heroArt ?? undefined}
+            style={s.heroBg}
+            resizeMode="cover"
+            // Web: RNW doesn't apply the inner img's absolute-fill inset, so force
+            // it inline or the natural-size image spills under the page content.
+            imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
+          >
             <LinearGradient
               colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.12)', 'rgba(22,38,49,0.7)', 'rgba(13,22,29,0.95)', '#000']}
               locations={[0.3, 0.48, 0.72, 0.9, 1]}
@@ -310,7 +317,7 @@ export default function HannahJourneyGenericArtistScreen({ artistId }: { artistI
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  heroWrap: { height: 406, backgroundColor: '#000' },
+  heroWrap: { height: 406, backgroundColor: '#000', overflow: 'hidden' },
   heroBg: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#1a1a1a' },
   heroTopNav: {
     position: 'absolute',
