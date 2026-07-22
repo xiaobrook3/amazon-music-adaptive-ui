@@ -248,10 +248,10 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
   }, [isUnlocked, showUnlockDot])
 
   const toggleFollow = () => {
-    setFollowing(v => {
-      if (!v) markFollowed()
-      return !v
-    })
+    // Side effects out of the setState updater: React 19 runs updaters during
+    // render, so the engagement mark fired here is dropped on web.
+    if (!following) markFollowed()
+    setFollowing(v => !v)
   }
 
   const avatar = resolveArtistAvatar(artist.id, artist.imageUri)
