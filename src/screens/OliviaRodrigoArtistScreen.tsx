@@ -246,16 +246,16 @@ export default function OliviaRodrigoArtistScreen() {
   ])
 
   const toggleFollow = () => {
-    setFollowing(v => {
-      if (!v) {
-        markFollowed()
-        if (isHannahJourney) {
-          // Stay on Music — tab unlock UX (toast + rail scroll + dot + trace) handles discovery.
-          becomeEngaged()
-        }
+    // Side effects out of the setState updater: React 19 runs updaters during
+    // render, so cross-context setState (becomeEngaged) fired here is dropped on web.
+    if (!following) {
+      markFollowed()
+      if (isHannahJourney) {
+        // Stay on Music — tab unlock UX (toast + rail scroll + dot + trace) handles discovery.
+        becomeEngaged()
       }
-      return !v
-    })
+    }
+    setFollowing(v => !v)
   }
 
   const selectedEra = useMemo(

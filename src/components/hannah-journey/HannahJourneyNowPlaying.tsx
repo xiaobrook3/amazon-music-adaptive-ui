@@ -534,6 +534,7 @@ const s = StyleSheet.create({
         shadowRadius: 16,
       },
       android: { elevation: 12 },
+      web: { boxShadow: '0px 8px 16px rgba(0,0,0,0.45)' },
     }),
   },
   art: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },

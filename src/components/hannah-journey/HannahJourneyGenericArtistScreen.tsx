@@ -102,10 +102,10 @@ export default function HannahJourneyGenericArtistScreen({ artistId }: { artistI
   }
 
   const toggleFollow = () => {
-    setFollowing(v => {
-      if (!v) markFollowed(artistId)
-      return !v
-    })
+    // Side effects out of the setState updater: React 19 runs updaters during
+    // render, so the engagement mark fired here is dropped on web.
+    if (!following) markFollowed(artistId)
+    setFollowing(v => !v)
   }
 
   const showArtistMenu = () => {
