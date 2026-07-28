@@ -7,6 +7,7 @@ import {
   ImageBackground,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { Text } from '../../src/components/AppText'
 import { AppImage as Image } from '../../src/components/AppImage'
@@ -464,7 +465,11 @@ export default function HomeScreen() {
   const stickyHeaderHeight = useStickyHomeHeaderHeight()
   const { scrollY, onScroll } = useStickyHomeScroll()
 
-  const screenWidth = Dimensions.get('window').width
+  // On web the app renders inside a 402px phone frame — pager pages and the
+  // Love Island card must be sized against the frame, not the browser window.
+  const screenWidth = Platform.OS === 'web'
+    ? Math.min(Dimensions.get('window').width, 402)
+    : Dimensions.get('window').width
   const songPagePeek = Math.round(screenWidth * 0.32)
   const songPageWidth = screenWidth - songPagePeek
   const songSnapOffsets = useMemo(

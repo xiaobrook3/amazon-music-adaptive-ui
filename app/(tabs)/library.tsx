@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ScrollView, View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import { ScrollView, View, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native'
 import { AppImage as Image } from '../../src/components/AppImage'
 import { Text } from '../../src/components/AppText'
 import { useRouter } from 'expo-router'
@@ -39,8 +39,11 @@ const MY_LIKES = {
 
 const RECENTLY_PLAYED = songs.slice(0, 8)
 
-// 16px side padding + 12px column gap — same 2-up grid math used on artist merch grids
-const PLAYLIST_GRID_CARD_W = (Dimensions.get('window').width - 44) / 2
+// 16px side padding + 12px column gap — same 2-up grid math used on artist merch grids.
+// On web the app renders inside a 402px phone frame, so measure against that rather
+// than the browser window (unclamped, a desktop window makes each card ~700px wide).
+const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
+const PLAYLIST_GRID_CARD_W = (SCREEN_W - 44) / 2
 
 function PlayOverlay({ size = 30 }: { size?: number }) {
   return (

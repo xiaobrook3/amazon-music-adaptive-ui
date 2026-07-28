@@ -186,6 +186,10 @@ export default function HannahJourneyAlbumPage({ release, artistName, artistId =
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
         blurRadius={Platform.OS === 'ios' ? 56 : 32}
+        // react-native-web sometimes drops the atomic absolute-fill style on
+        // ImageBackground's inner <img>, which then falls back to the source's
+        // natural size and spills unblurred art past the scrim. Pin it inline.
+        imageStyle={Platform.OS === 'web' ? ({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' } as any) : undefined}
       />
       <LinearGradient
         colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,0.8)']}
@@ -356,7 +360,7 @@ export default function HannahJourneyAlbumPage({ release, artistName, artistId =
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
+  root: { flex: 1, backgroundColor: '#000', overflow: 'hidden' },
   safe: { flex: 1 },
   navRow: {
     flexDirection: 'row',

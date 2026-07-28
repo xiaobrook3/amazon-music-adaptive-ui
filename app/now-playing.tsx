@@ -40,7 +40,11 @@ import BlurredArtBackground from '../src/components/BlurredArtBackground'
 import { parseDurationSeconds, formatClock } from '../src/utils/color'
 
 const { width, height } = Dimensions.get('window')
-const ART_SIZE = Math.round(Math.min(width - 72, height * 0.4))
+// On web the app renders inside a 402x874 phone frame — size the art against the
+// frame, not the browser window, or a desktop window inflates it past the frame.
+const FRAME_W = Platform.OS === 'web' ? Math.min(width, 402) : width
+const FRAME_H = Platform.OS === 'web' ? Math.min(height, 874) : height
+const ART_SIZE = Math.round(Math.min(FRAME_W - 72, FRAME_H * 0.4))
 const PLAY_BTN_SIZE = 58
 const ACTION_BTN_SIZE = 38
 const SKIP_ANIM_DURATION = 300
