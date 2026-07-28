@@ -85,7 +85,22 @@ const idx = join(dist, 'index.html')
 let html = readFileSync(idx, 'utf8')
 if (!html.includes('min-width:600px')) {
   html = html.replace('</head>', `<style>${FRAME_CSS}</style></head>`)
-  writeFileSync(idx, html)
 }
 
-console.log('patched: vendor paths + desktop iPhone frame')
+// 3 — web document title + description.
+// Expo derives <title> from app.json `expo.name`, which is ALSO the native
+// launcher label under the app icon, so it has to stay short and buildable.
+// The hosted client is a different surface: it is linked and embedded, and a
+// working-title suffix there reads as unfinished to anyone opening the link.
+// Patching the export keeps the two independent without touching app.json.
+const TITLE = 'Amazon Music · Adaptive UI'
+const DESCRIPTION = 'An Amazon Music client that recognizes a listener’s relationship with an artist and adapts the page to it. CMU MHCI capstone with Amazon Music.'
+html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
+if (!html.includes('name="description"')) {
+  html = html.replace('</head>', `<meta name="description" content="${DESCRIPTION}"></head>`)
+} else {
+  html = html.replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${DESCRIPTION}">`)
+}
+writeFileSync(idx, html)
+
+console.log(`patched: vendor paths + desktop iPhone frame + title "${TITLE}"`)
