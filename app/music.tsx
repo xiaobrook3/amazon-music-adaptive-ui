@@ -357,20 +357,9 @@ export default function MusicScreen() {
         pointerEvents="none"
       />
 
-      {/* Fixed header */}
-      <View style={[p.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity
-          style={p.backBtn}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={C.textPrimary} />
-        </TouchableOpacity>
-        <Text style={p.headerTitle}>Explore Music</Text>
-        <View style={p.headerSpacer} />
-      </View>
-
-      {/* Scrollable content */}
+      {/* Scrollable content — the hero now owns the top of the screen (the
+          old fixed "Explore Music" title band above it was redundant with the
+          hero's own title and wasted the upper screen). */}
       <ScrollView
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
@@ -378,6 +367,15 @@ export default function MusicScreen() {
       >
         {discoverContent}
       </ScrollView>
+
+      {/* Floating back button over the hero */}
+      <TouchableOpacity
+        style={[p.floatingBack, { top: insets.top + 6 }]}
+        onPress={() => router.back()}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="arrow-back" size={22} color="#fff" />
+      </TouchableOpacity>
     </View>
   )
 }
@@ -387,29 +385,19 @@ export default function MusicScreen() {
 const p = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
+  floatingBack: {
+    position: 'absolute',
+    left: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    ...typeHeadline(20),
-    color: C.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 8,
-  },
-  headerSpacer: { width: 40 },
 
   heroWrap: { marginBottom: 20 },
-  heroBg: { width: '100%', height: 320 },
+  heroBg: { width: '100%', height: 360 },
   heroInner: { flex: 1, justifyContent: 'flex-end' },
   heroContent: {
     flexDirection: 'row',

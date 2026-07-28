@@ -4,6 +4,7 @@ import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
+import { safeGoBack } from '../../utils/navigation'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { songs } from '../../data/mockData'
@@ -136,7 +137,7 @@ export default function HannahJourneyGenericArtistScreen({ artistId }: { artistI
             <LinearGradient colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)']} style={s.heroTopGradient} />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={() => safeGoBack(router)} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showArtistMenu}>

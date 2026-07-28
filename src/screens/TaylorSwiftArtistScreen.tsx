@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import {
   ScrollView,
   View,
@@ -18,6 +18,7 @@ import { AppImage as Image } from '../components/AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg'
 import { useRouter } from 'expo-router'
+import { safeGoBack } from '../utils/navigation'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { songs } from '../data/mockData'
@@ -38,7 +39,6 @@ import {
 import {
   TAYLOR_SUPERFAN_MERCH,
   TAYLOR_NEWS,
-  TAYLOR_TOP_TRACK,
   TAYLOR_EXCLUSIVE_TRACK,
   TAYLOR_SUPERFAN_STATS,
 } from '../data/taylorSuperFanContent'
@@ -91,6 +91,10 @@ export default function TaylorSwiftArtistScreen() {
   const { isHannahJourney } = useHannahJourney()
 
   const [tab, setTab] = useState<(typeof TABS)[number]>('Music')
+  // Reset the page scroll position on every tab switch — otherwise arriving
+  // on a shorter tab from a taller one leaves the ScrollView at its old
+  // offset, reading as a dead black gap at the bottom instead of clamping.
+  const pageScrollRef = useRef<ScrollView>(null)
   const [selectedEraId, setSelectedEraId] = useState<TaylorEraId>('lover')
   const [following, setFollowing] = useState(true)
   // Gradient border ring size for the Hannah Journey "Super Fan" pill — same
@@ -163,9 +167,10 @@ export default function TaylorSwiftArtistScreen() {
   return (
     <View style={s.screen}>
       <ScrollView
+        ref={pageScrollRef}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <View style={s.heroWrap}>
@@ -185,7 +190,7 @@ export default function TaylorSwiftArtistScreen() {
             />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={() => safeGoBack(router)} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showMenu}>
@@ -347,7 +352,14 @@ export default function TaylorSwiftArtistScreen() {
         <View style={s.tabBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[s.tabRow, isHannahJourney && s.tabRowHJ]}>
             {TABS.map(t => (
-              <TouchableOpacity key={t} onPress={() => setTab(t)} style={s.tabItem}>
+              <TouchableOpacity
+                key={t}
+                onPress={() => {
+                  setTab(t)
+                  pageScrollRef.current?.scrollTo({ y: 0, animated: false })
+                }}
+                style={s.tabItem}
+              >
                 <Text style={[s.tabText, tab === t && s.tabTextActive, isHannahJourney && s.tabTextHJ]}>{t}</Text>
                 {tab === t && <View style={s.tabUnderline} />}
               </TouchableOpacity>
@@ -500,24 +512,8 @@ export default function TaylorSwiftArtistScreen() {
               </View>
             )}
 
-            {/* ── Your top track ────────────────────────────────────────── */}
-            <View style={s.block}>
-              <Text style={s.sectionTitle}>Your #1 Most Played</Text>
-              <View style={s.topTrackCard}>
-                <Image source={resolveArt(TAYLOR_TOP_TRACK.artKey)} style={s.topTrackArt} />
-                <View style={s.topTrackMeta}>
-                  <Text style={s.topTrackTitle}>{TAYLOR_TOP_TRACK.title}</Text>
-                  <Text style={s.topTrackSub}>Taylor Swift</Text>
-                  <View style={s.topTrackCountRow}>
-                    <Ionicons name="musical-note" size={13} color={C.cyan} />
-                    <Text style={s.topTrackCount}>{TAYLOR_TOP_TRACK.playCount} plays</Text>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={() => playTaylor(TAYLOR_TOP_TRACK.songId)} style={s.topTrackPlay}>
-                  <Ionicons name="play-circle" size={40} color={C.cyan} />
-                </TouchableOpacity>
-              </View>
-            </View>
+            {/* "Your #1 Most Played" was removed here — that claim now lives
+                only in the All Time Favorite section on the You & Artist tab. */}
 
             {/* ── Your Eras — Hannah Journey gets Olivia's card+dot-timeline
                 carousel (same component shape as HannahJourneyYouAndOlivia.tsx's

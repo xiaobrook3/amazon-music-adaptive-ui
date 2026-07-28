@@ -53,9 +53,12 @@ const HJ_FAVORITE_GRADIENTS: readonly [string, string][] = [
   ['#779fad', '#3c494e'],
 ]
 const HJ_FAVORITE_PLAYS = [242, 200, 186]
-// "All Time" and "Forgotten" tabs of the same segmented control — Olivia's
+// "All Time" / "Forgotten" tabs of the same segmented control — Olivia's
 // reference branch swaps in genuinely different rows per tab (not just a
 // relabeled pill), so these mirror that with real, distinct Taylor songs.
+// "Recent" reuses HJ_FAVORITE_IDS/HJ_FAVORITE_PLAYS above — those were
+// already the Figma-spec'd Recent-tab numbers (242/200/186), just not wired
+// into the tab yet.
 const HJ_ALLTIME_IDS = ['s-ts-fearless-01', 's-ts1989', 's-ts1989-02'] // Love Story, Blank Space, Shake It Off
 const HJ_ALLTIME_PLAYS = [847, 611, 493]
 const HJ_FORGOTTEN_IDS = ['s-ts-red-09', 's-ts-lover-09', 's-ts-folk-08'] // State of Grace, London Boy, illicit affairs
@@ -184,19 +187,27 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
   // catalog data from mockData.ts / taylorSwiftPage.ts / taylorSuperFanContent.ts.
   if (isHannahJourney) {
     const hjNewAlbumSong = allSongs.find(sg => sg.id === 's-ts-showgirl') ?? taylorSongs[0]
-    const hjTopSongRows = popularSongs.slice(0, 3).map((sg, i) => ({ song: sg, streams: STREAMS[i] ?? 100000 }))
-    const hjTopAlbumsRail = TAYLOR_TOP_ALBUMS.slice(0, 3)
+    // Denser rails per Final Prototype feedback: more songs/albums per swipe,
+    // and every release card opens its real album page (unified SOUR/GUTS
+    // layout) instead of just playing a stand-in track.
+    const hjTopSongRows = popularSongs.slice(0, 5).map((sg, i) => ({ song: sg, streams: STREAMS[i] ?? 100000 }))
+    const hjTopAlbumsRail = TAYLOR_TOP_ALBUMS.slice(0, 8)
     const hjReleaseRail = [
-      { title: hjNewAlbumSong.title, meta: 'Album • 2025', art: 'ts-showgirl-life', onPress: () => onPlay(hjNewAlbumSong.id) },
-      { title: 'Fortnight', meta: 'Single • 2024', art: 'ts-tortured-poets', onPress: () => onPlay('s-ts-ttpd-02') },
-      { title: 'Cruel Summer', meta: 'Single • 2019', art: 'ts-lover', onPress: () => onPlay('s11') },
+      { title: 'The Life of a Showgirl', meta: 'Album • 2025', art: 'ts-showgirl-life', onPress: () => router.push('/album/ts-showgirl-2025' as any) },
+      { title: 'The Tortured Poets Department', meta: 'Album • 2024', art: 'ts-tortured-poets', onPress: () => router.push('/album/ts-ttpd-2024' as any) },
+      { title: 'Midnights', meta: 'Album • 2022', art: 'ts-1989-polaroid', onPress: () => router.push('/album/ts-midnights-2022' as any) },
+      { title: 'Lover', meta: 'Album • 2019', art: 'ts-lover', onPress: () => router.push('/album/ts-lover-2019' as any) },
+      { title: 'reputation', meta: 'Album • 2017', art: 'ts-reputation', onPress: () => router.push('/album/ts-reputation-2017' as any) },
+      { title: '1989', meta: 'Album • 2014', art: 'ts-1989', onPress: () => router.push('/album/ts-1989-2014' as any) },
     ]
     const hjAllTimeFavorites = byIds(HJ_ALLTIME_IDS)
     const hjForgottenFavorites = byIds(HJ_FORGOTTEN_IDS)
     const hjFavoriteRows =
       hjFavTab === 0
-        ? hjAllTimeFavorites.map((sg, i) => ({ song: sg, plays: HJ_ALLTIME_PLAYS[i] ?? 12 }))
-        : hjForgottenFavorites.map((sg, i) => ({ song: sg, plays: HJ_FORGOTTEN_PLAYS[i] ?? 12 }))
+        ? hjFavoriteSongs.map((sg, i) => ({ song: sg, plays: HJ_FAVORITE_PLAYS[i] ?? 12 }))
+        : hjFavTab === 1
+          ? hjAllTimeFavorites.map((sg, i) => ({ song: sg, plays: HJ_ALLTIME_PLAYS[i] ?? 12 }))
+          : hjForgottenFavorites.map((sg, i) => ({ song: sg, plays: HJ_FORGOTTEN_PLAYS[i] ?? 12 }))
     // "Your Playlists with Taylor" — same rule as OliviaMusicTab.tsx's
     // `oliviaPlaylists.yours`: any user-curated playlist that actually
     // contains her songs (matched by real artistId membership, since Taylor's
@@ -208,9 +219,9 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
 
     return (
       <View style={[s.root, { gap: 32, paddingTop: 20 }]}>
-        {/* New album banner */}
+        {/* New album banner — opens the real album page (unified HJ layout) */}
         <View style={s.pad}>
-          <TouchableOpacity style={[s.newAlbumCard, { borderRadius: 8 }]} activeOpacity={0.88} onPress={() => onPlay(hjNewAlbumSong.id)}>
+          <TouchableOpacity style={[s.newAlbumCard, { borderRadius: 8 }]} activeOpacity={0.88} onPress={() => router.push('/album/ts-showgirl-2025' as any)}>
             <Image source={resolveArt('ts-showgirl-life')} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={12} />
             <View style={s.newAlbumScrim} />
             <View style={s.newAlbumRow}>
@@ -221,8 +232,8 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
                 <Text style={s.newAlbumSub} numberOfLines={1}>Taylor's back with her new album</Text>
               </View>
             </View>
-            <TouchableOpacity hitSlop={8} onPress={() => showConfirmation('Opens the album page')} style={s.newAlbumMore}>
-              <Ionicons name="ellipsis-horizontal" size={16} color="#fff" />
+            <TouchableOpacity hitSlop={8} onPress={() => onPlay(hjNewAlbumSong.id)} style={s.newAlbumMore}>
+              <Ionicons name="play" size={16} color="#fff" />
             </TouchableOpacity>
           </TouchableOpacity>
         </View>
@@ -263,7 +274,7 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
           <SectionHead title="Your Favorites" seeMore={false} />
           <View style={s.pad}>
             <View style={[s.hjFavSegTrack, { marginTop: 12 }]}>
-              {(['Top', 'Forgotten'] as const).map((t, i) => (
+              {(['Recent', 'All Time', 'Forgotten'] as const).map((t, i) => (
                 <TouchableOpacity
                   key={t}
                   style={[s.hjFavSegItem, hjFavTab === i && s.hjFavSegItemActive]}
@@ -303,9 +314,9 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
           </View>
         </View>
 
-        {/* Top Songs — 3-row list, no "Explore full discography" link */}
+        {/* Top Songs — 5-row list, no legacy discography links */}
         <View style={s.section}>
-          <SectionHead title="Top Songs" onSeeMore={() => router.push('/artist-discography/tswift' as any)} />
+          <SectionHead title="Top Songs" seeMore={false} />
           <View style={s.pad}>
             {hjTopSongRows.map(row => (
               <TouchableOpacity key={row.song.id} style={s.popRow} activeOpacity={0.8} onPress={() => onPlay(row.song.id)}>
@@ -322,7 +333,7 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
 
         {/* Top Albums */}
         <View style={s.section}>
-          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" onSeeMore={() => router.push('/artist-discography/tswift' as any)} />
+          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {hjTopAlbumsRail.map((al, i) => (
@@ -356,7 +367,7 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
 
         {/* Releases */}
         <View style={s.section}>
-          <SectionHead title="Releases" onSeeMore={() => router.push('/artist-discography/tswift' as any)} />
+          <SectionHead title="Releases" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {hjReleaseRail.map(item => (
@@ -417,7 +428,7 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
           <SectionHead title="Fans also like" onSeeMore={() => showConfirmation('Opens related artists')} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
-              {relatedArtists.slice(0, 3).map(a => (
+              {relatedArtists.slice(0, 5).map(a => (
                 <TouchableOpacity key={a.id} style={s.relArtistCard} activeOpacity={0.85} onPress={() => router.push(`/artist/${a.id}`)}>
                   <Image source={resolveArt(a.imageUri ?? a.id)} style={s.relArtistArt} />
                   <Text style={s.relArtistName} numberOfLines={2}>{a.name}</Text>
@@ -540,7 +551,7 @@ export default function TaylorMusicTab({ onPlay }: { onPlay: (songId?: string) =
                 fought by the page gutter — same reasoning as Olivia's tab. */}
             <View style={s.pad}>
               <View style={[s.hjFavSegTrack, { marginTop: 12 }]}>
-                {(['Top', 'Forgotten'] as const).map((t, i) => (
+                {(['Recent', 'All Time', 'Forgotten'] as const).map((t, i) => (
                   <TouchableOpacity
                     key={t}
                     style={[s.hjFavSegItem, hjFavTab === i && s.hjFavSegItemActive]}

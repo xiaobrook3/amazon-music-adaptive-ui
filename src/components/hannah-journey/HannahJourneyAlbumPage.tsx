@@ -41,6 +41,10 @@ const SOUR_FIGMA_TRACKS = [
 type Props = {
   release: DiscographyRelease
   artistName: string
+  /** Catalog artist id — used to match tracks to playable songs. Defaults to
+   *  Olivia (the original owner of this layout) so existing call sites keep
+   *  working; every artist's albums in Hannah Journey now render this page. */
+  artistId?: string
 }
 
 /** Sums `M:SS` track durations into a Figma-style "X MIN Y SEC" label; null if unavailable. */
@@ -98,9 +102,11 @@ function PopularityBar() {
 
 /**
  * Hannah Journey album detail — Figma node 2576-45065 (SOUR reference layout).
- * Used for Olivia releases when the active profile is hannah-journey.
+ * The single album UI for every release opened while the active profile is
+ * hannah-journey — SOUR/GUTS set the pattern, all other artists' albums
+ * (Taylor, Sabrina, Ariana, Justin Bieber, …) now follow it.
  */
-export default function HannahJourneyAlbumPage({ release, artistName }: Props) {
+export default function HannahJourneyAlbumPage({ release, artistName, artistId = 'olivia-rodrigo' }: Props) {
   const router = useRouter()
   const { playSongAt } = usePlaybackState()
   const { isLiked, toggleLike } = useLikedSongs()
@@ -109,32 +115,49 @@ export default function HannahJourneyAlbumPage({ release, artistName }: Props) {
   const coverArt = albumArtAssets[release.artKey] ?? albumArtAssets['olivia-rodrigo-sour']
   const isSour = release.id === 'sour-2021' || release.title.toUpperCase().includes('SOUR')
 
-  const trackTitles = isSour
-    ? SOUR_FIGMA_TRACKS
-    : (release.tracks?.map(t => t.title) ?? [release.title])
+  const trackTitles = useMemo(() => {
+    if (isSour) return SOUR_FIGMA_TRACKS
+    if (release.tracks?.length) return release.tracks.map(t => t.title)
+    // No authored tracklist — pull this album's songs from the catalog (same
+    // fallback the non-journey album page uses), so releases like Sweetener
+    // or Purpose list and play their real songs instead of one stand-in row.
+    const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const wanted = norm(release.title)
+    const catalog = songs.filter(sg => {
+      if (sg.artistId !== artistId) return false
+      const a = norm(sg.album)
+      return a === wanted || (wanted.length >= 4 && a.startsWith(wanted)) || (a.length >= 4 && wanted.startsWith(a))
+    })
+    return catalog.length ? catalog.map(sg => sg.title) : [release.title]
+  }, [isSour, release, artistId])
 
   const resolvedTracks = useMemo(
     () =>
       trackTitles.map(title => {
-        const clean = title.replace(/\s*\[Explicit\]\s*/i, '').replace(/\s+/g, ' ').trim()
+        const clean = title
+          .replace(/\s*\[Explicit\]\s*/i, '')
+          .replace(/\s*\((?:feat|with)\.?[^)]*\)\s*/i, '')
+          .replace(/\s+/g, ' ')
+          .trim()
         const match = songs.find(
           sg =>
-            sg.artistId === 'olivia-rodrigo' &&
+            sg.artistId === artistId &&
             sg.title.toLowerCase() === clean.toLowerCase(),
         )
         return { title, song: match ?? null }
       }),
-    [trackTitles],
+    [trackTitles, artistId],
   )
 
   const playable = resolvedTracks.filter(t => t.song)
   const songCount = resolvedTracks.length
   const durationLabel = isSour ? '34 MIN 48 SEC' : sumDurationLabel(release.tracks)
+  // Generic catalog-built releases carry year 0 (unknown) — drop the segment.
   const metaLine = isSour
     ? `${songCount} SONGS • 34 MIN 48 SEC • MAY 21, 2021`
-    : durationLabel
-      ? `${songCount} SONGS • ${durationLabel} • ${release.year}`
-      : `${songCount} SONGS • ${release.year}`
+    : [`${songCount} SONGS`, durationLabel, release.year ? String(release.year) : null]
+        .filter(Boolean)
+        .join(' • ')
 
   const displayTitle = isSour ? 'SOUR [Explicit]' : release.title
   const merchTitle = isSour ? 'Sour' : release.title
@@ -224,12 +247,12 @@ export default function HannahJourneyAlbumPage({ release, artistName }: Props) {
               </TouchableOpacity>
               <TouchableOpacity
                 hitSlop={8}
-                onPress={() =>
-                  openAdaptiveMenu({
-                    kind: 'song',
-                    song: playable[0]?.song ?? songs.find(sg => sg.artistId === 'olivia-rodrigo')!,
-                  })
-                }
+                onPress={() => {
+                  // Anchor the menu on a real catalog song: first playable
+                  // track, else anything by this artist, else skip quietly.
+                  const anchor = playable[0]?.song ?? songs.find(sg => sg.artistId === artistId)
+                  if (anchor) openAdaptiveMenu({ kind: 'song', song: anchor })
+                }}
               >
                 <Ionicons name="ellipsis-horizontal" size={28} color="#fff" />
               </TouchableOpacity>

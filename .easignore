@@ -3,6 +3,7 @@ Images of AM interface/
 _pdf_pages/
 reference/
 brand archetchure.pdf
+design_iterations/
 
 # Expo dev bundle (generated locally, not needed for cloud build)
 .expo-verify-bundle/

@@ -12,6 +12,7 @@ import { AppImage as Image } from '../components/AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg'
 import { useRouter, useLocalSearchParams } from 'expo-router'
+import { safeGoBack } from '../utils/navigation'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { songs } from '../data/mockData'
@@ -29,7 +30,6 @@ import {
 } from '../data/oliviaRodrigoPage'
 import { OLIVIA_ABOUT_MERCH, OLIVIA_ABOUT_EVENTS, OLIVIA_PAST_EVENTS } from '../data/oliviaRodrigoAbout'
 import {
-  OLIVIA_TOP_TRACK,
   OLIVIA_NEWS,
   OLIVIA_MERCH,
   OLIVIA_SUPERFAN_STATS,
@@ -110,6 +110,11 @@ export default function OliviaRodrigoArtistScreen() {
   const { likedSongIds, addLike } = useLikedSongs()
   const { hasEverFollowed: hasEverFollowedArtist } = useArtistEngagement()
   const tabScrollRef = useRef<ScrollView>(null)
+  // Switching tabs while scrolled down previously left the page ScrollView at
+  // its old offset — if the new tab's content is shorter (e.g. arriving on
+  // Music from a taller tab), that read as a dead black gap at the bottom
+  // instead of clamping to the new content. Reset to top on every tab switch.
+  const pageScrollRef = useRef<ScrollView>(null)
   const [selectedEraId, setSelectedEraId] = useState<OliviaEraId>('sour')
 
   // Three tiers on the "You & Olivia" tab:
@@ -353,9 +358,10 @@ export default function OliviaRodrigoArtistScreen() {
   return (
     <View style={s.screen}>
       <ScrollView
+        ref={pageScrollRef}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
         {/* Hero */}
         <View style={s.heroWrap}>
@@ -374,7 +380,7 @@ export default function OliviaRodrigoArtistScreen() {
             />
 
             <View style={[s.heroTopNav, { paddingTop: insets.top + 4 }]}>
-              <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} hitSlop={8}>
+              <TouchableOpacity onPress={() => safeGoBack(router)} style={s.iconBtn} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity style={s.iconBtn} hitSlop={8} onPress={showOliviaMenu}>
@@ -578,6 +584,7 @@ export default function OliviaRodrigoArtistScreen() {
                 key={t}
                 onPress={() => {
                   setTab(t)
+                  pageScrollRef.current?.scrollTo({ y: 0, animated: false })
                   if (t === 'You & Olivia') dismissUnlockDot()
                 }}
                 style={s.tabItem}
@@ -747,26 +754,9 @@ export default function OliviaRodrigoArtistScreen() {
             )}
 
 
-            {/* Your #1 Most Played — superfan-tier only */}
-            {!isCasualListener && !isEngagedListener && (
-              <View style={s.block}>
-                <Text style={s.sectionTitle}>Your #1 Most Played</Text>
-                <View style={s.topTrackCard}>
-                  <Image source={resolveArt(OLIVIA_TOP_TRACK.artKey)} style={s.topTrackArt} />
-                  <View style={s.topTrackMeta}>
-                    <Text style={s.topTrackTitle} numberOfLines={1}>{OLIVIA_TOP_TRACK.title}</Text>
-                    <Text style={s.topTrackSub}>Olivia Rodrigo</Text>
-                    <View style={s.topTrackCountRow}>
-                      <Ionicons name="musical-note" size={13} color={C.cyan} />
-                      <Text style={s.topTrackCount}>{OLIVIA_TOP_TRACK.playCount} plays</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity onPress={() => playOliviaById(OLIVIA_TOP_TRACK.songId)} hitSlop={8}>
-                    <Ionicons name="play-circle" size={40} color={C.cyan} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+            {/* "Your #1 Most Played" was removed — the All Time Favorite
+                section on You & Olivia now carries that claim, so it isn't
+                repeated on the artist page. */}
 
             {/* Journey eras — per Figma node 1433:19433 */}
             <View style={s.block}>
@@ -1448,13 +1438,6 @@ const s = StyleSheet.create({
   superfanStatNum: { fontSize: 15, fontWeight: '700', color: '#fff' },
   superfanStatLabel: { fontSize: 11, color: '#a6a6a6', marginTop: 2 },
   superfanStatDivider: { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: '#444' },
-  topTrackCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#0e0e0e', borderRadius: 12, padding: 14 },
-  topTrackArt: { width: 60, height: 60, borderRadius: 8 },
-  topTrackMeta: { flex: 1 },
-  topTrackTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  topTrackSub: { fontSize: 12, color: '#a6a6a6', marginTop: 2 },
-  topTrackCountRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  topTrackCount: { fontSize: 12, color: C.cyan },
   newsCard: { borderRadius: 14, padding: 18, overflow: 'hidden' },
   newsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.cyan, marginBottom: 10 },
   newsHeadline: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 6 },

@@ -232,11 +232,11 @@ export default function HannahJourneyYouAndOlivia({
     Math.hypot(glowCx - eraContentSize.width, glowCy - eraContentSize.height),
   )
   // Small decorative blob (not the full-bleed wash `glowR` above computes) —
-  // a compact circle that fades out well before the container edge. Spread
-  // slightly wider than the original Figma-derived 165 per user feedback
-  // ("spread it a bit more, just a little") — kept as a hard-edged radial
-  // falloff, not blur, so the extra reach doesn't read as fuzzy.
-  const glowBlobR = 195 * glowScale
+  // a compact circle that fades out well before the container edge. Kept at
+  // the Figma-derived 165: widening it to 195 pushed the falloff into the
+  // timeline area, where the container clips it into a visible hard edge
+  // instead of reading as a soft spread.
+  const glowBlobR = 165 * glowScale
 
   if (stage === 'new-listener') {
     return (
@@ -296,18 +296,9 @@ export default function HannahJourneyYouAndOlivia({
             <Text style={s.sectionTitle}>{ERA_PLAYED_SECTION[selectedEraId]}</Text>
             <Text style={s.seeMore}>SEE MORE</Text>
           </View>
-          <TouchableOpacity
-            style={s.sfMostPlayedCard}
-            activeOpacity={0.85}
-            onPress={() => onPlayTrack?.(selectedEra.topTrackTitle)}
-          >
-            <Image source={resolveArt('olivia-rodrigo-sour')} style={s.sfMostPlayedArt} />
-            <View style={s.highlightMeta}>
-              <Text style={[s.highlightTag, { color: C.cyan }]}>YOUR MOST PLAYED SONG</Text>
-              <Text style={s.highlightTitle} numberOfLines={1}>{selectedEra.topTrackTitle}</Text>
-              <Text style={s.sfMostPlayedSub}>{selectedEra.topTrackPlays} plays</Text>
-            </View>
-          </TouchableOpacity>
+          {/* The "most played song" highlight card that used to sit here was
+              removed — the All Time Favorite section further down now carries
+              that claim, so the era block is just the track list. */}
           <View style={[s.songListCard, { borderColor: songListStyle.border }]}>
             <LinearGradient
               colors={songListStyle.colors}
@@ -688,16 +679,6 @@ const s = StyleSheet.create({
     padding: 10,
     gap: 10,
   },
-  sfMostPlayedCard: {
-    height: 105,
-    borderRadius: 12,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    gap: 10,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
   highlightArt: {
     width: 72,
     height: 72,
@@ -718,18 +699,6 @@ const s = StyleSheet.create({
     color: '#fff',
   },
   highlightSub: {
-    fontFamily: FONT_FAMILY_EMBER.regular,
-    fontSize: 12,
-    color: '#fff',
-  },
-  sfMostPlayedArt: {
-    width: 63,
-    height: 63,
-    borderRadius: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.24)',
-  },
-  sfMostPlayedSub: {
     fontFamily: FONT_FAMILY_EMBER.regular,
     fontSize: 12,
     color: '#fff',

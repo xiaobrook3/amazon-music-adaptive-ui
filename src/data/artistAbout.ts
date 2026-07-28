@@ -168,8 +168,8 @@ const ABOUT: Record<string, ArtistAboutData> = {
     },
     askChips: ['What defines Melodrama?', 'Best deep cut?', 'Who has she inspired?'],
     influencedBy: [
-      { name: 'Kate Bush', artKey: 'kate-bush' },
-      { name: 'David Bowie', artKey: 'roxy-music' },
+      { name: 'Kate Bush', artKey: 'kate-bush-dreaming' },
+      { name: 'David Bowie', artKey: 'roxy-for-your-pleasure' },
     ],
     inspires: [
       { name: 'Olivia Rodrigo', artKey: 'olivia-rodrigo' },
@@ -308,7 +308,7 @@ const ABOUT: Record<string, ArtistAboutData> = {
       'Bad Bunny took reggaeton and Latin trap from the clubs of Puerto Rico to the top of global charts without ever switching to English, Un Verano Sin Ti made a whole summer feel like one endless beach playlist.',
     askChips: ['Why is Un Verano so big?', 'Best track to start with?', 'What genre is this?'],
     influencedBy: [{ name: 'Daddy Yankee', artKey: 'bad-bunny-verano' }],
-    inspires: [{ name: 'Rosalía', artKey: 'rosalia' }],
+    inspires: [{ name: 'Rosalía', artKey: 'rosalia-el-mal-querer' }],
     fanPost: {
       group: 'Conejo Malo Club',
       handle: '@veranosinti',

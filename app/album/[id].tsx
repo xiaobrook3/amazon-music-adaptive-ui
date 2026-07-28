@@ -16,15 +16,76 @@ import { OLIVIA_DISCOGRAPHY, type DiscographyRelease } from '../../src/data/oliv
 import { TAYLOR_DISCOGRAPHY } from '../../src/data/taylorSwiftPage'
 import { BTS_DISCOGRAPHY } from '../../src/data/btsPage'
 
-// Sabrina Carpenter doesn't have a dedicated discography data file (she's a
-// Hannah-Journey secondary artist, not a bespoke-page artist), but her
-// "Albums for you" card on the landing page needs a real release to open —
-// falling back to her artist page instead of an album view was the bug.
-// Tracklists come from the catalog via the album-title match in trackDefs.
+// Hannah-Journey secondary artists (no bespoke artist-page data file) still
+// need real releases so every album card opens a real album view — falling
+// back to the artist page instead was the bug. Releases without a `tracks`
+// array fall back to the catalog album-title match in trackDefs; the ones a
+// landing card points at carry full verified tracklists (Wikipedia, Jul 2026).
 const SABRINA_DISCOGRAPHY: DiscographyRelease[] = [
   { id: 'sabrina-mans-best-friend-2025', title: "Man's Best Friend", year: 2025, type: 'album', artKey: 'sabrina-mans-best-friend' },
   { id: 'sabrina-emails-2022', title: "emails i can't send", year: 2022, type: 'album', artKey: 'sabrina-emails-i-cant-send' },
-  { id: 'sabrina-short-n-sweet-2024', title: "Short n' Sweet", year: 2024, type: 'album', artKey: 'sabrina-short-n-sweet' },
+  {
+    id: 'sabrina-short-n-sweet-2024', title: "Short n' Sweet", year: 2024, type: 'album', artKey: 'sabrina-short-n-sweet',
+    tracks: [
+      { title: 'Taste', duration: '2:37' },
+      { title: 'Please Please Please', duration: '3:06' },
+      { title: 'Good Graces', duration: '3:05' },
+      { title: 'Sharpest Tool', duration: '3:38' },
+      { title: 'Coincidence', duration: '3:00' },
+      { title: 'Bed Chem', duration: '2:54' },
+      { title: 'Espresso', duration: '2:55' },
+      { title: 'Dumb & Poetic', duration: '2:43' },
+      { title: 'Slim Pickins', duration: '2:36' },
+      { title: 'Juno', duration: '3:43' },
+      { title: 'Lie to Girls', duration: '3:41' },
+      { title: "Don't Smile", duration: '3:52' },
+    ],
+  },
+]
+
+const ARIANA_DISCOGRAPHY: DiscographyRelease[] = [
+  {
+    id: 'ariana-eternal-sunshine-2024', title: 'eternal sunshine', year: 2024, type: 'album', artKey: 'ariana-eternal-sunshine',
+    tracks: [
+      { title: 'intro (end of the world)', duration: '1:32' },
+      { title: 'bye', duration: '2:45' },
+      { title: "don't wanna break up again", duration: '2:46' },
+      { title: 'Saturn Returns Interlude', duration: '0:42' },
+      { title: 'eternal sunshine', duration: '3:30' },
+      { title: 'supernatural', duration: '2:43' },
+      { title: 'true story', duration: '2:41' },
+      { title: 'the boy is mine', duration: '2:53' },
+      { title: 'yes, and?', duration: '3:34' },
+      { title: "we can't be friends (wait for your love)", duration: '3:48' },
+      { title: 'i wish i hated you', duration: '2:25' },
+      { title: 'imperfect for you', duration: '3:02' },
+      { title: 'ordinary things (feat. Nonna)', duration: '3:29' },
+    ],
+  },
+  { id: 'ariana-my-everything-2014', title: 'My Everything (Deluxe)', year: 2014, type: 'deluxe', artKey: 'ariana-my-everything' },
+  { id: 'ariana-sweetener-2018', title: 'Sweetener', year: 2018, type: 'album', artKey: 'ariana-sweetener' },
+  { id: 'ariana-dangerous-woman-2016', title: 'Dangerous Woman', year: 2016, type: 'album', artKey: 'ariana-dangerous-woman' },
+]
+
+const BIEBER_DISCOGRAPHY: DiscographyRelease[] = [
+  {
+    id: 'jb-my-world-2-2010', title: 'My World 2.0', year: 2010, type: 'album', artKey: 'justin-bieber-my-world-2',
+    tracks: [
+      { title: 'Baby (feat. Ludacris)', duration: '3:34' },
+      { title: 'Somebody to Love', duration: '3:40' },
+      { title: 'Stuck in the Moment', duration: '3:42' },
+      { title: 'U Smile', duration: '3:16' },
+      { title: 'Runaway Love', duration: '3:31' },
+      { title: 'Never Let You Go', duration: '4:24' },
+      { title: 'Overboard (feat. Jessica Jarrell)', duration: '4:11' },
+      { title: 'Eenie Meenie (with Sean Kingston)', duration: '3:22' },
+      { title: 'Up', duration: '3:56' },
+      { title: 'That Should Be Me', duration: '3:53' },
+    ],
+  },
+  { id: 'jb-purpose-2015', title: 'Purpose (Deluxe)', year: 2015, type: 'deluxe', artKey: 'justin-bieber-purpose' },
+  { id: 'jb-changes-2020', title: 'Changes', year: 2020, type: 'album', artKey: 'justin-bieber-changes' },
+  { id: 'jb-swag-2025', title: 'SWAG', year: 2025, type: 'album', artKey: 'justin-bieber-swag' },
 ]
 import { C, R, typeHeadline } from '../../src/theme'
 import GlassCircleButton from '../../src/components/GlassCircleButton'
@@ -57,6 +118,8 @@ const ARTIST_RELEASES = [
   { artistId: 'tswift',            artistName: 'Taylor Swift',      releases: TAYLOR_DISCOGRAPHY,  fallbackArt: artistAssets['tswift'] },
   { artistId: 'bts',               artistName: 'BTS',               releases: BTS_DISCOGRAPHY,     fallbackArt: artistAssets['bts'] },
   { artistId: 'sabrina-carpenter', artistName: 'Sabrina Carpenter', releases: SABRINA_DISCOGRAPHY, fallbackArt: artistAssets['sabrina-carpenter'] },
+  { artistId: 'ariana-grande',     artistName: 'Ariana Grande',     releases: ARIANA_DISCOGRAPHY,  fallbackArt: artistAssets['ariana-grande'] },
+  { artistId: 'justin-bieber',     artistName: 'Justin Bieber',     releases: BIEBER_DISCOGRAPHY,  fallbackArt: artistAssets['justin-bieber'] },
 ]
 
 function typeLabel(type: string): string {
@@ -177,11 +240,15 @@ export default function AlbumReleaseScreen() {
     Share.share({ message: `Listen to "${release.title}" on Amazon Music` }).catch(() => {})
   }
 
-  if (isHannahJourney && artist.artistId === 'olivia-rodrigo') {
+  // Hannah Journey: ONE album UI for every release, regardless of artist —
+  // the SOUR/GUTS Figma layout. The generic fallback below stays as the
+  // non-journey album page for every other persona.
+  if (isHannahJourney) {
     return (
       <HannahJourneyAlbumPage
         release={release as DiscographyRelease}
         artistName={artist.artistName}
+        artistId={artist.artistId}
       />
     )
   }

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react'
+import { useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   View,
   ScrollView,
@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
+import SuperfanHeartBadge from '../SuperfanHeartBadge'
 import StickyHomeHeader, { useStickyHomeScroll } from '../StickyHomeHeader'
 import EdgeFadeRow from '../EdgeFadeRow'
 import { ListeningHeatmap } from '../home/HomeSessionWidgets'
@@ -95,8 +96,8 @@ const STAGE_DATA: Record<HannahJourneyStage, StageLanding> = {
     ],
     continueListening: [
       { title: 'The Life of a Showgirl', meta: 'Album • Taylor Swift', artKey: 'ts-showgirl-life', href: '/album/ts-showgirl-2025' },
-      { title: 'The ARMY Diaries', meta: 'Podcast • BTS ARMY', artKey: 'bts' },
-      { title: 'Dukat', meta: 'Album • Bana Zahiti', artKey: 'bana-zahiti' },
+      { title: 'The ARMY Diaries', meta: 'Podcast • BTS ARMY', artKey: 'bts', href: '/podcast-show/pod1' },
+      { title: 'Dukat', meta: 'Album • Bana Zahiti', artKey: 'bana-zahiti', href: '/album/song-album-s-bz1' },
       { title: 'The Olivia Podcast', meta: 'Episode • Livies Club', artKey: 'olivia-rodrigo-sour', href: '/artist/olivia-rodrigo' },
     ],
     favorites: [
@@ -138,9 +139,12 @@ const STAGE_DATA: Record<HannahJourneyStage, StageLanding> = {
       { artistId: 'lorde', name: 'Lorde' },
     ],
     albums: [
-      { title: 'Petal', artist: 'Ariana Grande', artKey: 'ariana-grande', artistId: 'ariana-grande' },
-      { title: 'My World 2.0', artist: 'Justin Bieber', artKey: 'justin-bieber-believe', artistId: 'justin-bieber' },
+      { title: 'eternal sunshine', artist: 'Ariana Grande', artKey: 'ariana-eternal-sunshine', albumId: 'ariana-eternal-sunshine-2024' },
+      { title: 'My World 2.0', artist: 'Justin Bieber', artKey: 'justin-bieber-my-world-2', albumId: 'jb-my-world-2-2010' },
       { title: '1989', artist: 'Taylor Swift', artKey: 'ts-1989', albumId: 'ts-1989-2014' },
+      { title: "Short n' Sweet", artist: 'Sabrina Carpenter', artKey: 'sabrina-short-n-sweet', albumId: 'sabrina-short-n-sweet-2024' },
+      { title: 'The Life of a Showgirl', artist: 'Taylor Swift', artKey: 'ts-showgirl-life', albumId: 'ts-showgirl-2025' },
+      { title: 'Sweetener', artist: 'Ariana Grande', artKey: 'ariana-sweetener', albumId: 'ariana-sweetener-2018' },
     ],
   },
   engaged: {
@@ -158,11 +162,11 @@ const STAGE_DATA: Record<HannahJourneyStage, StageLanding> = {
       { title: 'lacy', artist: 'Olivia Rodrigo', plays: '298,114,022', artKey: 'olivia-rodrigo-guts', songId: 's-or11', artistId: 'olivia-rodrigo' },
     ],
     continueListening: [
-      { title: 'The ARMY Diaries', meta: 'Podcast • BTS ARMY', artKey: 'bts' },
+      { title: 'The ARMY Diaries', meta: 'Podcast • BTS ARMY', artKey: 'bts', href: '/podcast-show/pod1' },
       { title: 'SOUR', meta: 'Album • Olivia Rodrigo', artKey: 'olivia-rodrigo-sour', href: '/album/sour-2021' },
       { title: 'The Life of a Showgirl', meta: 'Album • Taylor Swift', artKey: 'ts-showgirl-life', href: '/album/ts-showgirl-2025' },
       { title: 'The Olivia Podcast', meta: 'Episode • Livies Club', artKey: 'olivia-rodrigo-sour', href: '/artist/olivia-rodrigo' },
-      { title: 'Dukat', meta: 'Album • Bana Zahiti', artKey: 'bana-zahiti' },
+      { title: 'Dukat', meta: 'Album • Bana Zahiti', artKey: 'bana-zahiti', href: '/album/song-album-s-bz1' },
     ],
     favorites: [
       { artistId: 'tswift', name: 'Taylor Swift', tag: 'SUPERFAN', caption: 'Your morning starter.\nA week running.', seed: 1, showHeart: true },
@@ -215,6 +219,10 @@ const STAGE_DATA: Record<HannahJourneyStage, StageLanding> = {
     albums: [
       { title: 'you seem pretty sad for a girl so in love', artist: 'Olivia Rodrigo', artKey: 'olivia-rodrigo-pretty-sad', albumId: 'or-album-pretty' },
       { title: '1989', artist: 'Taylor Swift', artKey: 'ts-1989', albumId: 'ts-1989-2014' },
+      { title: 'SOUR', artist: 'Olivia Rodrigo', artKey: 'olivia-rodrigo-sour', albumId: 'sour-2021' },
+      { title: 'The Life of a Showgirl', artist: 'Taylor Swift', artKey: 'ts-showgirl-life', albumId: 'ts-showgirl-2025' },
+      { title: 'Purpose', artist: 'Justin Bieber', artKey: 'justin-bieber-purpose', albumId: 'jb-purpose-2015' },
+      { title: "Short n' Sweet", artist: 'Sabrina Carpenter', artKey: 'sabrina-short-n-sweet', albumId: 'sabrina-short-n-sweet-2024' },
     ],
   },
   superfan: {
@@ -234,7 +242,7 @@ const STAGE_DATA: Record<HannahJourneyStage, StageLanding> = {
     continueListening: [
       { title: 'SOUR', meta: 'Album • Olivia Rodrigo', artKey: 'olivia-rodrigo-sour', href: '/album/sour-2021' },
       { title: 'GUTS', meta: 'Album • Olivia Rodrigo', artKey: 'olivia-rodrigo-guts', href: '/album/guts-2023' },
-      { title: 'Lover', meta: 'Album • Taylor Swift', artKey: 'ts-lover' },
+      { title: 'Lover', meta: 'Album • Taylor Swift', artKey: 'ts-lover', href: '/album/ts-lover-2019' },
       { title: 'The Olivia Podcast', meta: 'Episode • Livies Club', artKey: 'olivia-rodrigo-sour', href: '/artist/olivia-rodrigo' },
     ],
     favorites: [
@@ -289,8 +297,11 @@ const STAGE_DATA: Record<HannahJourneyStage, StageLanding> = {
     ],
     albums: [
       { title: 'GUTS (spilled)', artist: 'Olivia Rodrigo', artKey: 'olivia-rodrigo-exclusive', albumId: 'or-album-guts-spilled' },
-      { title: "Emails I Can't Send", artist: 'Sabrina Carpenter', artKey: 'sabrina-mans-best-friend', albumId: 'sabrina-emails-2022' },
+      { title: "emails i can't send", artist: 'Sabrina Carpenter', artKey: 'sabrina-emails-i-cant-send', albumId: 'sabrina-emails-2022' },
       { title: 'you seem pretty sad for a girl so in love', artist: 'Olivia Rodrigo', artKey: 'olivia-rodrigo-pretty-sad', albumId: 'or-album-pretty' },
+      { title: 'SOUR', artist: 'Olivia Rodrigo', artKey: 'olivia-rodrigo-sour', albumId: 'sour-2021' },
+      { title: 'The Tortured Poets Department', artist: 'Taylor Swift', artKey: 'ts-tortured-poets', albumId: 'ts-ttpd-2024' },
+      { title: 'eternal sunshine', artist: 'Ariana Grande', artKey: 'ariana-eternal-sunshine', albumId: 'ariana-eternal-sunshine-2024' },
     ],
   },
 }
@@ -361,27 +372,32 @@ export default function HannahJourneyLanding() {
   )
 
   // Engaged: delayed Top 3% reveal — deep scroll + 10s dwell.
+  // Tracked via a plain ref updated straight off the onScroll event (below),
+  // NOT scrollY.addListener() — Animated.Value's imperative listener API is
+  // unreliable on web (react-native-web doesn't fire it consistently), which
+  // silently meant this reveal never triggered in the browser even though
+  // the exact same scroll+dwell worked fine natively.
+  const latestScrollRef = useRef(0)
   useEffect(() => {
     if (!revealEligible) return
     const startedAt = Date.now()
     const SCROLL_THRESHOLD = 1100
     const MIN_DWELL_MS = 10000
-    let latestScroll = 0
-    const maybeReveal = () => {
-      if (latestScroll >= SCROLL_THRESHOLD && Date.now() - startedAt >= MIN_DWELL_MS) {
+    const timer = setInterval(() => {
+      if (latestScrollRef.current >= SCROLL_THRESHOLD && Date.now() - startedAt >= MIN_DWELL_MS) {
         openReveal()
       }
-    }
-    const id = scrollY.addListener(({ value }) => {
-      latestScroll = value
-      maybeReveal()
-    })
-    const timer = setInterval(maybeReveal, 500)
-    return () => {
-      scrollY.removeListener(id)
-      clearInterval(timer)
-    }
-  }, [revealEligible, openReveal, scrollY])
+    }, 500)
+    return () => clearInterval(timer)
+  }, [revealEligible, openReveal])
+
+  const handleScroll = useCallback(
+    (e: Parameters<typeof onScroll>[0]) => {
+      onScroll(e)
+      latestScrollRef.current = e.nativeEvent.contentOffset.y
+    },
+    [onScroll],
+  )
 
   const heroFirstSong = useMemo(() => {
     const first = data.songs[0]
@@ -421,7 +437,7 @@ export default function HannahJourneyLanding() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
         style={{ backgroundColor: C.bg }}
-        onScroll={onScroll}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
       >
         {/* Hero — My Soundtrack */}
@@ -724,23 +740,27 @@ export default function HannahJourneyLanding() {
                     activeOpacity={routable ? 0.85 : 1}
                     onPress={() => routable && router.push(`/artist/${a.artistId}` as any)}
                   >
-                    {art ? (
-                      <Image source={art} style={s.topArtistArt} resizeMode="cover" />
-                    ) : (
-                      <View style={[s.topArtistArt, s.artPlaceholder]}>
-                        <Ionicons name="person" size={36} color="rgba(255,255,255,0.25)" />
-                      </View>
-                    )}
-                    <View style={s.topArtistLabel}>
+                    <View style={s.topArtistAvatarWrap}>
+                      {art ? (
+                        <Image source={art} style={s.topArtistArt} resizeMode="cover" />
+                      ) : (
+                        <View style={[s.topArtistArt, s.artPlaceholder]}>
+                          <Ionicons name="person" size={36} color="rgba(255,255,255,0.25)" />
+                        </View>
+                      )}
+                      {/* Superfan heart sits on the artist photo itself (Figma
+                          node 3052:31090/31091 "Artist List - Superfan"),
+                          bottom-left corner — not beside the name. Dark
+                          outline (faked via offset dark copies, since Image
+                          has no native stroke) so it pops against any photo. */}
                       {a.heart ? (
-                        <Image
+                        <SuperfanHeartBadge
                           source={hannahJourneyAssets.superfanIcon}
-                          style={s.topArtistSuperfanIcon}
-                          resizeMode="contain"
+                          style={s.topArtistSuperfanBadge}
                         />
                       ) : null}
-                      <Text style={s.topArtistName} numberOfLines={1}>{a.name}</Text>
                     </View>
+                    <Text style={s.topArtistName} numberOfLines={1}>{a.name}</Text>
                   </TouchableOpacity>
                 )
               })}
@@ -766,10 +786,9 @@ export default function HannahJourneyLanding() {
                     style={s.albumCard}
                     activeOpacity={0.85}
                     onPress={() => {
-                      // Olivia's own entries carry a real albumId and open the album
-                      // page, same as always. Everyone else has no standalone album
-                      // page in this app, so tapping opens that artist's own page
-                      // instead of doing nothing (this rail's previous behavior).
+                      // Every card now carries a real albumId and opens the unified
+                      // Hannah Journey album page (SOUR/GUTS layout) — the artist-page
+                      // fallback only remains as a safety net for future entries.
                       if (al.albumId) router.push(`/album/${al.albumId}` as any)
                       else if (al.artistId) router.push(`/artist/${al.artistId}` as any)
                     }}
@@ -867,7 +886,9 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  section: { marginTop: 24 },
+  // 24 read as cramped between the big card sections (Continue Listening →
+  // Favorites → Fan Groups → Top Artists) — opened up per user feedback.
+  section: { marginTop: 36 },
   sectionHeadRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1051,9 +1072,11 @@ const s = StyleSheet.create({
     color: '#fff',
   },
   topArtist: { width: 120, alignItems: 'center', gap: 8 },
+  topArtistAvatarWrap: { width: 120, height: 120 },
   topArtistArt: { width: 120, height: 120, borderRadius: 60 },
-  topArtistLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  topArtistSuperfanIcon: { width: 21, height: 19 },
+  // Figma node 3052:31090 "artist superfan heart": left:4 top:86 within the
+  // 120x120 avatar, ~32x30 — overlaps the photo's bottom-left corner.
+  topArtistSuperfanBadge: { position: 'absolute', left: 4, top: 86, width: 32, height: 30 },
   topArtistName: {
     fontFamily: FONT_FAMILY_EMBER.bold,
     fontSize: 16,

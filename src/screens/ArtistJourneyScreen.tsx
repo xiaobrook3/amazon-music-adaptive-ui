@@ -17,6 +17,7 @@ import { Text } from '../components/AppText'
 import { AppImage as Image } from '../components/AppImage'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
+import { safeGoBack } from '../utils/navigation'
 import { Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { artists, songs, type Song } from '../data/mockData'
@@ -125,6 +126,10 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
   const { activeProfile } = useProfiles()
   const { likedSongIds } = useLikedSongs()
   const tabScrollRef = useRef<ScrollView>(null)
+  // Reset the page scroll position on every tab switch — otherwise arriving
+  // on a shorter tab from a taller one leaves the ScrollView at its old
+  // offset, reading as a dead black gap at the bottom instead of clamping.
+  const pageScrollRef = useRef<ScrollView>(null)
 
   const artist = useMemo(() => artists.find(a => a.id === id) ?? artists[0], [id])
   const page = useMemo(() => buildArtistPage(artist.id), [artist.id])
@@ -308,9 +313,10 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
   return (
     <View style={s.screen}>
       <ScrollView
+        ref={pageScrollRef}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
         {/* Hero */}
         <View style={s.heroWrap}>
@@ -323,7 +329,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 activeProfile={activeProfile}
                 following={following}
                 showSinceBubble={isUnlocked}
-                onBack={() => router.back()}
+                onBack={() => safeGoBack(router)}
                 onToggleFollow={toggleFollow}
                 onPlay={() => playByTitle()}
                 onShuffle={shufflePlay}
@@ -339,7 +345,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 activeProfile={activeProfile}
                 following={following}
                 showSinceBubble={isUnlocked}
-                onBack={() => router.back()}
+                onBack={() => safeGoBack(router)}
                 onToggleFollow={toggleFollow}
                 onPlay={() => playByTitle()}
                 onShuffle={shufflePlay}
@@ -362,6 +368,7 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
                 key={t}
                 onPress={() => {
                   setTab(t)
+                  pageScrollRef.current?.scrollTo({ y: 0, animated: false })
                   if (t === journeyTab) dismissUnlockDot()
                 }}
                 style={s.tabItem}

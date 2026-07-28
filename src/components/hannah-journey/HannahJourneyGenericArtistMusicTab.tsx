@@ -174,7 +174,15 @@ export default function HannahJourneyGenericArtistMusicTab({ artistId }: { artis
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {albums.map(al => (
-                <TouchableOpacity key={al.album} style={s.discCard} activeOpacity={0.85} onPress={() => play(al.firstSongId)}>
+                <TouchableOpacity
+                  key={al.album}
+                  style={s.discCard}
+                  activeOpacity={0.85}
+                  // Same convention as every other album card in the app —
+                  // tapping opens the album page (unified SOUR/GUTS layout),
+                  // it doesn't start playback directly.
+                  onPress={() => router.push(`/album/song-album-${al.firstSongId}` as any)}
+                >
                   <Image source={resolveArt(al.artKey)} style={s.discArt} resizeMode="cover" />
                   <Text style={s.discTitle} numberOfLines={1}>{al.album}</Text>
                   <Text style={s.discMeta} numberOfLines={1}>Album • {config.name}</Text>

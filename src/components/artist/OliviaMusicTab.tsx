@@ -284,7 +284,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Releases" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Releases" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {releaseRail.map(item => (
@@ -299,7 +299,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Top Songs" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Top Songs" seeMore={false} />
           <View style={s.pad}>
             {topSongRows.map((row, i) => (
               <TouchableOpacity key={row.title} style={s.popRow} activeOpacity={0.8} onPress={() => play(row.song.id)}>
@@ -318,7 +318,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {topAlbumsRail.map(al => (
@@ -496,7 +496,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Top Songs" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Top Songs" seeMore={false} />
           <View style={s.pad}>
             {topSongRows.map((row, i) => (
               <TouchableOpacity key={row.title} style={s.popRow} activeOpacity={0.8} onPress={() => play(row.song.id)}>
@@ -515,7 +515,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {topAlbumsRail.map(al => (
@@ -604,7 +604,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Releases" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Releases" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {releaseRail.map(item => (
@@ -952,9 +952,38 @@ export default function OliviaMusicTab() {
       ...OLIVIA_PODCASTS,
       { id: 'hj-pod-guts', title: 'Feel it in Your Guts', coverArtPath: 'olivia-rodrigo-hero' },
     ]
-    // "Your Favorites" — Top vs Forgotten, verbatim Figma rows (not the
-    // byIds-driven `favorites`/`celineFavorites` helpers above, which feed
-    // the Celine superfan branch further down and use different songs).
+    // "Your Favorites" — Recent / All Time / Forgotten, verbatim Figma rows
+    // (node 3004:26727 — not the byIds-driven `favorites`/`celineFavorites`
+    // helpers above, which feed the Celine superfan branch further down and
+    // use different songs). Figma's Recent titles ("stupid song", "purple")
+    // are display-only overrides over real playable catalog anchors — same
+    // trick topSongRows already uses for "honeybee"/"stupid song" above.
+    const recentFavoritesRows = [
+      {
+        rank: 1,
+        song: songs.find(sg => sg.id === 's-or-new1')!,
+        title: 'stupid song',
+        plays: 242,
+        art: 'olivia-rodrigo-pretty-sad-album',
+        gradient: ['#779fad', '#3c494e'] as const,
+      },
+      {
+        rank: 2,
+        song: songs.find(sg => sg.id === 's-or6')!,
+        title: 'purple',
+        plays: 200,
+        art: 'olivia-rodrigo-making-the-bed',
+        gradient: ['#779fad', '#3c494e'] as const,
+      },
+      {
+        rank: 3,
+        song: songs.find(sg => sg.id === 's-or-sour-02')!,
+        title: 'traitor',
+        plays: 186,
+        art: 'olivia-rodrigo-sour',
+        gradient: ['#7f75d5', '#423d6f'] as const,
+      },
+    ]
     const allTimeFavoritesRows = [
       {
         rank: 1,
@@ -1007,7 +1036,8 @@ export default function OliviaMusicTab() {
         gradient: ['#7f75d5', '#423d6f'] as const,
       },
     ]
-    const yourFavoritesRows = favTab === 0 ? allTimeFavoritesRows : forgottenFavoritesRows
+    const yourFavoritesRows =
+      favTab === 0 ? recentFavoritesRows : favTab === 1 ? allTimeFavoritesRows : forgottenFavoritesRows
     return (
       <View style={[s.wrap, { gap: 36 }]}>
         <View style={s.pad}>
@@ -1071,7 +1101,7 @@ export default function OliviaMusicTab() {
               the pill bar's content off-center with dead space at both ends. */}
           <View style={s.pad}>
             <View style={s.favSegTrack}>
-              {(['Top', 'Forgotten'] as const).map((t, i) => (
+              {(['Recent', 'All Time', 'Forgotten'] as const).map((t, i) => (
                 <TouchableOpacity
                   key={t}
                   style={[s.favSegItem, favTab === i && s.favSegItemActive]}
@@ -1117,7 +1147,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Top Songs" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Top Songs" seeMore={false} />
           <View style={s.pad}>
             {topSongRows.map(row => (
               <TouchableOpacity key={row.title} style={s.popRow} activeOpacity={0.8} onPress={() => play(row.song.id)}>
@@ -1136,7 +1166,7 @@ export default function OliviaMusicTab() {
         </View>
 
         <View style={s.section}>
-          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Top Albums" sub="Most streamed worldwide on Amazon Music" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {topAlbumsRail.map(al => (
@@ -1168,7 +1198,7 @@ export default function OliviaMusicTab() {
         )}
 
         <View style={s.section}>
-          <SectionHead title="Releases" onSeeMore={() => router.push('/artist-discography/olivia-rodrigo' as any)} />
+          <SectionHead title="Releases" seeMore={false} />
           <EdgeFadeRow>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.rail} nestedScrollEnabled>
               {releaseRail.map(item => (

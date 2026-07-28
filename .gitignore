@@ -33,5 +33,5 @@ Thumbs.db
 .cursor/
 .claude/
 
-# Build cache
-.expo-verify-bundle2/
+# Generated concept videos (large binaries, not tracked)
+final summer presentation/concept_videos/
