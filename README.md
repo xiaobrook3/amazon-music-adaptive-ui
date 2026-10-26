@@ -4,6 +4,12 @@ High-fidelity React Native prototype of the Amazon Music mobile client, extended
 
 
 
+> **This fork.** The `portfolio` branch is the build embedded at
+> [xiaobrook.com/adaptive-ui.html](https://www.xiaobrook.com/adaptive-ui.html): the team's prototype
+> with web fixes by Brook Xiao (unfollow at every tier, a journey that survives reloads,
+> `?stage=` links, sharing in desktop browsers). The team's repository is
+> [RabiatS/Amazon-Music-Adaptive-UI---DERBC](https://github.com/RabiatS/Amazon-Music-Adaptive-UI---DERBC).
+
 > Academic UI prototype.
 Based on research and design done by: 
 - [Rabiat Sadiq](https://github.com/rabiats) - `Human`
