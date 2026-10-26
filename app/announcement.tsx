@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { announcements, artists } from '../src/data/mockData'
 import { playerIconAssets } from '../src/data/assetMap'
 import { C, R, typeHeadline, typeSubhead } from '../src/theme'
+import { shareText } from '../src/utils/share'
 
 export default function AnnouncementScreen() {
   const router = useRouter()
@@ -82,7 +83,7 @@ export default function AnnouncementScreen() {
             <TouchableOpacity
               style={s.secondaryBtn}
               accessibilityLabel="Share"
-              onPress={() => Share.share({ message: `${ann.headline}, ${ann.body}` }).catch(() => {})}
+              onPress={() => void shareText(`${ann.headline}, ${ann.body}`)}
             >
               <Image source={playerIconAssets.share} style={s.shareIcon} resizeMode="contain" />
               <Text style={s.secondaryBtnText}>Share</Text>

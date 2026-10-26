@@ -4,7 +4,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Share,
   ImageBackground,
   Platform,
 } from 'react-native'
@@ -22,6 +21,7 @@ import { songs } from '../../data/mockData'
 import { albumArtAssets, hannahJourneyAssets } from '../../data/assetMap'
 import type { DiscographyRelease, DiscographyTrack } from '../../data/oliviaRodrigoPage'
 import { C, FONT_FAMILY_DISPLAY, FONT_FAMILY_EMBER } from '../../theme'
+import { shareText } from '../../utils/share'
 
 /** Figma SOUR tracklist (node 2576-45065) — titles verbatim. */
 const SOUR_FIGMA_TRACKS = [
@@ -176,7 +176,7 @@ export default function HannahJourneyAlbumPage({ release, artistName, artistId =
   }
 
   const handleShare = () => {
-    Share.share({ message: `Listen to "${release.title}" on Amazon Music` }).catch(() => {})
+    void shareText(`Listen to "${release.title}" on Amazon Music`)
   }
 
   return (

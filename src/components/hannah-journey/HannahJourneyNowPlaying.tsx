@@ -35,6 +35,7 @@ import { lyricForSong } from '../../data/artistPages'
 import { C, R, FONT_FAMILY_DISPLAY, FONT_FAMILY_EMBER } from '../../theme'
 import BlurredArtBackground from '../BlurredArtBackground'
 import { parseDurationSeconds, formatClock } from '../../utils/color'
+import { shareText } from '../../utils/share'
 
 /**
  * Hannah Journey "playback page" — Figma node 2576-45065 (file 1vT9DKHEMGw7PrurGoeDVM).
@@ -327,7 +328,7 @@ export default function HannahJourneyNowPlaying() {
     showConfirmation(`"${song.title}" added to Liked Songs`)
   }
   const handleShare = () => {
-    Share.share({ message: `Listen to "${song.title}" by ${song.artistName} on Amazon Music` }).catch(() => {})
+    void shareText(`Listen to "${song.title}" by ${song.artistName} on Amazon Music`)
   }
   const handleCast = () => showConfirmation('No Cast devices found nearby')
   const handleAskAlexa = () => showConfirmation(`Ask Alexa about "${song.title}"`)

@@ -25,6 +25,7 @@ import { useAdaptiveMenu } from '../../src/components/AdaptiveContextMenu'
 import { useHannahJourney } from '../../src/context/HannahJourneyContext'
 import StandaloneTabBar from '../../src/components/StandaloneTabBar'
 import { C, R, FONT_FAMILY, typeHeadline } from '../../src/theme'
+import { shareText } from '../../src/utils/share'
 
 // Local palette for this screen only — a blue-charcoal fandom header distinct
 // from the app's neutral near-black surfaces, fading into a near-black feed.
@@ -133,7 +134,7 @@ export default function FanGroupScreen() {
   }, [posts, sort])
 
   const handleShare = () => {
-    Share.share({ message: `Join "${group.name}" on Amazon Music` }).catch(() => {})
+    void shareText(`Join "${group.name}" on Amazon Music`)
   }
 
   const play = (songId?: string) => {

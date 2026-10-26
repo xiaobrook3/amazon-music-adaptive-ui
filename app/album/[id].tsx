@@ -90,6 +90,7 @@ const BIEBER_DISCOGRAPHY: DiscographyRelease[] = [
 import { C, R, typeHeadline } from '../../src/theme'
 import GlassCircleButton from '../../src/components/GlassCircleButton'
 import BlurredArtBackground from '../../src/components/BlurredArtBackground'
+import { shareText } from '../../src/utils/share'
 
 // Music-tab rails sometimes use OR-prefixed ids; map to discography ids.
 const ALBUM_ID_ALIASES: Record<string, string> = {
@@ -237,7 +238,7 @@ export default function AlbumReleaseScreen() {
   }
 
   const handleShare = () => {
-    Share.share({ message: `Listen to "${release.title}" on Amazon Music` }).catch(() => {})
+    void shareText(`Listen to "${release.title}" on Amazon Music`)
   }
 
   // Hannah Journey: ONE album UI for every release, regardless of artist —

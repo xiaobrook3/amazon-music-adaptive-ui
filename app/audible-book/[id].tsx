@@ -17,6 +17,7 @@ import {
 import { albumArtAssets } from '../../src/data/assetMap'
 import StandaloneTabBar from '../../src/components/StandaloneTabBar'
 import { C, R, typeHeadline } from '../../src/theme'
+import { shareText } from '../../src/utils/share'
 
 function ChapterRow({ chapter, index }: { chapter: AudiobookChapter; index: number }) {
   return (
@@ -53,7 +54,7 @@ export default function AudibleBookScreen() {
   const [downloaded, setDownloaded] = useState(false)
 
   const handleShare = () => {
-    Share.share({ message: `Check out "${book.title}" by ${book.author} on Audible` }).catch(() => {})
+    void shareText(`Check out "${book.title}" by ${book.author} on Audible`)
   }
 
   const similar = [

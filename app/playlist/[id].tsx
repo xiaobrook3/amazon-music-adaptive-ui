@@ -15,6 +15,7 @@ import { C, R, typeHeadline } from '../../src/theme'
 import GlassCircleButton from '../../src/components/GlassCircleButton'
 import BlurredArtBackground from '../../src/components/BlurredArtBackground'
 import { EdgeFadeRow } from '../../src/components/EdgeFadeRow'
+import { shareText } from '../../src/utils/share'
 
 const SUGGESTION_COUNT = 8
 const RELATED_PLAYLIST_COUNT = 10
@@ -66,9 +67,7 @@ export default function SharedPlaylistScreen() {
     .map(entry => entry.playlist)
 
   const handleShare = () => {
-    Share.share({
-      message: `Listen to "${playlist.name}" on Amazon Music`,
-    }).catch(() => {})
+    void shareText(`Listen to "${playlist.name}" on Amazon Music`)
   }
 
   const handleAddSuggestion = (song: Song) => {

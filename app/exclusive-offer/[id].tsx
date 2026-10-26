@@ -16,6 +16,7 @@ import {
 import { useAdaptiveUI } from '../../src/context/AdaptiveUIContext'
 import StandaloneTabBar from '../../src/components/StandaloneTabBar'
 import { C, R, typeHeadline } from '../../src/theme'
+import { shareText } from '../../src/utils/share'
 
 function PerkRow({ text }: { text: string }) {
   return (
@@ -61,7 +62,7 @@ export default function ExclusiveOfferScreen() {
     .filter((o): o is ExclusiveOffer => o != null)
 
   const handleShare = () => {
-    Share.share({ message: `Check out this superfan perk: ${offer.title}` }).catch(() => {})
+    void shareText(`Check out this superfan perk: ${offer.title}`)
   }
 
   const handleClaim = () => {

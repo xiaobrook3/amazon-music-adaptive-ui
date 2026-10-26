@@ -12,6 +12,7 @@ import { songs, artists } from '../src/data/mockData'
 import { albumArtAssets, hannahJourneyAssets, resolveArtistAvatar } from '../src/data/assetMap'
 import { useHannahJourney } from '../src/context/HannahJourneyContext'
 import { C, FONT_FAMILY_EMBER, FONT_FAMILY, FONT_FAMILY_DISPLAY, typeHeadline, typeSubhead } from '../src/theme'
+import { shareText } from '../src/utils/share'
 
 /**
  * Monthly recap / listening insights. Reached from the Library tab's header
@@ -272,7 +273,7 @@ function StatCard({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap
 
 function SuperfanHeroCard({ card, onExpand }: { card: SuperfanHero; onExpand: () => void }) {
   const handleShare = () => {
-    Share.share({ message: card.shareMessage }).catch(() => {})
+    void shareText(card.shareMessage)
   }
   const gradientLocations = card.gradientColors.length === 3 ? HERO_GRADIENT_LOCATIONS : undefined
   return (
@@ -339,7 +340,7 @@ export default function InsightsScreen() {
   )
 
   const handleShareList = (label: string) => {
-    Share.share({ message: `My most played ${label.toLowerCase()} this month on Amazon Music` }).catch(() => {})
+    void shareText(`My most played ${label.toLowerCase()} this month on Amazon Music`)
   }
 
   // Tapping a compact superfan card expands it into the full 340x528 card.

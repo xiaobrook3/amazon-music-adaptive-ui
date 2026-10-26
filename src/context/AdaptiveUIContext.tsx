@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+
+let toastSink: ((message: string) => void) | null = null
+
+/** Show the app's toast from outside a component; a no-op before the provider mounts. */
+export function notifyToast(message: string): void {
+  toastSink?.(message)
+}
 import { artists, songs, type Artist, type Playlist, type Song } from '../data/mockData'
 
 export type AdaptiveTheme = {
@@ -799,6 +806,14 @@ export function AdaptiveUIProvider({ children }: { children: ReactNode }) {
 
   const clearConfirmation = useCallback(() => setConfirmationMessage(null), [])
   const showConfirmation = useCallback((message: string) => setConfirmationMessage(message), [])
+
+  // Lets code outside a component (the share helpers) raise the same toast.
+  useEffect(() => {
+    toastSink = showConfirmation
+    return () => {
+      if (toastSink === showConfirmation) toastSink = null
+    }
+  }, [showConfirmation])
 
   const value = useMemo(
     () => ({

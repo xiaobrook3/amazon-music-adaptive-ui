@@ -23,6 +23,7 @@ import { albumArtAssets } from '../../src/data/assetMap'
 import { findPodcast, podcastEpisode } from '../../src/data/podcastEpisodes'
 import { hexWithAlpha } from '../../src/utils/color'
 import { C, R, PLAYER_GRADIENT, typeHeadline, typeSubhead } from '../../src/theme'
+import { shareText } from '../../src/utils/share'
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2] as const
 const SLEEP_OPTIONS = ['5 min', '10 min', '15 min', '30 min', '45 min', 'End of episode', 'Off'] as const
@@ -228,7 +229,7 @@ export default function PodcastPlayerScreen() {
             <TouchableOpacity
               style={s.util}
               activeOpacity={0.8}
-              onPress={() => Share.share({ message: `Listening to "${ep.title}" from ${pod.title} on Amazon Music Podcasts` }).catch(() => {})}
+              onPress={() => void shareText(`Listening to "${ep.title}" from ${pod.title} on Amazon Music Podcasts`)}
             >
               <Ionicons name="share-outline" size={20} color="#fff" />
               <Text style={s.utilLabel}>Share</Text>

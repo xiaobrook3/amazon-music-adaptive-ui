@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react'
 import { Modal, View, TouchableOpacity, StyleSheet, Pressable, Dimensions } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import * as Sharing from 'expo-sharing'
-import { captureRef } from 'react-native-view-shot'
+import { captureView } from '../utils/captureView'
 import { MaterialIcons, Ionicons } from '@expo/vector-icons'
 import { Text } from './AppText'
 import { AppImage as Image } from './AppImage'
@@ -10,6 +9,7 @@ import { useProfiles } from '../context/ProfilesContext'
 import { useAdaptiveUI } from '../context/AdaptiveUIContext'
 import { FONT_FAMILY_DISPLAY, FONT_FAMILY_EMBER, C } from '../theme'
 import { hannahJourneyAssets } from '../data/assetMap'
+import { shareImage } from '../utils/share'
 
 const CARD_W = 340
 const CARD_H = 528
@@ -65,12 +65,8 @@ export default function SuperfanCardModal({
     try {
       // Let the share button unmount before capture so it isn't in the image.
       await new Promise<void>(resolve => setTimeout(resolve, 64))
-      const uri = await captureRef(cardRef, { format: 'png', quality: 1, result: 'tmpfile' })
-      if (!(await Sharing.isAvailableAsync())) {
-        showConfirmation('Sharing is not available on this device')
-        return
-      }
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your superfan card' })
+      const uri = await captureView(cardRef)
+      await shareImage(uri, { dialogTitle: 'Share your superfan card', filename: 'superfan-card.png' })
     } catch {
       showConfirmation('Could not share your card — try again')
     } finally {

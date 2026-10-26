@@ -53,8 +53,8 @@ import { tintFromHue } from '../../utils/color'
 import { C, R, typeHeadline } from '../../theme'
 import ShareFanCard from './ShareFanCard'
 import SuperfanGoldGlow, { SUPERFAN_GOLD } from '../SuperfanGoldGlow'
-import * as Sharing from 'expo-sharing'
-import { captureRef } from 'react-native-view-shot'
+import { captureView } from '../../utils/captureView'
+import { shareImage } from '../../utils/share'
 
 const SCREEN_W = Platform.OS === 'web' ? Math.min(Dimensions.get('window').width, 402) : Dimensions.get('window').width
 // Love Island Villa/Cast cards page at near-full width (same as the baseline home).
@@ -297,13 +297,8 @@ export default function AdaptivePersonaHome() {
   const shareCardRef = useRef<View>(null)
   const handleShareFanCard = async () => {
     try {
-      const uri = await captureRef(shareCardRef, { format: 'png', quality: 0.92 })
-      const canShare = await Sharing.isAvailableAsync()
-      if (!canShare) {
-        showConfirmation('Sharing is not available on this device')
-        return
-      }
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your fan card' })
+      const uri = await captureView(shareCardRef, 0.92)
+      await shareImage(uri, { dialogTitle: 'Share your fan card', filename: 'fan-card.png' })
     } catch {
       showConfirmation('Could not create your fan card — try again')
     }

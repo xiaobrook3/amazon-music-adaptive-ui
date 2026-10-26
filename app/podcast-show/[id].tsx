@@ -19,6 +19,7 @@ import { findPodcast, podcastEpisode, droppedLabel } from '../../src/data/podcas
 import { EdgeFadeRow } from '../../src/components/EdgeFadeRow'
 import StandaloneTabBar from '../../src/components/StandaloneTabBar'
 import { C, R, typeHeadline } from '../../src/theme'
+import { shareText } from '../../src/utils/share'
 
 const EPISODE_TOPICS = [
   'The full story behind the biggest moments this week',
@@ -80,7 +81,7 @@ export default function PodcastShowScreen() {
   const [downloaded, setDownloaded] = useState(false)
 
   const handleShare = () => {
-    Share.share({ message: `Check out "${pod.title}" by ${pod.host} on Amazon Music Podcasts` }).catch(() => {})
+    void shareText(`Check out "${pod.title}" by ${pod.host} on Amazon Music Podcasts`)
   }
 
   const similar = useMemo(

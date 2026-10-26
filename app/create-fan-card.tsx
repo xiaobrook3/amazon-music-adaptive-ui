@@ -14,8 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
-import * as Sharing from 'expo-sharing'
-import { captureRef } from 'react-native-view-shot'
+import { captureView } from '../src/utils/captureView'
 import { useAdaptiveUI } from '../src/context/AdaptiveUIContext'
 import SuperFanCard, {
   FAN_CARD_MAIN_MAX,
@@ -26,6 +25,7 @@ import SuperFanCard, {
 import { artists } from '../src/data/mockData'
 import { artistAssets } from '../src/data/assetMap'
 import { C, R, typeHeadline, typeSubhead } from '../src/theme'
+import { shareImage } from '../src/utils/share'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -113,13 +113,8 @@ export default function CreateFanCardScreen() {
     }
     setSharing(true)
     try {
-      const uri = await captureRef(cardRef, { format: 'png', quality: 0.95 })
-      const canShare = await Sharing.isAvailableAsync()
-      if (!canShare) {
-        showConfirmation('Sharing is not available on this device')
-        return
-      }
-      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your Super Fan card' })
+      const uri = await captureView(cardRef, 0.95)
+      await shareImage(uri, { dialogTitle: 'Share your Super Fan card', filename: 'super-fan-card.png' })
     } catch {
       showConfirmation('Could not create your card — try again')
     } finally {

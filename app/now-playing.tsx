@@ -38,6 +38,7 @@ import { C, R, typeHeadline, typeSubhead } from '../src/theme'
 import GlassCircleButton, { GlassPlayButton } from '../src/components/GlassCircleButton'
 import BlurredArtBackground from '../src/components/BlurredArtBackground'
 import { parseDurationSeconds, formatClock } from '../src/utils/color'
+import { shareText } from '../src/utils/share'
 
 const { width, height } = Dimensions.get('window')
 // On web the app renders inside a 402x874 phone frame — size the art against the
@@ -224,7 +225,7 @@ export default function NowPlayingScreen() {
     showConfirmation(`"${song.title}" added to Liked Songs`)
   }
   const handleShare = () => {
-    Share.share({ message: `Listen to "${song.title}" by ${song.artistName} on Amazon Music` }).catch(() => {})
+    void shareText(`Listen to "${song.title}" by ${song.artistName} on Amazon Music`)
   }
   const handleCast = () => showConfirmation('No Cast devices found nearby')
 
