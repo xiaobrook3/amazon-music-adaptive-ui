@@ -443,7 +443,7 @@ export default function OliviaRodrigoArtistScreen() {
                           style={s.sinceBubbleIcon}
                           resizeMode="contain"
                         />
-                        <Text style={[s.sinceText, s.sinceTextHJ]}>Since Mar 2020</Text>
+                        <Text style={[s.sinceText, s.sinceTextHJ]}>Since Mar 2021</Text>
                       </View>
                     </>
                   )}
@@ -660,8 +660,9 @@ export default function OliviaRodrigoArtistScreen() {
             </View>
             )}
 
-            {/* Exclusive For You: superfan perks — merch discounts, presales, tour tickets */}
-            {!isCasualListener && !isEngagedListener && exclusiveOffers.length > 0 && (
+            {/* Exclusive For You: superfan perks — merch discounts, presales, tour tickets.
+                Web build only: the case study this export is embedded in says tiers change recognition and order, not access, so the gated section does not ship there. Native is unchanged. */}
+            {Platform.OS !== 'web' && !isCasualListener && !isEngagedListener && exclusiveOffers.length > 0 && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Exclusive For You</Text>
                 <ScrollView

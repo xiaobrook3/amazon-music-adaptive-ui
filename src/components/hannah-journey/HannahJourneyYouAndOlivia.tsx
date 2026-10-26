@@ -153,11 +153,13 @@ const ERA_PLAYED_SECTION: Record<HannahJourneyEraId, string> = {
   newbie: 'What You Played Back Then',
 }
 
+// "Where it started" names one play of one song, so it is one date in every era.
+// It was 13 March 2019 in three eras: two years before "Drivers License" existed.
 const ERA_FIRST_PLAY_DATE: Record<HannahJourneyEraId, string> = {
-  'girl-in-love': '13 March 2019',
+  'girl-in-love': '13 March 2021',
   sour: '13 March 2021',
-  pretty: '13 March 2019',
-  newbie: '13 March 2019',
+  pretty: '13 March 2021',
+  newbie: '13 March 2021',
 }
 
 // The "All Time Favorite" card is deliberately stage- and era-independent —

@@ -386,6 +386,8 @@ export default function BTSArtistScreen() {
             </View>
 
             {/* ── Exclusive For You ─────────────────────────────────────── */}
+            {/* Web build only: the case study this export is embedded in says tiers change recognition and order, not access, so the gated section does not ship there. Native is unchanged. */}
+            {Platform.OS !== 'web' && (
             <View style={s.block}>
               <Text style={s.sectionTitle}>Exclusive For You</Text>
               <TouchableOpacity style={s.exclusiveCard} onPress={() => playBts(BTS_EXCLUSIVE_TRACK.songId)} activeOpacity={0.85}>
@@ -410,6 +412,7 @@ export default function BTSArtistScreen() {
                 </ImageBackground>
               </TouchableOpacity>
             </View>
+            )}
 
             {/* "Your #1 Most Played" was removed here — that claim now lives
                 only in the All Time Favorite section on the You & Artist tab. */}

@@ -69,7 +69,7 @@ const SUPERFAN_HERO_CARDS: SuperfanHero[] = [
     shareMessage: "I'm a Top 3% Olivia Rodrigo Listener on Amazon Music — among 4M+ listeners worldwide!",
     subline: 'among 4M+ listeners worldwide',
     stats: [
-      { icon: 'history', title: 'First play, March 2019', subtitle: 'Olivia had 41k listeners' },
+      { icon: 'history', title: 'First play, March 2021', subtitle: 'Olivia had 41k listeners' },
       { icon: 'repeat', title: '47 of the last 52 weeks', subtitle: 'You played her songs 3,240 times' },
       { icon: 'library-music', title: 'You played 38 of her 54 songs', subtitle: 'You explored more than her top hits' },
     ],

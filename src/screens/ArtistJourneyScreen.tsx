@@ -397,8 +397,8 @@ export default function ArtistJourneyScreen({ id }: { id: string }) {
 
         {tab === journeyTab ? (
           <View style={s.content}>
-            {/* Exclusive */}
-            {page.exclusive && (
+            {/* Exclusive. Web build only: the case study this export is embedded in says tiers change recognition and order, not access, so the gated section does not ship there. Native is unchanged. */}
+            {Platform.OS !== 'web' && page.exclusive && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Exclusive For You</Text>
                 <View style={s.exclusiveCard}>

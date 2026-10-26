@@ -492,8 +492,9 @@ export default function TaylorSwiftArtistScreen() {
               </View>
             )}
 
-            {/* Exclusive For You — not on Olivia's HJ-superfan page, every other persona only */}
-            {!isHannahJourney && (
+            {/* Exclusive For You — not on Olivia's HJ-superfan page, every other persona only.
+                Web build only: the case study this export is embedded in says tiers change recognition and order, not access, so the gated section does not ship there. Native is unchanged. */}
+            {Platform.OS !== 'web' && !isHannahJourney && (
               <View style={s.block}>
                 <Text style={s.sectionTitle}>Exclusive For You</Text>
                 <TouchableOpacity style={s.exclusiveCard} onPress={() => playTaylor(TAYLOR_EXCLUSIVE_TRACK.songId)} activeOpacity={0.85}>

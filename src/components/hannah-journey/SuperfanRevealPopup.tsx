@@ -138,7 +138,7 @@ export default function SuperfanRevealPopup() {
                 <View style={s.statsList}>
                   <StatRow
                     icon="history"
-                    title="First play, March 2019"
+                    title="First play, March 2021"
                     subtitle="Olivia had 41k listeners"
                   />
                   <StatRow

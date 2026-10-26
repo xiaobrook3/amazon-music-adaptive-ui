@@ -75,7 +75,7 @@ export const HANNAH_JOURNEY_ERAS: HannahJourneyEra[] = [
   },
   {
     id: 'newbie',
-    season: 'Spring 2019',
+    season: 'Spring 2021',
     title: 'Newbie Livie',
     badge: 'You found Olivia',
     description:
