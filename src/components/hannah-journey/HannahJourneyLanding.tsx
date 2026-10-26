@@ -358,7 +358,7 @@ function findSongId(row: SongRow): string | undefined {
  */
 export default function HannahJourneyLanding() {
   const router = useRouter()
-  const { stage, revealEligible, openReveal } = useHannahJourney()
+  const { stage, revealEligible, openReveal, isGroupJoined } = useHannahJourney()
   const { playSongAt } = usePlaybackState()
   const { scrollY, onScroll } = useStickyHomeScroll()
   const data = STAGE_DATA[stage]
@@ -696,7 +696,9 @@ export default function HannahJourneyLanding() {
                         ) : null}
                       </Text>
                     </View>
-                    {g.cta === 'join' ? (
+                    {/* Membership comes from the journey, shared with the group page, so a
+                        group joined there (or a super fan's own group) no longer says Join. */}
+                    {!isGroupJoined(g.groupId) ? (
                       <TouchableOpacity style={s.joinBtn} activeOpacity={0.85} onPress={openGroup}>
                         <Text style={s.joinText}>Join</Text>
                       </TouchableOpacity>

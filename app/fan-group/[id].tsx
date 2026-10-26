@@ -22,6 +22,7 @@ import { getArtistAbout } from '../../src/data/artistAbout'
 import { usePlaybackState } from '../../src/hooks/usePlaybackState'
 import { useAdaptiveUI } from '../../src/context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../../src/components/AdaptiveContextMenu'
+import { useHannahJourney } from '../../src/context/HannahJourneyContext'
 import StandaloneTabBar from '../../src/components/StandaloneTabBar'
 import { C, R, FONT_FAMILY, typeHeadline } from '../../src/theme'
 
@@ -115,7 +116,14 @@ export default function FanGroupScreen() {
   )
   const aboutBlurb = artistId ? getArtistAbout(artistId)?.storyBody : null
 
-  const [joined, setJoined] = useState(false)
+  // The journey's groups share membership with Home's group cards (a super fan is
+  // already a member of Olivia's); other groups keep this page's own toggle.
+  const { isHannahJourney, isGroupJoined, setGroupJoined } = useHannahJourney()
+  const journeyGroup = isHannahJourney && group.id.startsWith('fg-hj-')
+  const [localJoined, setLocalJoined] = useState(false)
+  const joined = journeyGroup ? isGroupJoined(group.id) : localJoined
+  const toggleJoined = () =>
+    journeyGroup ? setGroupJoined(group.id, !joined) : setLocalJoined(v => !v)
   const [tab, setTab] = useState<Tab>('Posts')
   const [sort, setSort] = useState<'Newest' | 'Top'>('Newest')
 
@@ -186,7 +194,9 @@ export default function FanGroupScreen() {
             <TouchableOpacity
               style={[s.joinPill, joined && s.joinPillActive]}
               activeOpacity={0.8}
-              onPress={() => setJoined(v => !v)}
+              onPress={toggleJoined}
+              accessibilityRole="button"
+              accessibilityState={{ selected: joined }}
             >
               <Text style={[s.joinPillText, joined && s.joinPillTextActive]}>{joined ? 'Joined' : 'Join'}</Text>
             </TouchableOpacity>

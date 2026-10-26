@@ -72,8 +72,8 @@ export function useAdaptiveMenu(): MenuContextValue {
 const SHEET_OFFSET = 420
 
 export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
-  const { makeAdaptiveAbout, removeArtistFromAdaptive, blockedArtistIds } = useAdaptiveUI()
-  const { isHannahJourney, stage: hannahJourneyStage, forceSuperfan } = useHannahJourney()
+  const { makeAdaptiveAbout, removeArtistFromAdaptive, blockedArtistIds, showConfirmation } = useAdaptiveUI()
+  const { isHannahJourney, stage: hannahJourneyStage, forceSuperfan, unfollow } = useHannahJourney()
   const insets = useSafeAreaInsets()
   const [target, setTarget] = useState<AdaptiveTarget | null>(null)
 
@@ -144,6 +144,22 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
   const handleJumpToSuperfan = useCallback(() => {
     dismiss(() => forceSuperfan())
   }, [dismiss, forceSuperfan])
+
+  // Olivia's menu, once she's followed: the way out, including from Super Fan, whose
+  // button opens this menu rather than unfollowing on one tap.
+  const showUnfollow =
+    isHannahJourney &&
+    !!target &&
+    target.kind === 'artist' &&
+    target.artistId === 'olivia-rodrigo' &&
+    hannahJourneyStage !== 'new-listener'
+
+  const handleUnfollow = useCallback(() => {
+    dismiss(() => {
+      unfollow()
+      showConfirmation('Unfollowed Olivia')
+    })
+  }, [dismiss, unfollow, showConfirmation])
 
   return (
     <MenuContext.Provider value={{ open }}>
@@ -235,6 +251,24 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
                     <Text style={s.actionLabel}>Jump to Super Fan</Text>
                     <Text style={s.actionSub} numberOfLines={1}>
                       Skip ahead to the superfan stage
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+
+              {showUnfollow && (
+                <Pressable
+                  style={({ pressed }) => [s.action, pressed && s.actionPressed]}
+                  onPress={handleUnfollow}
+                  accessibilityRole="button"
+                >
+                  <View style={s.actionIcon}>
+                    <Ionicons name="heart-dislike-outline" size={18} color={C.rose} />
+                  </View>
+                  <View style={s.actionText}>
+                    <Text style={s.actionLabel}>Unfollow Olivia</Text>
+                    <Text style={s.actionSub} numberOfLines={1}>
+                      Back to the page a new listener sees
                     </Text>
                   </View>
                 </Pressable>

@@ -106,6 +106,7 @@ export default function OliviaRodrigoArtistScreen() {
     isHannahJourney,
     stage: hannahJourneyStage,
     becomeEngaged,
+    unfollow: unfollowJourney,
   } = useHannahJourney()
   const { open: openAdaptiveMenu } = useAdaptiveMenu()
   const { likedSongIds, addLike } = useLikedSongs()
@@ -116,7 +117,8 @@ export default function OliviaRodrigoArtistScreen() {
   // Music from a taller tab), that read as a dead black gap at the bottom
   // instead of clamping to the new content. Reset to top on every tab switch.
   const pageScrollRef = useRef<ScrollView>(null)
-  const [selectedEraId, setSelectedEraId] = useState<OliviaEraId>('sour')
+  // Newest era first on the rail, so the tab opens on it.
+  const [selectedEraId, setSelectedEraId] = useState<OliviaEraId>(OLIVIA_ERAS[0].id)
 
   // Three tiers on the "You & Olivia" tab:
   //  - casual (KSM): tab starts LOCKED — hidden until she's followed, played,
@@ -204,14 +206,18 @@ export default function OliviaRodrigoArtistScreen() {
   }, [params.tab, journeyTabUnlocked])
 
   // Re-sync follow button when switching personas (e.g. KSM reset clears engagement
-  // but the screen may stay mounted with a stale "Following" label).
+  // but the screen may stay mounted with a stale "Following" label), and when the
+  // journey stage changes. Only then: hasEverFollowed from the unlock hook is a new
+  // function every render, so listing it here re-ran this after every render and put
+  // "Following" back the moment someone unfollowed.
   useEffect(() => {
     if (isHannahJourney) {
-      setFollowing(hannahJourneyStage !== 'new-listener' || hasEverFollowed())
+      setFollowing(hannahJourneyStage !== 'new-listener')
     } else {
       setFollowing(!startsCasual || hasEverFollowed())
     }
-  }, [activeProfile.id, startsCasual, hasEverFollowed, isHannahJourney, hannahJourneyStage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProfile.id, startsCasual, isHannahJourney, hannahJourneyStage])
 
   // After Restart Journey, force Music tab so the new-listener layout re-renders.
   useEffect(() => {
@@ -259,8 +265,14 @@ export default function OliviaRodrigoArtistScreen() {
         // Stay on Music — tab unlock UX (toast + rail scroll + dot + trace) handles discovery.
         becomeEngaged()
       }
+      setFollowing(true)
+      return
     }
-    setFollowing(v => !v)
+    // Unfollow: the journey drops back to the new-listener page (the tab and the
+    // header photo go); other personas just lose the follow.
+    if (isHannahJourney) unfollowJourney()
+    setFollowing(false)
+    showConfirmation('Unfollowed Olivia')
   }
 
   const selectedEra = useMemo(
@@ -461,7 +473,17 @@ export default function OliviaRodrigoArtistScreen() {
             <View style={s.controlPanel}>
               <View style={s.controlLeft}>
                 <TouchableOpacity
-                  onPress={isJourneySuperfan ? undefined : toggleFollow}
+                  // Super Fan is a status, so it opens Olivia's menu (which has Unfollow)
+                  // instead of unfollowing on one tap.
+                  onPress={isJourneySuperfan ? showOliviaMenu : toggleFollow}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isJourneySuperfan
+                      ? 'Super Fan. Opens options, including Unfollow'
+                      : following
+                        ? 'Following. Tap to unfollow'
+                        : 'Follow'
+                  }
                   onLayout={
                     isJourneySuperfan
                       ? e => {
@@ -482,7 +504,7 @@ export default function OliviaRodrigoArtistScreen() {
                     // Super Fan (which already had its own copy of this).
                     isHannahJourney && s.followBtnPaddingHJ,
                   ]}
-                  activeOpacity={isJourneySuperfan ? 1 : 0.7}
+                  activeOpacity={0.7}
                 >
                   {isJourneySuperfan ? (
                     <>
