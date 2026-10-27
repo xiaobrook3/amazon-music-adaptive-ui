@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Text } from '../AppText'
 import { AppImage as Image } from '../AppImage'
 import LyricCardStack, { type LyricStackItem } from '../artist/LyricCardStack'
@@ -18,7 +18,10 @@ import { albumArtAssets, hannahJourneyAssets, oliviaPageAssets } from '../../dat
 import { FONT_FAMILY_DISPLAY, FONT_FAMILY_EMBER, C } from '../../theme'
 import { songs as allSongs } from '../../data/mockData'
 import { useLikedSongs } from '../../context/LikedSongsContext'
+import { useAdaptiveUI } from '../../context/AdaptiveUIContext'
 import { useAdaptiveMenu } from '../AdaptiveContextMenu'
+import { captureView } from '../../utils/captureView'
+import { shareImage } from '../../utils/share'
 
 const ERA_CARD_W = 120
 const ERA_CARD_H = 166
@@ -71,6 +74,12 @@ const ERA_LYRIC_FANS_LABEL: Record<HannahJourneyEraId, string> = {
 const highlightCardBg = require('../../../assets/hannah-journey/you-and-olivia-engaged-asset-03.png')
 const superfanHeroPhoto = require('../../../assets/hannah-journey/you-and-olivia-superfan-sour-asset-08.png')
 const shareGlyph = require('../../../assets/hannah-journey/superfan-reveal-popup-share.png')
+
+/** Engaged shows the relationship so far, so its totals are the eras' totals; the
+ *  superfan view breaks the same history down by era. A fixed Engaged figure (1204
+ *  minutes) read as all-time yet came in under a single era (Sour, 1840). */
+const ALL_TIME_MINUTES = HANNAH_JOURNEY_ERAS.reduce((total, era) => total + era.minutesListened, 0)
+const LONGEST_STREAK_DAYS = Math.max(...HANNAH_JOURNEY_ERAS.map(era => era.streakDays))
 
 /**
  * Era content background — true radial gradient (react-native-svg), matching the
@@ -191,6 +200,35 @@ export default function HannahJourneyYouAndOlivia({
   const { toggleLike } = useLikedSongs()
   const { stage, selectedEraId, selectedEra, setSelectedEraId } = useHannahJourney()
   const isSuperfan = stage === 'superfan'
+  const { showConfirmation } = useAdaptiveUI()
+  const superfanCardRef = useRef<View>(null)
+  const timeTogetherRef = useRef<View>(null)
+  const [sharing, setSharing] = useState<'card' | 'time' | null>(null)
+
+  // Both share glyphs on this tab share a picture of what they sit on, the way the Home
+  // reveal's card does; in a desktop browser that can't share files, the picture downloads.
+  const shareCapture = async (which: 'card' | 'time') => {
+    const ref = which === 'card' ? superfanCardRef : timeTogetherRef
+    if (!ref.current || sharing) return
+    setSharing(which)
+    try {
+      // Wait a tick so the share glyph unmounts before capture (cleaner shared image).
+      await new Promise<void>(resolve => setTimeout(resolve, 64))
+      // The card carries its own photo; the time block sits on the page, so it gets the
+      // page's black or its white title would vanish on a light viewer.
+      const uri = await captureView(ref, 1, which === 'time' ? '#000' : null)
+      await shareImage(
+        uri,
+        which === 'card'
+          ? { dialogTitle: 'Share your Top 3% card', filename: 'top-3-percent-card.png' }
+          : { dialogTitle: 'Share your time with Olivia', filename: 'time-with-olivia.png' },
+      )
+    } catch {
+      showConfirmation('Could not share your card — try again')
+    } finally {
+      setSharing(null)
+    }
+  }
   const eraPlaylists = ERA_PLAYLISTS[selectedEraId]
   const seasonLabel = selectedEra.season.toUpperCase()
   const playedThen = ERA_PLAYED[selectedEraId]
@@ -259,10 +297,20 @@ export default function HannahJourneyYouAndOlivia({
         </View>
       )}
 
-      <View style={s.block}>
+      <View style={s.block} ref={timeTogetherRef} collapsable={false}>
         <View style={s.rowBetween}>
           <Text style={s.sectionTitle}>Time You Spent Together</Text>
-          <Image source={shareGlyph} style={s.shareGlyphSm} resizeMode="contain" />
+          {sharing !== 'time' && (
+            <TouchableOpacity
+              onPress={() => shareCapture('time')}
+              activeOpacity={0.8}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Share your time with Olivia"
+            >
+              <Image source={shareGlyph} style={s.shareGlyphSm} resizeMode="contain" />
+            </TouchableOpacity>
+          )}
         </View>
         <View style={s.statsCard}>
           <LinearGradient
@@ -273,13 +321,13 @@ export default function HannahJourneyYouAndOlivia({
           <View style={s.statCol}>
             <Text style={s.statLabel}>Minutes Listened</Text>
             <Text style={s.statNum}>
-              {isSuperfan ? selectedEra.minutesListened : 1204}
+              {isSuperfan ? selectedEra.minutesListened : ALL_TIME_MINUTES}
             </Text>
           </View>
           <View style={s.statCol}>
             <Text style={s.statLabel}>Longest Streaks</Text>
             <View style={s.statNumRow}>
-              <Text style={s.statNum}>{isSuperfan ? selectedEra.streakDays : 47}</Text>
+              <Text style={s.statNum}>{isSuperfan ? selectedEra.streakDays : LONGEST_STREAK_DAYS}</Text>
               <Text style={s.statUnit}>Days</Text>
             </View>
           </View>
@@ -489,7 +537,7 @@ export default function HannahJourneyYouAndOlivia({
               activeOpacity={0.9}
               onPress={() => router.push('/insights' as any)}
             >
-              <View style={s.superfanHeroInner}>
+              <View style={s.superfanHeroInner} ref={superfanCardRef} collapsable={false}>
                 <Image source={superfanHeroPhoto} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                 <LinearGradient
                   colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.32)']}
@@ -507,9 +555,17 @@ export default function HannahJourneyYouAndOlivia({
                     <Text style={s.sfHeadline}>Top 3% Listener</Text>
                     <Text style={s.sfSub}>among 4M+ listeners worldwide</Text>
                   </View>
-                  <TouchableOpacity style={s.sfShare} activeOpacity={0.8}>
-                    <Image source={shareGlyph} style={s.shareGlyph} resizeMode="contain" />
-                  </TouchableOpacity>
+                  {sharing !== 'card' && (
+                    <TouchableOpacity
+                      style={s.sfShare}
+                      activeOpacity={0.8}
+                      onPress={() => shareCapture('card')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Share your Top 3% card"
+                    >
+                      <Image source={shareGlyph} style={s.shareGlyph} resizeMode="contain" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>

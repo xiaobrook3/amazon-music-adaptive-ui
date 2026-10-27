@@ -71,6 +71,9 @@ export function useAdaptiveMenu(): MenuContextValue {
 
 const SHEET_OFFSET = 420
 
+/** Shown under the theme actions where they can't apply (see `themesApply`). */
+const THEMES_OFF = 'Home themes are off in this demo'
+
 export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
   const { makeAdaptiveAbout, removeArtistFromAdaptive, blockedArtistIds, showConfirmation } = useAdaptiveUI()
   const { isHannahJourney, stage: hannahJourneyStage, forceSuperfan, unfollow } = useHannahJourney()
@@ -119,6 +122,10 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
   const thumb = target ? resolveThumb(target) : null
   const removable = target ? removableArtist(target) : null
   const isBlocked = removable ? blockedArtistIds.includes(removable.id) : false
+  // Hannah's Journey has its own Home, which never reads Adaptive UI themes, so the two
+  // theme actions changed nothing there but still reported a change. In the journey they
+  // stay in the menu, disabled, and say why.
+  const themesApply = !isHannahJourney
   // Visible debug shortcut (not hidden, unlike the profile-switcher long-press) —
   // only on Olivia's own three-dot menu, only for Hannah's Journey, only before
   // she's already superfan.
@@ -206,8 +213,11 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
 
               {/* Make Adaptive UI about this */}
               <Pressable
-                style={({ pressed }) => [s.action, pressed && s.actionPressed]}
+                style={({ pressed }) => [s.action, pressed && themesApply && s.actionPressed, !themesApply && s.actionDisabled]}
                 onPress={handleMakeAdaptive}
+                disabled={!themesApply}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !themesApply }}
               >
                 <View style={[s.actionIcon, s.actionIconAccent]}>
                   <Ionicons name="sparkles" size={17} color={C.cyan} />
@@ -215,7 +225,7 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
                 <View style={s.actionText}>
                   <Text style={s.actionLabel}>Make Adaptive UI about this</Text>
                   <Text style={s.actionSub} numberOfLines={1}>
-                    Reshape home around {focusName(target)}
+                    {themesApply ? `Reshape home around ${focusName(target)}` : THEMES_OFF}
                   </Text>
                 </View>
               </Pressable>
@@ -223,8 +233,11 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
               {/* Remove from Adaptive UI (artists & songs only) */}
               {removable && !isBlocked && (
                 <Pressable
-                  style={({ pressed }) => [s.action, pressed && s.actionPressed]}
+                  style={({ pressed }) => [s.action, pressed && themesApply && s.actionPressed, !themesApply && s.actionDisabled]}
                   onPress={handleRemove}
+                  disabled={!themesApply}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !themesApply }}
                 >
                   <View style={s.actionIcon}>
                     <Ionicons name="remove-circle-outline" size={19} color={C.rose} />
@@ -232,7 +245,7 @@ export function AdaptiveMenuProvider({ children }: { children: ReactNode }) {
                   <View style={s.actionText}>
                     <Text style={[s.actionLabel, { color: C.cyan }]}>Remove from Adaptive UI</Text>
                     <Text style={s.actionSub} numberOfLines={1}>
-                      Stop {removable.name} from shaping your home
+                      {themesApply ? `Stop ${removable.name} from shaping your home` : THEMES_OFF}
                     </Text>
                   </View>
                 </Pressable>
@@ -327,6 +340,7 @@ const s = StyleSheet.create({
     borderRadius: R.md,
   },
   actionPressed: { backgroundColor: 'rgba(255,255,255,0.06)' },
+  actionDisabled: { opacity: 0.45 },
   actionIcon: {
     width: 38,
     height: 38,

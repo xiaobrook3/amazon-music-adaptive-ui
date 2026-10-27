@@ -286,8 +286,8 @@ export default function OliviaRodrigoArtistScreen() {
   const oldestEraId = OLIVIA_ERAS[OLIVIA_ERAS.length - 1].id
 
   // Engaged listeners are still building the relationship — modest numbers,
-  // not a superfan's big ones. Hannah Journey Engaged uses Figma numbers (1204 / 47 / #4)
-  // inside HannahJourneyYouAndOlivia — these remain for non-journey personas.
+  // not a superfan's big ones. Hannah Journey Engaged totals its eras instead
+  // (HannahJourneyYouAndOlivia) — these remain for non-journey personas.
   const journeyStats = isEngagedListener ? OLIVIA_JOURNEY_STATS_ENGAGED : OLIVIA_JOURNEY_STATS
 
   const firstSong = songs.find(s => s.artistId === 'olivia-rodrigo')

@@ -7,8 +7,9 @@
  * Mirrors the structure of Olivia's Hannah-Journey Engaged "You & Olivia"
  * tab (src/components/hannah-journey/HannahJourneyYouAndOlivia.tsx): a
  * "Time You Spent Together" stat block, a favorites rail, and a "Where It
- * Started" card. That same Olivia component hardcodes its engaged-tier
- * stats (1204 min / 47 day streak / #4 among friends) rather than reading
+ * Started" card. That same Olivia component fills its engaged-tier stats
+ * from fixed demo data (the eras' total minutes, the longest era streak, #4
+ * among friends) rather than reading
  * per-relationship analytics that don't exist — same precedent followed
  * here, with different round numbers per artist so they don't read as
  * copy-pasted.
