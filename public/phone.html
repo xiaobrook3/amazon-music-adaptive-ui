@@ -36,7 +36,9 @@
   .ip-btn--vol1{ left:-16px; top:236px; height:46px; }
   .ip-btn--vol2{ left:-16px; top:292px; height:46px; }
   .ip-btn--power{ right:-16px; top:266px; height:72px; }
-  .device{ position:relative; width:100%; height:100%; border-radius:54px; background:#000; overflow:hidden; }
+  /* z-index lifts the screen above .iphone::after (the solid bezel plate),
+     which otherwise paints later in tree order and blacks out the app. */
+  .device{ position:relative; z-index:2; width:100%; height:100%; border-radius:54px; background:#000; overflow:hidden; }
   .device::after{ content:""; position:absolute; inset:0; z-index:80; border-radius:inherit; pointer-events:none;
     box-shadow:inset 0 0 2px rgba(255,255,255,.16), inset 0 0 14px rgba(255,255,255,.04); }
   .statusbar{ position:absolute; top:0; left:0; right:0; z-index:60; height:var(--sbh);
@@ -57,24 +59,29 @@
   .g-h1{ font-size:23px; line-height:1.22; font-weight:800; color:#fff; margin:2px 0 0; letter-spacing:-.01em; }
   .g-value{ font-size:13.5px; line-height:1.55; color:#a7b0bc; margin:0; }
   .g-value b{ color:#d9e0e8; font-weight:600; }
-  .paths{ display:flex; flex-direction:column; gap:9px; margin-top:2px; }
-  .path{ display:flex; gap:12px; align-items:flex-start; text-align:left; width:100%;
+  /* the journey, one step per tier: what to do in the phone, what changes, and a
+     button that jumps straight there for anyone who would rather not wait */
+  .steps{ list-style:none; margin:2px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .step{ display:flex; gap:12px; align-items:flex-start;
     border:1px solid var(--line); border-radius:14px; background:rgba(13,17,23,.72); padding:12px 14px;
-    cursor:pointer; color:inherit; text-decoration:none; font:inherit; transition:border-color .2s, background .2s; }
-  .path:hover{ border-color:rgba(37,209,218,.45); background:rgba(16,22,29,.85); }
-  .path.active{ border-color:var(--accent); background:rgba(0,213,221,.07); }
-  .path__n{ flex:none; width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
+    transition:border-color .2s, background .2s; }
+  .step.active{ border-color:var(--accent); background:rgba(0,213,221,.07); }
+  .step__n{ flex:none; width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
     background:rgba(37,209,218,.14); color:var(--accent); font-weight:800; font-size:11.5px; margin-top:1px; }
-  .path__t{ font-weight:700; font-size:13.5px; color:#fff; display:block; }
-  .path__d{ font-size:12px; line-height:1.5; color:#8f99a5; margin-top:3px; display:block; }
-  .path__d b{ color:#c3cbd4; font-weight:600; }
-  .personas{ display:flex; gap:7px; margin-top:8px; flex-wrap:wrap; }
-  .persona{ flex:1; min-width:104px; text-decoration:none; text-align:center; padding:7px 8px; border-radius:11px;
-    border:1px solid var(--line); background:rgba(13,17,23,.72); color:#c3cbd4; font-size:11px; font-weight:700; transition:border-color .2s; }
-  .persona:hover{ border-color:rgba(37,209,218,.45); }
-  .persona i{ display:block; font-style:normal; color:var(--accent); font-size:10px; font-weight:800; letter-spacing:.06em; margin-bottom:2px; text-transform:uppercase; }
-  .g-fixed{ font-size:11.5px; line-height:1.55; color:#77818d; margin:2px 0 0; padding-top:12px; border-top:1px solid var(--line); }
-  .g-fixed b{ color:#a7b0bc; font-weight:600; }
+  .step__body{ display:flex; flex-direction:column; min-width:0; }
+  .step__t{ font-weight:700; font-size:13.5px; color:#fff; }
+  .step__d{ font-size:12px; line-height:1.5; color:#8f99a5; margin-top:3px; }
+  .step__go, .g-chip{ font:inherit; font-size:12px; font-weight:700; border-radius:999px; padding:5px 11px; cursor:pointer;
+    transition:border-color .2s, background .2s, color .2s; }
+  .step__go{ align-self:flex-start; margin-top:8px; color:var(--accent); background:transparent; border:1px solid rgba(37,209,218,.45); }
+  .step__go:hover{ background:rgba(37,209,218,.1); }
+  .g-more{ display:flex; flex-wrap:wrap; align-items:center; gap:7px; font-size:12px; color:#8f99a5; }
+  .g-chip{ color:#c3cbd4; background:rgba(13,17,23,.72); border:1px solid var(--line); }
+  .g-chip:hover{ border-color:rgba(37,209,218,.45); }
+  .g-chip.active{ border-color:var(--accent); color:#fff; }
+  .step__go:focus-visible, .g-chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .g-fixed{ font-size:11.5px; line-height:1.55; color:#8f99a5; margin:2px 0 0; padding-top:12px; border-top:1px solid var(--line); }
+  .g-fixed b{ color:#c3cbd4; font-weight:600; }
   .g-credit{ font-size:11px; color:#5f6873; }
   .g-credit a{ color:#8f99a5; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.16); }
   .g-credit a:hover{ color:#cfd6de; }
@@ -82,8 +89,9 @@
   /* stacked below the phone on narrow desktops */
   @media (max-width:1020px){ body{ gap:28px; } .guide{ width:min(560px,100%); } }
 
-  /* on a real phone: drop bezel + fake status bar, app fills the screen, guide
-     collapses to one row of pathway chips so the client keeps the viewport */
+  /* on a real phone: drop bezel + fake status bar and let the app fill the screen.
+     The guide sits below it, so the steps keep their words: they are the only
+     place that says how to move up a tier. */
   @media (max-width:440px){
     body{ padding:10px 8px 12px; gap:10px; height:auto; min-height:100dvh; flex-direction:column; justify-content:flex-start; }
     .stage{ width:100%; flex:1 1 auto; display:flex; }
@@ -92,11 +100,9 @@
     .device{ border-radius:20px; }
     .statusbar,.island{ display:none; }
     .appframe{ top:0; height:100%; }
-    .guide{ width:100%; gap:8px; }
-    .g-h1,.g-value,.path__d,.g-fixed{ display:none; }
-    .paths{ flex-direction:row; overflow-x:auto; scrollbar-width:none; }
-    .path{ flex:none; padding:9px 12px; }
-    .personas{ display:none; }
+    .guide{ width:100%; gap:10px; }
+    .g-h1{ display:none; }
+    .step{ padding:10px 12px; }
   }
 </style>
 </head>
@@ -128,34 +134,52 @@
       <div class="g-kicker">DERBC Studio <b>· CMU MHCI 2026 × Amazon Music</b></div>
       <h1 class="g-h1">Amazon Music that reshapes around the listener</h1>
     </div>
-    <p class="g-value">Every screen on the phone is live. The app changes as you listen, and it can always show you why.</p>
+    <p class="g-value">Every screen on the phone is live. Walk one listener from a first visit to super fan; any step can be skipped.</p>
 
-    <div class="paths">
-      <button class="path active" data-app="./" type="button">
-        <span class="path__n">1</span>
-        <span><span class="path__t">Start on Home</span>
-        <span class="path__d">Shelves follow your session. The nav never moves.</span></span>
-      </button>
-      <button class="path" data-app="./artist/olivia-rodrigo" type="button">
-        <span class="path__n">2</span>
-        <span><span class="path__t">Open the adaptive artist profile</span>
-        <span class="path__d">The songs widget changes with your fandom. Every artist page stages itself the same way.</span></span>
-      </button>
-      <button class="path" data-app="./now-playing" type="button">
-        <span class="path__n">3</span>
-        <span><span class="path__t">Open Now Playing</span>
-        <span class="path__d">Lyrics and X-Ray, and what you play lights up the artist page.</span></span>
-      </button>
-      <button class="path" data-app="./artist/olivia-dean" type="button">
-        <span class="path__n">4</span>
-        <span><span class="path__t">Open a newer artist</span>
-        <span class="path__d">A thinner relationship gets the standard page; sections appear only once they're earned.</span></span>
-      </button>
+    <ol class="steps">
+      <li class="step">
+        <span class="step__n" aria-hidden="true">1</span>
+        <div class="step__body">
+          <span class="step__t">Open Olivia's page as a new listener</span>
+          <span class="step__d">Releases lead, the picks say why, and there are four tabs.</span>
+          <button class="step__go" type="button" data-app="./artist/olivia-rodrigo" data-stage="new" aria-pressed="false">Open</button>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step__n" aria-hidden="true">2</span>
+        <div class="step__body">
+          <span class="step__t">Tap Follow</span>
+          <span class="step__d">Your photo joins hers, You &amp; Olivia appears second in the tabs, and rows start to remember.</span>
+          <button class="step__go" type="button" data-app="./artist/olivia-rodrigo" data-stage="engaged" aria-pressed="false">Skip to Engaged</button>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step__n" aria-hidden="true">3</span>
+        <div class="step__body">
+          <span class="step__t">Reach super fan</span>
+          <span class="step__d">Go Home, scroll to the bottom and wait about ten seconds for the Top 3% card, then open You &amp; Olivia. Or choose Jump to Super Fan in her ⋯ menu.</span>
+          <button class="step__go" type="button" data-app="./artist/olivia-rodrigo" data-stage="superfan" aria-pressed="false">Skip to Super fan</button>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step__n" aria-hidden="true">4</span>
+        <div class="step__body">
+          <span class="step__t">Step back</span>
+          <span class="step__d">Tap Following, or tap Super Fan and choose Unfollow Olivia. The page returns to what a new listener sees.</span>
+          <button class="step__go" type="button" data-app="./" data-stage="new" aria-pressed="false">Start over</button>
+        </div>
+      </li>
+    </ol>
+
+    <div class="g-more" role="group" aria-label="Open a screen">
+      <span>Screens</span>
+      <button class="g-chip active" type="button" data-app="./" aria-pressed="true">Home</button>
+      <button class="g-chip" type="button" data-app="./artist/olivia-rodrigo" aria-pressed="false">Olivia</button>
+      <button class="g-chip" type="button" data-app="./now-playing" aria-pressed="false">Now Playing</button>
     </div>
 
-
-    <p class="g-fixed">Adaptive sections appear only when they're earned. The nav, tabs, and catalog never move.</p>
-    <p class="g-credit">DERBC Studio · CMU MHCI 2026 × Amazon Music · <a href="https://github.com/xiaobrook3/derbc-adaptive-ui" target="_blank" rel="noopener">source</a></p>
+    <p class="g-fixed"><b>Workarounds.</b> Progress stays when you switch screens or reload; the step buttons jump straight to a tier. The tiers are scripted: one demo listener, first play March 2021, at every tier. Where the browser has no share sheet, Share copies the text or downloads the card.</p>
+    <p class="g-credit">DERBC Studio · CMU MHCI 2026 × Amazon Music · <a href="https://github.com/xiaobrook3/amazon-music-adaptive-ui" target="_blank" rel="noopener">source</a></p>
   </aside>
 
 <script>
@@ -163,13 +187,22 @@
     var clock = document.getElementById("clock");
     function tick(){ var d=new Date(), h=d.getHours()%12, m=d.getMinutes(); if(h===0) h=12; clock.textContent = h+":"+(m<10?"0":"")+m; }
     tick(); setInterval(tick, 15000);
-    /* pathway buttons drive the phone: retarget the app iframe and mark active */
+    /* The buttons drive the phone. The client keeps its journey in the tab's session,
+       so switching screens keeps progress; a step button adds ?stage= to jump to its
+       tier, plus a unique t= because the client applies each ?stage= link only once. */
     var frame=document.getElementById("appframe");
-    var paths=[].slice.call(document.querySelectorAll(".path[data-app]"));
-    paths.forEach(function(p){
-      p.addEventListener("click",function(){
-        frame.src=p.getAttribute("data-app");
-        paths.forEach(function(o){ o.classList.toggle("active", o===p); });
+    var buttons=[].slice.call(document.querySelectorAll("[data-app]"));
+    buttons.forEach(function(b){
+      b.addEventListener("click",function(){
+        var stage=b.getAttribute("data-stage");
+        frame.src=b.getAttribute("data-app")+(stage ? "?stage="+stage+"&t="+Date.now() : "");
+        buttons.forEach(function(o){
+          var on=o===b;
+          o.classList.toggle("active", on && o.classList.contains("g-chip"));
+          o.setAttribute("aria-pressed", on ? "true" : "false");
+          var step=o.closest(".step");
+          if(step) step.classList.toggle("active", on);
+        });
       });
     });
   })();
